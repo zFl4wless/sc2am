@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sc2am"
+version = "0.1.0"
+description = "Automate downloading SoundCloud tracks and importing them to Apple Music"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "zFl4wless" }
+]
+keywords = ["soundcloud", "apple-music", "automation", "downloader"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+
+dependencies = [
+    "yt-dlp>=2024.0.0",
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "mutagen>=1.46.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/zfl4wless/sc2am"
+"Bug Tracker" = "https://github.com/zfl4wless/sc2am/issues"
+"Source Code" = "https://github.com/zfl4wless/sc2am"
+Documentation = "https://github.com/zfl4wless/sc2am/blob/main/README.md"
+
+[project.scripts]
+sc2am = "main:main"
+
+[tool.setuptools]
+packages = ["sc2am"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+

@@ -1,0 +1,271 @@
+"""
+SC2AM - SoundCloud to Apple Music automation tool
+Command-line interface and main entry point
+"""
+
+import sys
+from pathlib import Path
+from typing import Optional
+
+import click
+
+from sc2am.config_manager import ConfigManager
+from sc2am.logger import setup_logging
+from sc2am.validator import URLValidator
+from sc2am.downloader import Downloader
+from sc2am.apple_music import AppleMusicManager
+
+
+@click.group()
+@click.option(
+    '--config',
+    type=click.Path(exists=True),
+    help='Path to custom config file'
+)
+@click.option(
+    '--log-level',
+    type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR']),
+    default='INFO',
+    help='Logging level'
+)
+@click.pass_context
+def cli(ctx, config: Optional[str], log_level: str):
+    """
+    SC2AM - Automate downloading SoundCloud tracks and importing them to Apple Music.
+
+    \b
+    Examples:
+      # Download and open a single track
+      sc2am download "https://soundcloud.com/artist/track"
+
+      # Download and add to playlist
+      sc2am download "https://soundcloud.com/artist/track" --playlist "My Playlist"
+
+      # Batch process multiple URLs from file
+      sc2am batch urls.txt
+
+      # Initialize default config
+      sc2am config init
+    """
+    # Load configuration
+    config_path = Path(config) if config else None
+    cfg = ConfigManager.get_config(config_path)
+
+    # Override log level if specified
+    if log_level:
+        cfg.log_level = log_level
+
+    # Set up logging
+    logger = setup_logging(cfg.log_level, cfg.log_file)
+
+    # Store config in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj['config'] = cfg
+    ctx.obj['logger'] = logger
+
+
+@cli.command()
+@click.argument('url')
+@click.option(
+    '--playlist',
+    help='Add to this playlist (optional)'
+)
+@click.option(
+    '--no-open',
+    is_flag=True,
+    help='Don\'t automatically open with Apple Music'
+)
+@click.pass_context
+def download(ctx, url: str, playlist: Optional[str], no_open: bool):
+    """
+    Download a track from SoundCloud and import to Apple Music.
+
+    URL should be a valid SoundCloud track URL.
+    """
+    cfg = ctx.obj['config']
+    logger = ctx.obj['logger']
+
+    logger.info(f"Processing URL: {url}")
+
+    # Validate URL
+    is_valid, platform = URLValidator.validate_url(url)
+    if not is_valid:
+        click.secho(f"ERROR: Invalid URL: {platform}", fg='red')
+        logger.error(f"Invalid URL: {platform}")
+        sys.exit(1)
+
+    click.secho(f"OK: Valid {platform} URL", fg='green')
+    logger.debug(f"URL validated as {platform}")
+
+    # Download track
+    click.echo("Downloading track...")
+    downloader = Downloader(cfg.download_dir)
+    success, file_path, message = downloader.download(url)
+
+    if not success:
+        click.secho(f"ERROR: Download failed: {message}", fg='red')
+        logger.error(f"Download failed: {message}")
+        sys.exit(1)
+
+    click.secho(f"OK: {message}", fg='green')
+    logger.info(f"Successfully downloaded to {file_path}")
+
+    # Open with Apple Music
+    if not no_open and cfg.open_music_app:
+        click.echo("Opening with Apple Music...")
+        music_manager = AppleMusicManager()
+        success, msg = music_manager.open_file_with_music(file_path)
+        if success:
+            click.secho(f"OK: {msg}", fg='green')
+            logger.info(msg)
+        else:
+            click.secho(f"WARNING: {msg}", fg='yellow')
+            logger.warning(msg)
+
+    # Add to playlist
+    if playlist:
+        click.echo(f"Adding to playlist '{playlist}'...")
+        music_manager = AppleMusicManager()
+        success, msg = music_manager.add_to_playlist(file_path, playlist)
+        if success:
+            click.secho(f"OK: {msg}", fg='green')
+            logger.info(msg)
+        else:
+            click.secho(f"WARNING: {msg}", fg='yellow')
+            logger.warning(msg)
+
+    click.secho("\nDone!", fg='green', bold=True)
+
+
+@cli.command()
+@click.argument('batch_file', type=click.Path(exists=True))
+@click.option(
+    '--playlist',
+    help='Add all tracks to this playlist (optional)'
+)
+@click.option(
+    '--continue-on-error',
+    is_flag=True,
+    help='Continue processing if a URL fails'
+)
+@click.pass_context
+def batch(ctx, batch_file: str, playlist: Optional[str], continue_on_error: bool):
+    """
+    Process multiple URLs from a text file (one URL per line).
+
+    Lines starting with # are treated as comments and ignored.
+    """
+    cfg = ctx.obj['config']
+    logger = ctx.obj['logger']
+
+    logger.info(f"Processing batch file: {batch_file}")
+
+    # Validate batch file
+    all_valid, urls, errors = URLValidator.validate_batch_file(batch_file)
+
+    if errors:
+        for line_num, error in errors:
+            click.secho(f"ERROR: Line {line_num}: {error}", fg='red')
+            logger.error(f"Line {line_num}: {error}")
+
+    if not urls:
+        click.secho("No valid URLs found in batch file.", fg='yellow')
+        logger.warning("No valid URLs in batch file")
+        sys.exit(1)
+
+    click.secho(f"OK: Found {len(urls)} valid URL(s)", fg='green')
+    logger.info(f"Found {len(urls)} valid URLs")
+
+    # Process each URL
+    downloader = Downloader(cfg.download_dir)
+    music_manager = AppleMusicManager()
+    successful = 0
+    failed = 0
+
+    for i, url in enumerate(urls, 1):
+        click.echo(f"\n[{i}/{len(urls)}] Processing: {url}")
+        logger.debug(f"Processing URL {i}/{len(urls)}")
+
+        # Download
+        success, file_path, message = downloader.download(url)
+        if not success:
+            click.secho(f"  ERROR: Download failed: {message}", fg='red')
+            logger.error(f"Download failed: {message}")
+            failed += 1
+            if not continue_on_error:
+                sys.exit(1)
+            continue
+
+        click.secho("  OK: Downloaded", fg='green')
+        successful += 1
+
+        # Open with Apple Music
+        if cfg.open_music_app:
+            success, msg = music_manager.open_file_with_music(file_path)
+            if success:
+                click.secho("  OK: Opened with Apple Music", fg='green')
+            else:
+                click.secho(f"  WARNING: {msg}", fg='yellow')
+
+        # Add to playlist
+        if playlist:
+            success, msg = music_manager.add_to_playlist(file_path, playlist)
+            if success:
+                click.secho("  OK: Added to playlist", fg='green')
+            else:
+                click.secho(f"  WARNING: {msg}", fg='yellow')
+
+    # Summary
+    click.echo("\n" + "=" * 50)
+    click.secho(f"Processed: {successful} successful, {failed} failed", fg='green', bold=True)
+    logger.info(f"Batch complete: {successful} successful, {failed} failed")
+
+
+@cli.group()
+def config():
+    """Manage SC2AM configuration."""
+    pass
+
+
+@config.command('init')
+@click.option('--force', is_flag=True, help='Overwrite existing config')
+@click.pass_context
+def config_init(ctx, force: bool):
+    """Initialize default configuration file."""
+    logger = ctx.obj['logger']
+
+    click.echo("Initializing SC2AM configuration...")
+    config_path = ConfigManager.create_default_config(force=force)
+    click.secho(f"OK: Configuration file created at: {config_path}", fg='green')
+    logger.info(f"Config initialized at {config_path}")
+
+
+@config.command('show')
+@click.pass_context
+def config_show(ctx):
+    """Display current configuration."""
+    cfg = ctx.obj['config']
+
+    click.echo("\nCurrent Configuration:")
+    click.echo("=" * 50)
+    click.echo(f"Download Directory:  {cfg.download_dir}")
+    click.echo(f"Music Library:       {cfg.music_library_path or '(auto-detect)'}")
+    click.echo(f"Default Playlist:    {cfg.default_playlist or '(none)'}")
+    click.echo(f"Keep Downloads:      {cfg.keep_downloads}")
+    click.echo(f"Open Music App:      {cfg.open_music_app}")
+    click.echo(f"Log Level:           {cfg.log_level}")
+    click.echo(f"Log File:            {cfg.log_file or '(console only)'}")
+    click.echo("=" * 50)
+
+
+def main():
+    """Main entry point."""
+    try:
+        cli(obj={})
+    except Exception as e:
+        click.secho(f"Fatal error: {e}", fg='red')
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
