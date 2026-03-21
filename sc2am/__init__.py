@@ -10,6 +10,7 @@ from sc2am.config_manager import ConfigManager, AppConfig
 from sc2am.logger import setup_logging
 from sc2am.downloader import Downloader
 from sc2am.apple_music import AppleMusicManager
+from sc2am.metadata import MetadataWriter
 from sc2am.validator import URLValidator
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     'setup_logging',
     'Downloader',
     'AppleMusicManager',
+    'MetadataWriter',
     'URLValidator',
 ]
 

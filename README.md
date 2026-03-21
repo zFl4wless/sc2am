@@ -2,6 +2,8 @@
 
 A Python CLI tool that automates downloading tracks from SoundCloud and importing them into Apple Music on macOS.
 
+The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, so Apple Music shows the correct track information after import.
+
 ## Installation
 
 ### Requirements
@@ -144,8 +146,9 @@ SC2AM_DOWNLOAD_DIR=~/Music python main.py download "..."
 
 1. **Validate** - Checks if the provided URL is from a supported platform
 2. **Download** - Uses yt-dlp to download audio as MP3 (192kbps)
-3. **Open** - Launches Apple Music with the MP3 file
-4. **Add** - (Optional) Adds track to specified playlist via AppleScript
+3. **Tag** - Embeds title, artist, album/genre/date and cover artwork into the MP3
+4. **Open** - Launches Apple Music with the tagged MP3 file
+5. **Add** - (Optional) Adds track to specified playlist via AppleScript
 
 ## Troubleshooting
 

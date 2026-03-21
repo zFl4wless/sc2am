@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 import shutil
 
+from .metadata import MetadataWriter
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,6 +26,7 @@ class Downloader:
             download_dir: Directory where files will be downloaded
         """
         self.download_dir = Path(download_dir)
+        self.metadata_writer = MetadataWriter()
         self._check_dependencies()
 
     @staticmethod
@@ -48,6 +51,13 @@ class Downloader:
         """
         # Create download directory if needed
         self.download_dir.mkdir(parents=True, exist_ok=True)
+
+        track_info: Optional[Dict[str, Any]] = None
+        info_ok, info, info_msg = self.get_track_info(url)
+        if info_ok and info is not None:
+            track_info = info
+        else:
+            logger.warning(f"Could not fetch track metadata before download: {info_msg}")
         
         # yt-dlp command
         output_template = str(self.download_dir / "%(title)s.%(ext)s")
@@ -59,6 +69,7 @@ class Downloader:
             '--audio-format', 'mp3',
             '--audio-quality', '192',
             '--output', output_template,
+            '--print', 'after_move:filepath',
             '--quiet',
             url
         ]
@@ -77,15 +88,21 @@ class Downloader:
                 logger.error(f"Download failed: {error_msg}")
                 return False, None, f"Download failed: {error_msg}"
             
-            # Find the downloaded file
-            mp3_files = list(self.download_dir.glob("*.mp3"))
-            if not mp3_files:
+            downloaded_file = self._resolve_downloaded_file(result.stdout)
+            if downloaded_file is None:
                 return False, None, "No MP3 file found after download"
-            
-            # Return the most recently modified file
-            downloaded_file = max(mp3_files, key=lambda p: p.stat().st_mtime)
+
+            metadata_message = ""
+            if track_info:
+                meta_ok, meta_msg = self.metadata_writer.write_to_file(downloaded_file, track_info)
+                if meta_ok:
+                    metadata_message = " (metadata embedded)"
+                else:
+                    metadata_message = f" (metadata skipped: {meta_msg})"
+                    logger.warning(f"Metadata tagging issue: {meta_msg}")
+
             logger.info(f"Successfully downloaded: {downloaded_file.name}")
-            return True, downloaded_file, f"Downloaded: {downloaded_file.name}"
+            return True, downloaded_file, f"Downloaded: {downloaded_file.name}{metadata_message}"
         
         except subprocess.TimeoutExpired:
             logger.error("Download timeout")
@@ -93,6 +110,19 @@ class Downloader:
         except Exception as e:
             logger.error(f"Unexpected error during download: {e}")
             return False, None, f"Unexpected error: {str(e)}"
+
+    def _resolve_downloaded_file(self, stdout: str) -> Optional[Path]:
+        """Resolve the resulting MP3 path from yt-dlp output with a fallback scan."""
+        output_lines = [line.strip() for line in stdout.splitlines() if line.strip()]
+        for line in reversed(output_lines):
+            candidate = Path(line)
+            if candidate.suffix.lower() == '.mp3' and candidate.exists():
+                return candidate
+
+        mp3_files = list(self.download_dir.glob("*.mp3"))
+        if not mp3_files:
+            return None
+        return max(mp3_files, key=lambda p: p.stat().st_mtime)
     
     @staticmethod
     def get_track_info(url: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:

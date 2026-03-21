@@ -112,5 +112,4 @@ Feel free to open an issue for any questions about contributing.
 
 ---
 
-Thank you for helping improve SC2AM! 🎵
-
+Thank you for helping improve SC2AM!
