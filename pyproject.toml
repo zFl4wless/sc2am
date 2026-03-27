@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sc2am"
-version = "0.1.0"
+version = "0.2.0"
 description = "Automate downloading SoundCloud tracks and importing them to Apple Music"
 readme = "README.md"
 requires-python = ">=3.8"

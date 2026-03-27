@@ -2,7 +2,7 @@
 SC2AM - SoundCloud to Apple Music automation tool
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "zFl4wless"
 __description__ = "Automate downloading SoundCloud tracks and importing them to Apple Music"
 
