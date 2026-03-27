@@ -30,10 +30,10 @@ Be respectful, inclusive, and considerate of others.
 1. **Fork the repository**
 2. **Create a feature branch**: `git checkout -b feature/my-feature`
 3. **Make changes** following the code style
-5. **Update documentation** as needed
-6. **Commit with clear messages**: `git commit -m "Add feature: description"`
-7. **Push to your fork**: `git push origin feature/my-feature`
-8. **Open a Pull Request** with detailed description
+4. **Update documentation** as needed
+5. **Commit with clear messages**: `git commit -m "Add feature: description"`
+6. **Push to your fork**: `git push origin feature/my-feature`
+7. **Open a Pull Request** with detailed description
 
 ## Development Setup
 
@@ -47,20 +47,19 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install dev dependencies
-pip install -r requirements.txt
-# pip install -r requirements-dev.txt  # When available
+pip install -r requirements-dev.txt
 ```
 
 ## Code Style
 
-- **Python**: Follow PEP 8
+- **Python**: Follow PEP 8, format with Black
 - **Naming**: Clear, descriptive names
-- **Documentation**: Docstrings for all functions/classes
+- **Documentation**: Add docstrings for modules/classes and non-trivial functions
 - **Comments**: Explain "why", not "what"
 
 ### Example function:
 ```python
-def download(self, url: str) -> Tuple[bool, Optional[Path], str]:
+def download(self, url: str):
     """
     Download audio from URL.
     
