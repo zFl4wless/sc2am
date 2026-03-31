@@ -5,7 +5,7 @@ Command-line interface and main entry point
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, NoReturn
 
 import click
 
@@ -14,6 +14,25 @@ from sc2am.logger import setup_logging
 from sc2am.validator import URLValidator
 from sc2am.downloader import Downloader
 from sc2am.apple_music import AppleMusicManager
+
+
+def _exit_with_error(logger, message: str) -> NoReturn:
+    click.secho(f"ERROR: {message}", fg='red')
+    logger.error(message)
+    sys.exit(1)
+
+
+def _create_downloader(cfg, logger) -> Downloader:
+    try:
+        return Downloader(cfg.download_dir)
+    except RuntimeError as exc:
+        _exit_with_error(logger, str(exc))
+
+
+def _require_downloaded_file(file_path: Optional[Path], logger) -> Path:
+    if file_path is None:
+        _exit_with_error(logger, "Download completed but no file was found.")
+    return file_path
 
 
 @click.group()
@@ -90,22 +109,20 @@ def download(ctx, url: str, playlist: Optional[str], no_open: bool):
     # Validate URL
     is_valid, platform = URLValidator.validate_url(url)
     if not is_valid:
-        click.secho(f"ERROR: Invalid URL: {platform}", fg='red')
-        logger.error(f"Invalid URL: {platform}")
-        sys.exit(1)
+        _exit_with_error(logger, f"Invalid URL: {platform}")
 
     click.secho(f"OK: Valid {platform} URL", fg='green')
     logger.debug(f"URL validated as {platform}")
 
     # Download track
     click.echo("Downloading track...")
-    downloader = Downloader(cfg.download_dir)
+    downloader = _create_downloader(cfg, logger)
     success, file_path, message = downloader.download(url)
 
     if not success:
-        click.secho(f"ERROR: Download failed: {message}", fg='red')
-        logger.error(f"Download failed: {message}")
-        sys.exit(1)
+        _exit_with_error(logger, message)
+
+    file_path = _require_downloaded_file(file_path, logger)
 
     click.secho(f"OK: {message}", fg='green')
     logger.info(f"Successfully downloaded to {file_path}")
@@ -169,15 +186,14 @@ def batch(ctx, batch_file: str, playlist: Optional[str], continue_on_error: bool
             logger.error(f"Line {line_num}: {error}")
 
     if not urls:
-        click.secho("No valid URLs found in batch file.", fg='yellow')
-        logger.warning("No valid URLs in batch file")
-        sys.exit(1)
+        _exit_with_error(logger, "No valid URLs found in batch file.")
 
     click.secho(f"OK: Found {len(urls)} valid URL(s)", fg='green')
     logger.info(f"Found {len(urls)} valid URLs")
 
     # Process each URL
-    downloader = Downloader(cfg.download_dir)
+    downloader = _create_downloader(cfg, logger)
+
     music_manager = AppleMusicManager()
     successful = 0
     failed = 0
@@ -189,12 +205,14 @@ def batch(ctx, batch_file: str, playlist: Optional[str], continue_on_error: bool
         # Download
         success, file_path, message = downloader.download(url)
         if not success:
-            click.secho(f"  ERROR: Download failed: {message}", fg='red')
-            logger.error(f"Download failed: {message}")
+            click.secho(f"  ERROR: {message}", fg='red')
+            logger.error(message)
             failed += 1
             if not continue_on_error:
                 sys.exit(1)
             continue
+
+        file_path = _require_downloaded_file(file_path, logger)
 
         click.secho("  OK: Downloaded", fg='green')
         successful += 1
