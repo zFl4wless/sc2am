@@ -52,7 +52,22 @@ class URLValidator:
                 return False, "URL is missing scheme or domain"
             
             # Extract domain without www
-            domain = parsed.netloc.replace('www.', '')
+            domain = (parsed.hostname or parsed.netloc).replace('www.', '')
+
+            if domain == 'soundcloud.com':
+                path_segments = [segment for segment in parsed.path.split('/') if segment]
+                if len(path_segments) != 2:
+                    return False, (
+                        "Unsupported SoundCloud URL. Please provide a track URL like "
+                        "https://soundcloud.com/<artist>/<track>"
+                    )
+
+                normalized_path = "/" + "/".join(path_segments)
+                if not URLValidator.SOUNDCLOUD_PATTERN.match(f"https://soundcloud.com{normalized_path}/"):
+                    return False, (
+                        "Unsupported SoundCloud URL. Please provide a track URL like "
+                        "https://soundcloud.com/<artist>/<track>"
+                    )
             
             for supported_domain, platform in URLValidator.SUPPORTED_DOMAINS.items():
                 if domain.endswith(supported_domain):

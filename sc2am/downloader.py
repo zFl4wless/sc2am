@@ -4,8 +4,8 @@ Handles downloading audio from various platforms using yt-dlp.
 """
 
 import logging
-import subprocess
 import json
+import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 import shutil
@@ -17,7 +17,42 @@ logger = logging.getLogger(__name__)
 
 class Downloader:
     """Downloads audio tracks from supported platforms."""
-    
+
+    _INVALID_URL_PATTERNS = (
+        "unsupported url",
+        "invalid url",
+        "no suitable extractors",
+        "no extractors found",
+        "not a valid url",
+    )
+    _TEMPORARY_NETWORK_PATTERNS = (
+        "timed out",
+        "timeout",
+        "temporary failure",
+        "name or service not known",
+        "connection refused",
+        "connection reset",
+        "network is unreachable",
+        "unable to download webpage",
+        "http error 5",
+        "bad gateway",
+        "gateway timeout",
+        "service unavailable",
+    )
+    _ACCESS_PATTERNS = (
+        "http error 401",
+        "http error 403",
+        "forbidden",
+        "access denied",
+        "private",
+    )
+    _NOT_FOUND_PATTERNS = (
+        "http error 404",
+        "not found",
+        "deleted",
+        "removed",
+    )
+
     def __init__(self, download_dir: Path):
         """
         Initialize downloader.
@@ -32,12 +67,12 @@ class Downloader:
     @staticmethod
     def _check_dependencies() -> None:
         """Check if yt-dlp is installed."""
-        result = shutil.which('yt-dlp')
-        if not result:
+        yt_dlp_path = shutil.which('yt-dlp')
+        if not yt_dlp_path:
             raise RuntimeError(
                 "yt-dlp is not installed. Install it with: pip install yt-dlp"
             )
-        logger.debug("yt-dlp found at: " + result)
+        logger.debug(f"yt-dlp found at: {yt_dlp_path}")
 
     def download(self, url: str) -> Tuple[bool, Optional[Path], str]:
         """
@@ -84,10 +119,10 @@ class Downloader:
             )
             
             if result.returncode != 0:
-                error_msg = result.stderr or "Unknown error"
+                error_msg = self._classify_download_error(result.stderr)
                 logger.error(f"Download failed: {error_msg}")
-                return False, None, f"Download failed: {error_msg}"
-            
+                return False, None, error_msg
+
             downloaded_file = self._resolve_downloaded_file(result.stdout)
             if downloaded_file is None:
                 return False, None, "No MP3 file found after download"
@@ -105,11 +140,36 @@ class Downloader:
             return True, downloaded_file, f"Downloaded: {downloaded_file.name}{metadata_message}"
         
         except subprocess.TimeoutExpired:
-            logger.error("Download timeout")
-            return False, None, "Download timeout (exceeded 5 minutes)"
+            message = "Download timed out after 5 minutes. Please try again later."
+            logger.error(message)
+            return False, None, message
         except Exception as e:
-            logger.error(f"Unexpected error during download: {e}")
-            return False, None, f"Unexpected error: {str(e)}"
+            message = f"Unexpected download error: {str(e)}"
+            logger.error(message)
+            return False, None, message
+
+    @classmethod
+    def _classify_download_error(cls, stderr: str) -> str:
+        """Convert yt-dlp failures into user-friendly messages."""
+        error_text = (stderr or "").strip()
+        lowered = error_text.lower()
+
+        if not error_text:
+            return "Download failed: yt-dlp returned an unknown error"
+
+        if any(pattern in lowered for pattern in cls._INVALID_URL_PATTERNS):
+            return f"Invalid or unsupported URL: {error_text}"
+
+        if any(pattern in lowered for pattern in cls._ACCESS_PATTERNS):
+            return f"Access denied or private track: {error_text}"
+
+        if any(pattern in lowered for pattern in cls._NOT_FOUND_PATTERNS):
+            return f"Track not found or removed: {error_text}"
+
+        if any(pattern in lowered for pattern in cls._TEMPORARY_NETWORK_PATTERNS):
+            return f"Temporary network error: {error_text}"
+
+        return f"Download failed: {error_text}"
 
     def _resolve_downloaded_file(self, stdout: str) -> Optional[Path]:
         """Resolve the resulting MP3 path from yt-dlp output with a fallback scan."""
@@ -151,9 +211,9 @@ class Downloader:
             )
             
             if result.returncode != 0:
-                error_msg = result.stderr or "Could not fetch track info"
-                return False, None, error_msg
-            
+                error_msg = Downloader._classify_download_error(result.stderr)
+                return False, None, f"Could not fetch track info: {error_msg}"
+
             info = json.loads(result.stdout)
             return True, info, "Info fetched successfully"
         
