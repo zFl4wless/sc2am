@@ -2,7 +2,6 @@
 URL validation utilities for sc2am.
 """
 
-import re
 import logging
 from typing import List, Tuple
 from urllib.parse import urlparse
@@ -12,20 +11,23 @@ logger = logging.getLogger(__name__)
 
 class URLValidator:
     """Validates SoundCloud and other music platform URLs."""
-    
+
     # Supported platforms
-    SOUNDCLOUD_PATTERN = re.compile(
-        r'^https?://(?:www\.)?soundcloud\.com/[\w-]+/[\w-]+/?$',
-        re.IGNORECASE
-    )
-    
     SUPPORTED_DOMAINS = {
         'soundcloud.com': 'SoundCloud',
+        'www.soundcloud.com': 'SoundCloud',
         'youtube.com': 'YouTube',
+        'www.youtube.com': 'YouTube',
         'youtu.be': 'YouTube',
         'spotify.com': 'Spotify',
+        'www.spotify.com': 'Spotify',
     }
-    
+
+    SOUNDCLOUD_TRACK_HELP = (
+        "Unsupported SoundCloud URL. Please provide a track URL like "
+        "https://soundcloud.com/<artist>/<track>"
+    )
+
     @staticmethod
     def validate_url(url: str) -> Tuple[bool, str]:
         """
@@ -41,36 +43,38 @@ class URLValidator:
             return False, "Invalid URL format"
         
         url = url.strip()
-        
+
+        if not url:
+            return False, "Invalid URL format"
+
         try:
             parsed = urlparse(url)
             if not parsed.scheme:
                 url = f"https://{url}"
                 parsed = urlparse(url)
             
-            if not parsed.scheme or not parsed.netloc:
-                return False, "URL is missing scheme or domain"
-            
-            # Extract domain without www
-            domain = (parsed.hostname or parsed.netloc).replace('www.', '')
+            if parsed.scheme not in ("http", "https"):
+                return False, "Unsupported URL scheme. Please use http or https."
 
-            if domain == 'soundcloud.com':
+            if not parsed.netloc:
+                return False, "URL is missing scheme or domain"
+
+            domain = (parsed.hostname or "").lower()
+            if not domain:
+                return False, "URL is missing scheme or domain"
+
+            if domain in {"soundcloud.com", "www.soundcloud.com"}:
                 path_segments = [segment for segment in parsed.path.split('/') if segment]
                 if len(path_segments) != 2:
-                    return False, (
-                        "Unsupported SoundCloud URL. Please provide a track URL like "
-                        "https://soundcloud.com/<artist>/<track>"
-                    )
+                    return False, URLValidator.SOUNDCLOUD_TRACK_HELP
 
-                normalized_path = "/" + "/".join(path_segments)
-                if not URLValidator.SOUNDCLOUD_PATTERN.match(f"https://soundcloud.com{normalized_path}/"):
-                    return False, (
-                        "Unsupported SoundCloud URL. Please provide a track URL like "
-                        "https://soundcloud.com/<artist>/<track>"
-                    )
-            
+                if any(not segment.strip() for segment in path_segments):
+                    return False, URLValidator.SOUNDCLOUD_TRACK_HELP
+
+                return True, "SoundCloud"
+
             for supported_domain, platform in URLValidator.SUPPORTED_DOMAINS.items():
-                if domain.endswith(supported_domain):
+                if domain == supported_domain:
                     return True, platform
             
             return False, f"Unsupported platform: {domain}"
