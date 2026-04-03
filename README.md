@@ -41,6 +41,10 @@ This creates a default config at `~/.sc2am/config.yaml`.
 
 ### Quick Start
 
+SoundCloud-Links must point to a single track, for example:
+`https://soundcloud.com/artist/track`
+or `https://www.soundcloud.com/artist/track`.
+
 **Download a single track:**
 ```bash
 python main.py download "https://soundcloud.com/artist/track"
