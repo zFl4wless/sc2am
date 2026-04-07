@@ -3,6 +3,7 @@ SC2AM - SoundCloud to Apple Music automation tool
 Command-line interface and main entry point
 """
 
+import logging
 import sys
 from pathlib import Path
 from typing import Optional, NoReturn
@@ -16,22 +17,24 @@ from sc2am.downloader import Downloader
 from sc2am.apple_music import AppleMusicManager
 
 
-def _exit_with_error(logger, message: str) -> NoReturn:
-    click.secho(f"ERROR: {message}", fg='red')
-    logger.error(message)
-    sys.exit(1)
+def _exit_with_error(logger, message: str, detail: Optional[str] = None) -> NoReturn:
+    logger.error(detail or message)
+    raise click.ClickException(message)
 
 
 def _create_downloader(cfg, logger) -> Downloader:
     try:
         return Downloader(cfg.download_dir)
     except RuntimeError as exc:
-        _exit_with_error(logger, str(exc))
+        _exit_with_error(logger, "Unable to prepare downloads.", str(exc))
 
 
 def _require_downloaded_file(file_path: Optional[Path], logger) -> Path:
     if file_path is None:
-        _exit_with_error(logger, "Download completed but no file was found.")
+        _exit_with_error(
+            logger,
+            "Download finished, but the MP3 file could not be located.",
+        )
     return file_path
 
 
@@ -68,7 +71,12 @@ def cli(ctx, config: Optional[str], log_level: str):
     """
     # Load configuration
     config_path = Path(config) if config else None
-    cfg = ConfigManager.get_config(config_path)
+    try:
+        cfg = ConfigManager.get_config(config_path)
+    except Exception as exc:
+        raise click.ClickException(
+            "Failed to load configuration. Please check your config file and environment variables."
+        ) from exc
 
     # Override log level if specified
     if log_level:
@@ -109,7 +117,7 @@ def download(ctx, url: str, playlist: Optional[str], no_open: bool):
     # Validate URL
     is_valid, platform = URLValidator.validate_url(url)
     if not is_valid:
-        _exit_with_error(logger, f"Invalid URL: {platform}")
+        _exit_with_error(logger, platform)
 
     click.secho(f"OK: Valid {platform} URL", fg='green')
     logger.debug(f"URL validated as {platform}")
@@ -253,7 +261,15 @@ def config_init(ctx, force: bool):
     logger = ctx.obj['logger']
 
     click.echo("Initializing SC2AM configuration...")
-    config_path = ConfigManager.create_default_config(force=force)
+    try:
+        config_path = ConfigManager.create_default_config(force=force)
+    except Exception as exc:
+        _exit_with_error(
+            logger,
+            "Could not create the configuration file.",
+            str(exc),
+        )
+
     click.secho(f"OK: Configuration file created at: {config_path}", fg='green')
     logger.info(f"Config initialized at {config_path}")
 
@@ -280,8 +296,12 @@ def main():
     """Main entry point."""
     try:
         cli(obj={})
-    except Exception as e:
-        click.secho(f"Fatal error: {e}", fg='red')
+    except Exception:
+        logging.getLogger("sc2am").exception("Unhandled CLI error")
+        click.secho(
+            "ERROR: An unexpected error occurred. Please check the log file for details.",
+            fg='red',
+        )
         sys.exit(1)
 
 
