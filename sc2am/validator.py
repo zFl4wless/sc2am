@@ -24,7 +24,7 @@ class URLValidator:
     }
 
     SOUNDCLOUD_TRACK_HELP = (
-        "Unsupported SoundCloud URL. Please provide a track URL like "
+        "Only SoundCloud track URLs are supported. Please use a URL like "
         "https://soundcloud.com/<artist>/<track>"
     )
 
@@ -40,12 +40,12 @@ class URLValidator:
             Tuple of (is_valid, platform_name)
         """
         if not url or not isinstance(url, str):
-            return False, "Invalid URL format"
-        
+            return False, "Please provide a valid URL."
+
         url = url.strip()
 
         if not url:
-            return False, "Invalid URL format"
+            return False, "Please provide a valid URL."
 
         try:
             parsed = urlparse(url)
@@ -54,14 +54,14 @@ class URLValidator:
                 parsed = urlparse(url)
             
             if parsed.scheme not in ("http", "https"):
-                return False, "Unsupported URL scheme. Please use http or https."
+                return False, "Please use a URL that starts with http:// or https://."
 
             if not parsed.netloc:
-                return False, "URL is missing scheme or domain"
+                return False, "The URL is missing a domain name."
 
             domain = (parsed.hostname or "").lower()
             if not domain:
-                return False, "URL is missing scheme or domain"
+                return False, "The URL is missing a domain name."
 
             if domain in {"soundcloud.com", "www.soundcloud.com"}:
                 path_segments = [segment for segment in parsed.path.split('/') if segment]
@@ -75,13 +75,16 @@ class URLValidator:
 
             for supported_domain, platform in URLValidator.SUPPORTED_DOMAINS.items():
                 if domain == supported_domain:
+                    if platform != "SoundCloud":
+                        return False, "Only SoundCloud track URLs are supported right now."
                     return True, platform
             
-            return False, f"Unsupported platform: {domain}"
-        
+            return False, "Only SoundCloud track URLs are supported right now."
+
         except Exception as e:
-            return False, f"URL parsing error: {str(e)}"
-    
+            logger.exception("URL validation failed")
+            return False, "The URL could not be parsed. Please check the format and try again."
+
     @staticmethod
     def validate_batch_file(file_path: str) -> Tuple[bool, List[str], List[Tuple[int, str]]]:
         """
@@ -111,9 +114,10 @@ class URLValidator:
                         errors.append((line_num, platform))
         
         except FileNotFoundError:
-            errors.append((0, f"File not found: {file_path}"))
+            errors.append((0, "Batch file not found. Please check the file path and try again."))
         except Exception as e:
-            errors.append((0, f"Error reading file: {str(e)}"))
-        
+            logger.exception("Failed to read batch file")
+            errors.append((0, "The batch file could not be read. Please check the file and try again."))
+
         return len(errors) == 0, valid_urls, errors
 

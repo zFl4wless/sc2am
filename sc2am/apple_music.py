@@ -37,11 +37,11 @@ class AppleMusicManager:
             Tuple of (success, message)
         """
         if not file_path.exists():
-            return False, f"File not found: {file_path}"
-        
+            return False, "The downloaded file was not found."
+
         if not file_path.suffix.lower() == '.mp3':
-            return False, f"File is not an MP3: {file_path}"
-        
+            return False, "The selected file is not an MP3."
+
         try:
             # Use 'open' command with -a flag to open with specific app
             cmd = ['open', '-a', 'Music', str(file_path)]
@@ -50,15 +50,15 @@ class AppleMusicManager:
             if result.returncode != 0:
                 error = result.stderr or "Unknown error"
                 logger.error(f"Failed to open file with Music app: {error}")
-                return False, f"Failed to open: {error}"
-            
+                return False, "Could not open the file in Apple Music. Make sure Apple Music is installed and allowed to automate."
+
             logger.info(f"Opened {file_path.name} with Apple Music")
             return True, f"Opened with Apple Music"
         
         except Exception as e:
-            logger.error(f"Error opening file: {e}")
-            return False, f"Error: {str(e)}"
-    
+            logger.exception("Error opening file in Apple Music")
+            return False, "Could not open the file in Apple Music. Please check the log file for details."
+
     @staticmethod
     def add_to_playlist(file_path: Path, playlist_name: str) -> Tuple[bool, str]:
         """
@@ -72,8 +72,8 @@ class AppleMusicManager:
             Tuple of (success, message)
         """
         if not file_path.exists():
-            return False, f"File not found: {file_path}"
-        
+            return False, "The downloaded file was not found."
+
         # AppleScript to add track to playlist
         applescript = f'''
         tell application "Music"
@@ -93,15 +93,15 @@ class AppleMusicManager:
             if result.returncode != 0:
                 error = result.stderr or "Unknown error"
                 logger.warning(f"Failed to add to playlist: {error}")
-                return False, f"Failed to add to playlist: {error}"
-            
+                return False, "Could not add the track to the playlist. Check that the playlist exists and Apple Music automation is allowed."
+
             logger.info(f"Added {file_path.name} to playlist '{playlist_name}'")
             return True, f"Added to playlist '{playlist_name}'"
         
         except Exception as e:
-            logger.error(f"Error with AppleScript: {e}")
-            return False, f"AppleScript error: {str(e)}"
-    
+            logger.exception("Error running AppleScript")
+            return False, "Could not add the track to the playlist. Please check the log file for details."
+
     @staticmethod
     def get_playlists() -> Tuple[bool, list, str]:
         """
@@ -126,8 +126,8 @@ class AppleMusicManager:
             if result.returncode != 0:
                 error = result.stderr or "Unknown error"
                 logger.error(f"Failed to get playlists: {error}")
-                return False, [], error
-            
+                return False, [], "Could not retrieve playlists from Apple Music."
+
             # Parse output - AppleScript returns comma-separated names
             output = result.stdout.strip()
             if not output:
@@ -138,6 +138,6 @@ class AppleMusicManager:
             return True, playlists, "Playlists retrieved"
         
         except Exception as e:
-            logger.error(f"Error fetching playlists: {e}")
-            return False, [], f"Error: {str(e)}"
+            logger.exception("Error fetching playlists")
+            return False, [], "Could not retrieve playlists from Apple Music."
 
