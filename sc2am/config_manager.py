@@ -11,6 +11,12 @@ import yaml
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 logger = logging.getLogger(__name__)
+LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+def default_download_dir() -> Path:
+    """Return the default download directory for fresh installs."""
+    return Path.home() / "Downloads" / "sc2am"
 
 
 class AppConfig(BaseModel):
@@ -20,7 +26,7 @@ class AppConfig(BaseModel):
     
     # Paths
     download_dir: Path = Field(
-        default=Path.home() / "Downloads" / "sc2am",
+        default_factory=default_download_dir,
         description="Directory where MP3s will be downloaded"
     )
     
@@ -68,9 +74,8 @@ class AppConfig(BaseModel):
     @classmethod
     def validate_log_level(cls, v):
         """Ensure log level is valid."""
-        valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
-        if v.upper() not in valid_levels:
-            raise ValueError(f"Log level must be one of {valid_levels}")
+        if v.upper() not in LOG_LEVELS:
+            raise ValueError(f"Log level must be one of {list(LOG_LEVELS)}")
         return v.upper()
 
 
@@ -79,7 +84,22 @@ class ConfigManager:
     
     CONFIG_DIR = Path.home() / ".sc2am"
     CONFIG_FILE = CONFIG_DIR / "config.yaml"
-    
+
+    @staticmethod
+    def _serialize_config_value(value: Any) -> Any:
+        if isinstance(value, Path):
+            return str(value)
+        return value
+
+    @staticmethod
+    def default_config_data() -> Dict[str, Any]:
+        """Build the canonical default configuration as plain YAML-safe data."""
+        default_config = AppConfig().model_dump(mode="python")
+        return {
+            key: ConfigManager._serialize_config_value(value)
+            for key, value in default_config.items()
+        }
+
     @staticmethod
     def get_config(config_path: Optional[Path] = None) -> AppConfig:
         """
@@ -162,19 +182,14 @@ class ConfigManager:
             logger.info(f"Config file already exists at {ConfigManager.CONFIG_FILE}")
             return ConfigManager.CONFIG_FILE
         
-        default_config = {
-            'download_dir': str(Path.home() / "Downloads" / "sc2am"),
-            'music_library_path': None,
-            'default_playlist': None,
-            'keep_downloads': True,
-            'open_music_app': True,
-            'log_level': 'INFO',
-            'log_file': None,
-        }
-        
         with open(ConfigManager.CONFIG_FILE, 'w') as f:
-            yaml.dump(default_config, f, default_flow_style=False)
-        
+            yaml.safe_dump(
+                ConfigManager.default_config_data(),
+                f,
+                default_flow_style=False,
+                sort_keys=False,
+            )
+
         logger.info(f"Created default config at {ConfigManager.CONFIG_FILE}")
         return ConfigManager.CONFIG_FILE
 

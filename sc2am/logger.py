@@ -13,7 +13,7 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[Path] = None) -> l
     Set up logging with both console and optional file handlers.
     
     Args:
-        log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Optional path to log file
         
     Returns:

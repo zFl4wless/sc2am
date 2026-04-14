@@ -10,7 +10,7 @@ from typing import Optional, NoReturn
 
 import click
 
-from sc2am.config_manager import ConfigManager
+from sc2am.config_manager import ConfigManager, LOG_LEVELS
 from sc2am.logger import setup_logging
 from sc2am.validator import URLValidator
 from sc2am.downloader import Downloader
@@ -46,8 +46,8 @@ def _require_downloaded_file(file_path: Optional[Path], logger) -> Path:
 )
 @click.option(
     '--log-level',
-    type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR']),
-    default='INFO',
+    type=click.Choice(LOG_LEVELS),
+    default=ConfigManager.default_config_data()["log_level"],
     help='Logging level'
 )
 @click.pass_context
