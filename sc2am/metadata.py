@@ -5,6 +5,7 @@ Metadata embedding utilities for downloaded audio files.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -106,13 +107,21 @@ class MetadataWriter:
         id3.save(str(file_path), v2_version=3)
 
     def _extract_tags(self, track_info: Dict[str, Any]) -> Dict[str, str]:
-        title = self._first_available(track_info.get("track"), track_info.get("title"), "Unknown Title")
+        track_value = track_info.get("track")
+        title = self._first_available(
+            self._first_available(track_value) if not self._looks_like_track_number(track_value) else "",
+            track_info.get("title"),
+            "Unknown Title",
+        )
         artist = self._first_available(
             track_info.get("artist"),
-            track_info.get("uploader"),
             track_info.get("creator"),
+            track_info.get("uploader"),
+            track_info.get("channel_name"),
+            track_info.get("channel"),
             "Unknown Artist",
         )
+        title = self._strip_artist_prefix(title, artist)
         album = self._first_available(track_info.get("album"), "SoundCloud")
         album_artist = self._first_available(track_info.get("album_artist"), artist)
         genre = self._first_available(track_info.get("genre"), "")
@@ -165,6 +174,39 @@ class MetadataWriter:
             if string_value:
                 return string_value
         return ""
+
+    @staticmethod
+    def _looks_like_track_number(value: Any) -> bool:
+        if isinstance(value, int):
+            return True
+        if isinstance(value, str):
+            stripped = value.strip()
+            return bool(stripped) and stripped.isdigit()
+        return False
+
+    @staticmethod
+    def _strip_artist_prefix(title: str, artist: str) -> str:
+        cleaned_title = title.strip()
+        cleaned_artist = artist.strip()
+
+        if not cleaned_title or not cleaned_artist:
+            return cleaned_title
+
+        separators = (" - ", " – ", " — ", " | ", ": ")
+        normalized_title = cleaned_title.lower()
+        normalized_artist = cleaned_artist.lower()
+
+        if normalized_title == normalized_artist:
+            return cleaned_title
+
+        for separator in separators:
+            prefix = f"{cleaned_artist}{separator}"
+            if normalized_title.startswith(prefix.lower()):
+                stripped_title = cleaned_title[len(prefix):].strip()
+                if stripped_title:
+                    return stripped_title
+
+        return re.sub(r"\s+", " ", cleaned_title)
 
     @staticmethod
     def _stringify(value: Any) -> str:
