@@ -4,6 +4,7 @@ Metadata embedding utilities for downloaded audio files.
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 import re
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import requests
 from mutagen.easyid3 import EasyID3, EasyID3KeyError
-from mutagen.id3 import APIC, ID3, ID3NoHeaderError, TPE2, TSSE, TXXX
+from mutagen.id3 import APIC, ID3, ID3NoHeaderError, TALB, TCON, TDRC, TPE2, TSSE, TXXX
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,10 @@ class MetadataWriter:
         if album_artist:
             id3.delall("TPE2")
             id3.add(TPE2(encoding=3, text=[album_artist]))
+
+        self._write_id3_text_frame(id3, "TALB", TALB, tags.get("album"))
+        self._write_id3_text_frame(id3, "TCON", TCON, tags.get("genre"))
+        self._write_id3_text_frame(id3, "TDRC", TDRC, tags.get("date"))
 
         id3.delall("TSSE")
         id3.add(TSSE(encoding=3, text=["sc2am"]))
@@ -122,12 +127,27 @@ class MetadataWriter:
             "Unknown Artist",
         )
         title = self._strip_artist_prefix(title, artist)
-        album = self._first_available(track_info.get("album"), "SoundCloud")
+        album = self._first_available(
+            track_info.get("album"),
+            track_info.get("album_name"),
+            track_info.get("release_title"),
+            track_info.get("collection"),
+            "SoundCloud",
+        )
         album_artist = self._first_available(track_info.get("album_artist"), artist)
-        genre = self._first_available(track_info.get("genre"), "")
+        genre = self._first_available(
+            track_info.get("genre"),
+            track_info.get("genre_name"),
+            track_info.get("categories"),
+            track_info.get("category"),
+            "",
+        )
         date = self._first_available(
             track_info.get("release_date"),
             track_info.get("upload_date"),
+            track_info.get("release_timestamp"),
+            track_info.get("timestamp"),
+            track_info.get("release_year"),
             "",
         )
         track_number = self._first_available(
@@ -142,7 +162,7 @@ class MetadataWriter:
             "album": album,
             "albumartist": album_artist,
             "genre": genre,
-            "date": str(date) if date else "",
+            "date": self._normalize_date_value(date),
             "tracknumber": str(track_number) if track_number else "",
         }
 
@@ -207,6 +227,46 @@ class MetadataWriter:
                     return stripped_title
 
         return re.sub(r"\s+", " ", cleaned_title)
+
+    @staticmethod
+    def _normalize_date_value(value: Any) -> str:
+        if value is None:
+            return ""
+
+        if isinstance(value, (int, float)):
+            try:
+                return datetime.fromtimestamp(value).date().isoformat()
+            except (OverflowError, OSError, ValueError):
+                return str(value)
+
+        text = str(value).strip()
+        if not text:
+            return ""
+
+        if text.isdigit() and len(text) in {10, 13}:
+            try:
+                timestamp = int(text[:10])
+                return datetime.fromtimestamp(timestamp).date().isoformat()
+            except (OverflowError, OSError, ValueError):
+                return text
+
+        if re.fullmatch(r"\d{8}", text):
+            return f"{text[0:4]}-{text[4:6]}-{text[6:8]}"
+
+        return text
+
+    @staticmethod
+    def _write_id3_text_frame(
+        id3: ID3,
+        frame_id: str,
+        frame_cls: Any,
+        value: Optional[str],
+    ) -> None:
+        if not value:
+            return
+
+        id3.delall(frame_id)
+        id3.add(frame_cls(encoding=3, text=[value]))
 
     @staticmethod
     def _stringify(value: Any) -> str:
