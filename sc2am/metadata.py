@@ -4,6 +4,7 @@ Metadata embedding utilities for downloaded audio files.
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 import logging
 import re
@@ -21,6 +22,9 @@ class MetadataWriter:
     """Writes SoundCloud/yt-dlp metadata into local audio files."""
 
     USER_AGENT = "sc2am/0.1"
+    FALLBACK_COVER_ART_PNG = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5f6WcAAAAASUVORK5CYII="
+    )
 
     def write_to_file(self, file_path: Path, track_info: Dict[str, Any]) -> Tuple[bool, str]:
         """Write text tags and artwork to an MP3 file."""
@@ -82,34 +86,14 @@ class MetadataWriter:
         id3.save(str(file_path), v2_version=3)
 
     def _write_cover_art(self, file_path: Path, track_info: Dict[str, Any]) -> None:
-        thumbnail_url = self._first_available(
-            track_info.get("thumbnail"),
-            track_info.get("artwork_url"),
-            track_info.get("thumbnails", [{}])[0].get("url") if track_info.get("thumbnails") else None,
-        )
-        if not thumbnail_url:
-            return
+        for thumbnail_url in self._cover_art_candidates(track_info):
+            image_bytes, mime = self._download_image(thumbnail_url)
+            if image_bytes:
+                self._save_cover_art(file_path, image_bytes, mime)
+                return
 
-        image_bytes, mime = self._download_image(thumbnail_url)
-        if not image_bytes:
-            return
-
-        try:
-            id3 = ID3(str(file_path))
-        except ID3NoHeaderError:
-            id3 = ID3()
-
-        id3.delall("APIC")
-        id3.add(
-            APIC(
-                encoding=3,
-                mime=mime,
-                type=3,
-                desc="Cover",
-                data=image_bytes,
-            )
-        )
-        id3.save(str(file_path), v2_version=3)
+        fallback_bytes, fallback_mime = self._fallback_cover_art()
+        self._save_cover_art(file_path, fallback_bytes, fallback_mime)
 
     def _extract_tags(self, track_info: Dict[str, Any]) -> Dict[str, str]:
         track_value = track_info.get("track")
@@ -175,12 +159,11 @@ class MetadataWriter:
                 headers={"User-Agent": MetadataWriter.USER_AGENT},
             )
             response.raise_for_status()
-            content_type = response.headers.get("Content-Type", "").lower()
-            if "png" in content_type:
-                mime = "image/png"
-            else:
-                mime = "image/jpeg"
-            return response.content, mime
+            image_bytes = response.content
+            mime = MetadataWriter._detect_image_mime(image_bytes, response.headers.get("Content-Type", ""))
+            if not image_bytes or not mime:
+                return None, "image/jpeg"
+            return image_bytes, mime
         except Exception as exc:
             logger.warning(f"Could not download artwork: {exc}")
             return None, "image/jpeg"
@@ -267,6 +250,109 @@ class MetadataWriter:
 
         id3.delall(frame_id)
         id3.add(frame_cls(encoding=3, text=[value]))
+
+    @staticmethod
+    def _cover_art_candidates(track_info: Dict[str, Any]) -> list[str]:
+        candidates = []
+
+        def add_candidate(value: Any) -> None:
+            url = MetadataWriter._extract_image_url(value)
+            if url and url not in candidates:
+                candidates.append(url)
+
+        for key in (
+            "thumbnail",
+            "artwork_url",
+            "cover_art",
+            "cover_art_url",
+            "cover_url",
+            "image",
+            "thumbnail_url",
+            "album_art",
+            "album_art_url",
+        ):
+            add_candidate(track_info.get(key))
+
+        thumbnails = track_info.get("thumbnails")
+        if isinstance(thumbnails, list):
+            sorted_thumbnails = sorted(
+                (item for item in thumbnails if isinstance(item, dict)),
+                key=lambda item: MetadataWriter._thumbnail_area(item),
+                reverse=True,
+            )
+            for thumbnail in sorted_thumbnails:
+                add_candidate(thumbnail)
+
+        return candidates
+
+    @staticmethod
+    def _extract_image_url(value: Any) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, dict):
+            for key in ("url", "secure_url", "source", "src"):
+                candidate = value.get(key)
+                if candidate:
+                    candidate_str = str(candidate).strip()
+                    if candidate_str:
+                        return candidate_str
+        return ""
+
+    @staticmethod
+    def _thumbnail_area(thumbnail: Dict[str, Any]) -> int:
+        width = thumbnail.get("width") or 0
+        height = thumbnail.get("height") or 0
+        try:
+            return int(width) * int(height)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _detect_image_mime(image_bytes: bytes, content_type: str) -> Optional[str]:
+        if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "image/png"
+        if image_bytes.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        if image_bytes.startswith((b"GIF87a", b"GIF89a")):
+            return "image/gif"
+        if len(image_bytes) >= 12 and image_bytes.startswith(b"RIFF") and image_bytes[8:12] == b"WEBP":
+            return "image/webp"
+
+        lowered = (content_type or "").lower()
+        if "png" in lowered:
+            return "image/png"
+        if "jpeg" in lowered or "jpg" in lowered:
+            return "image/jpeg"
+        if "gif" in lowered:
+            return "image/gif"
+        if "webp" in lowered:
+            return "image/webp"
+        return None
+
+    def _save_cover_art(self, file_path: Path, image_bytes: bytes, mime: str) -> None:
+        if not image_bytes:
+            return
+
+        try:
+            id3 = ID3(str(file_path))
+        except ID3NoHeaderError:
+            id3 = ID3()
+
+        id3.delall("APIC")
+        id3.add(
+            APIC(
+                encoding=3,
+                mime=mime,
+                type=3,
+                desc="Cover",
+                data=image_bytes,
+            )
+        )
+        id3.save(str(file_path), v2_version=3)
+
+    @classmethod
+    def _fallback_cover_art(cls) -> Tuple[bytes, str]:
+        return cls.FALLBACK_COVER_ART_PNG, "image/png"
 
     @staticmethod
     def _stringify(value: Any) -> str:
