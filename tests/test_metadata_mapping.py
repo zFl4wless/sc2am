@@ -69,6 +69,57 @@ class MetadataMappingTests(unittest.TestCase):
         self.assertEqual(tags["genre"], "Synthwave")
         self.assertEqual(tags["date"], "2024-05-10")
 
+    def test_normalize_track_info_flattens_raw_soundcloud_metadata(self):
+        normalized = self.writer._normalize_track_info(
+            {
+                "track": {"name": "  Synthwave Collective - Night Drive  "},
+                "artist": {"display_name": "  Synthwave Collective  "},
+                "album": {"title": " Midnight Sessions "},
+                "genre": [" Synthwave ", " Electronic "],
+                "upload_date": " 20240510 ",
+                "track_number": " 4/12 ",
+                "thumbnails": [
+                    {"url": " https://example.com/cover.jpg ", "width": "1024", "height": "1024"}
+                ],
+            }
+        )
+
+        self.assertEqual(normalized["track"], "Synthwave Collective - Night Drive")
+        self.assertEqual(normalized["artist"], "Synthwave Collective")
+        self.assertEqual(normalized["album"], "Midnight Sessions")
+        self.assertEqual(normalized["genre"], "Synthwave, Electronic")
+        self.assertEqual(normalized["upload_date"], "2024-05-10")
+        self.assertEqual(normalized["track_number"], "4")
+        self.assertEqual(normalized["thumbnails"][0]["url"], "https://example.com/cover.jpg")
+        self.assertEqual(normalized["thumbnails"][0]["width"], 1024)
+        self.assertEqual(normalized["thumbnails"][0]["height"], 1024)
+
+    def test_write_to_file_uses_normalized_metadata_before_tagging(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "track.mp3"
+            file_path.touch()
+            ID3().save(str(file_path), v2_version=3)
+
+            track_info = {
+                "track": {"name": "  Synthwave Collective - Night Drive  "},
+                "artist": {"display_name": "  Synthwave Collective  "},
+                "album": {"title": " Midnight Sessions "},
+                "genre": [" Synthwave ", " Electronic "],
+                "release_date": " 20240510 ",
+            }
+
+            with mock.patch.object(self.writer, "_write_cover_art", return_value=None):
+                success, message = self.writer.write_to_file(file_path, track_info)
+
+            self.assertTrue(success, message)
+
+            id3 = ID3(str(file_path))
+            self.assertEqual(id3.getall("TIT2")[0].text[0], "Night Drive")
+            self.assertEqual(id3.getall("TPE1")[0].text[0], "Synthwave Collective")
+            self.assertEqual(id3.getall("TALB")[0].text[0], "Midnight Sessions")
+            self.assertEqual(id3.getall("TCON")[0].text[0], "Synthwave, Electronic")
+            self.assertEqual(str(id3.getall("TDRC")[0].text[0]), "2024-05-10")
+
     def test_write_to_file_persists_album_genre_and_date_frames(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "track.mp3"

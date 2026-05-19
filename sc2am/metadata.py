@@ -35,12 +35,63 @@ class MetadataWriter:
             return False, f"Unsupported audio format: {file_path.suffix}"
 
         try:
-            self._write_text_tags(file_path, track_info)
-            self._write_cover_art(file_path, track_info)
+            normalized_track_info = self._normalize_track_info(track_info)
+            self._write_text_tags(file_path, normalized_track_info)
+            self._write_cover_art(file_path, normalized_track_info)
             return True, "Metadata embedded"
         except Exception as exc:
             logger.error(f"Failed to embed metadata: {exc}")
             return False, str(exc)
+
+    def _normalize_track_info(self, track_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Clean raw downloader metadata into stable values for tagging."""
+        if not isinstance(track_info, dict):
+            return {}
+
+        normalized = dict(track_info)
+
+        for key in (
+            "track",
+            "title",
+            "artist",
+            "creator",
+            "uploader",
+            "channel_name",
+            "channel",
+            "album",
+            "album_name",
+            "release_title",
+            "collection",
+            "album_artist",
+            "genre",
+            "genre_name",
+            "categories",
+            "category",
+            "release_date",
+            "upload_date",
+            "release_timestamp",
+            "timestamp",
+            "release_year",
+            "track_number",
+            "webpage_url",
+            "original_url",
+            "thumbnail",
+            "artwork_url",
+            "cover_art",
+            "cover_art_url",
+            "cover_url",
+            "image",
+            "thumbnail_url",
+            "album_art",
+            "album_art_url",
+        ):
+            if key in normalized:
+                normalized[key] = self._normalize_metadata_value(key, normalized[key])
+
+        if "thumbnails" in normalized:
+            normalized["thumbnails"] = self._normalize_thumbnails(normalized["thumbnails"])
+
+        return normalized
 
     def _write_text_tags(self, file_path: Path, track_info: Dict[str, Any]) -> None:
         tags = self._extract_tags(track_info)
@@ -149,6 +200,159 @@ class MetadataWriter:
             "date": self._normalize_date_value(date),
             "tracknumber": str(track_number) if track_number else "",
         }
+
+    @classmethod
+    def _normalize_metadata_value(cls, key: str, value: Any) -> Any:
+        if key == "thumbnails":
+            return cls._normalize_thumbnails(value)
+
+        if key in {"release_date", "upload_date", "release_timestamp", "timestamp", "release_year"}:
+            return cls._normalize_date_value(cls._normalize_text_value(value, join_values=False))
+
+        if key == "track_number":
+            return cls._normalize_track_number_value(value)
+
+        if key in {"thumbnail", "artwork_url", "cover_art", "cover_art_url", "cover_url", "image", "thumbnail_url", "album_art", "album_art_url", "webpage_url", "original_url"}:
+            return cls._normalize_text_value(
+                value,
+                preferred_keys=("url", "secure_url", "source", "src", "href", "link"),
+            )
+
+        if key in {"genre", "genre_name", "categories", "category"}:
+            return cls._normalize_text_value(
+                value,
+                preferred_keys=("genre", "genre_name", "category", "categories", "name", "title", "value", "text", "label"),
+                join_values=True,
+            )
+
+        if key in {"track", "title", "artist", "creator", "uploader", "channel_name", "channel", "album", "album_name", "release_title", "collection", "album_artist"}:
+            return cls._normalize_text_value(
+                value,
+                preferred_keys=(
+                    "track",
+                    "title",
+                    "name",
+                    "artist",
+                    "creator",
+                    "uploader",
+                    "channel_name",
+                    "channel",
+                    "album",
+                    "album_name",
+                    "release_title",
+                    "collection",
+                    "value",
+                    "text",
+                    "label",
+                    "display_name",
+                    "username",
+                    "handle",
+                    "url",
+                ),
+            )
+
+        return value
+
+    @classmethod
+    def _normalize_text_value(
+        cls,
+        value: Any,
+        *,
+        preferred_keys: Tuple[str, ...] = (),
+        join_values: bool = False,
+    ) -> str:
+        if value is None:
+            return ""
+
+        if isinstance(value, dict):
+            for key in preferred_keys:
+                candidate = value.get(key)
+                normalized = cls._normalize_text_value(
+                    candidate,
+                    preferred_keys=preferred_keys,
+                    join_values=join_values,
+                )
+                if normalized:
+                    return normalized
+
+            for candidate in value.values():
+                normalized = cls._normalize_text_value(
+                    candidate,
+                    preferred_keys=preferred_keys,
+                    join_values=join_values,
+                )
+                if normalized:
+                    return normalized
+            return ""
+
+        if isinstance(value, (list, tuple, set)):
+            items = [
+                cls._normalize_text_value(item, preferred_keys=preferred_keys, join_values=join_values)
+                for item in value
+            ]
+            items = [item for item in items if item]
+            if not items:
+                return ""
+            if join_values:
+                return ", ".join(dict.fromkeys(items))
+            return items[0]
+
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="ignore")
+
+        text = str(value).strip()
+        if not text:
+            return ""
+
+        text = re.sub(r"[\u200B-\u200D\uFEFF]", "", text)
+        text = re.sub(r"\s+", " ", text)
+        return text
+
+    @classmethod
+    def _normalize_thumbnails(cls, value: Any) -> list[Dict[str, Any]]:
+        if not isinstance(value, (list, tuple, set)):
+            return []
+
+        thumbnails = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+
+            normalized_item = dict(item)
+            normalized_url = cls._normalize_text_value(
+                item,
+                preferred_keys=("url", "secure_url", "source", "src"),
+            )
+            if not normalized_url:
+                continue
+
+            normalized_item["url"] = normalized_url
+            normalized_item["width"] = cls._coerce_int(item.get("width"))
+            normalized_item["height"] = cls._coerce_int(item.get("height"))
+            thumbnails.append(normalized_item)
+
+        return thumbnails
+
+    @staticmethod
+    def _coerce_int(value: Any) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
+
+    @classmethod
+    def _normalize_track_number_value(cls, value: Any) -> str:
+        text = cls._normalize_text_value(
+            value,
+            preferred_keys=("track_number", "track", "value", "text", "label", "name"),
+        )
+        if not text:
+            return ""
+
+        match = re.search(r"\d+", text)
+        if match:
+            return match.group(0)
+        return text
 
     @staticmethod
     def _download_image(url: str) -> Tuple[Optional[bytes], str]:
