@@ -78,6 +78,13 @@ def download(self, url: str):
 - Add docstrings to code
 - Include examples for new features
 
+### Repository Guides
+
+- `AGENTS.md` for agent-friendly working rules and project-specific context
+- `docs/commands.md` for setup, test, lint, and release commands
+- `docs/architecture.md` for module responsibilities and data flow
+- `.github/pull_request_template.md` for a consistent PR format
+
 ## Commit Message Guidelines
 
 - Use clear, descriptive titles
