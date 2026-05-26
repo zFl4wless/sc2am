@@ -220,6 +220,56 @@ class MetadataMappingTests(unittest.TestCase):
             self.assertEqual(saved_args[1], b"large-image-bytes")
             self.assertEqual(saved_args[2], "image/jpeg")
 
+    def test_save_cover_art_verifies_the_written_artwork_roundtrip(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "track.mp3"
+            file_path.touch()
+            ID3().save(str(file_path), v2_version=3)
+
+            image_bytes = MetadataWriter.FALLBACK_COVER_ART_PNG
+            success = self.writer._save_cover_art(file_path, image_bytes, "image/png")
+
+            self.assertTrue(success)
+
+            id3 = ID3(str(file_path))
+            apic = id3.getall("APIC")[0]
+            self.assertEqual(apic.data, image_bytes)
+            self.assertEqual(apic.mime, "image/png")
+
+    def test_write_cover_art_retries_when_saved_artwork_cannot_be_verified(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "track.mp3"
+            file_path.touch()
+            ID3().save(str(file_path), v2_version=3)
+
+            track_info = {
+                "thumbnail": "https://example.com/broken.jpg",
+                "thumbnails": [
+                    {"url": "https://example.com/large.jpg", "width": 1280, "height": 720},
+                ],
+            }
+
+            with mock.patch.object(
+                self.writer,
+                "_download_image",
+                side_effect=[(b"broken-image-bytes", "image/jpeg"), (b"large-image-bytes", "image/jpeg")],
+            ):
+                with mock.patch.object(
+                    MetadataWriter,
+                    "_verify_cover_art",
+                    side_effect=[False, True],
+                ) as verify_mock:
+                    with mock.patch.object(
+                        MetadataWriter,
+                        "_fallback_cover_art",
+                        return_value=(b"fallback-cover", "image/png"),
+                    ) as fallback_mock:
+                        verified = self.writer._write_cover_art(file_path, track_info)
+
+            self.assertTrue(verified)
+            self.assertEqual(verify_mock.call_count, 2)
+            fallback_mock.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
