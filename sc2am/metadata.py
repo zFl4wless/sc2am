@@ -37,8 +37,10 @@ class MetadataWriter:
         try:
             normalized_track_info = self._normalize_track_info(track_info)
             self._write_text_tags(file_path, normalized_track_info)
-            self._write_cover_art(file_path, normalized_track_info)
-            return True, "Metadata embedded"
+            artwork_verified = self._write_cover_art(file_path, normalized_track_info)
+            if artwork_verified:
+                return True, "Metadata embedded and artwork verified"
+            return True, "Metadata embedded, but artwork could not be verified"
         except Exception as exc:
             logger.error(f"Failed to embed metadata: {exc}")
             return False, str(exc)
@@ -136,15 +138,20 @@ class MetadataWriter:
             id3.add(TXXX(encoding=3, desc="SOURCE_URL", text=[source_url]))
         id3.save(str(file_path), v2_version=3)
 
-    def _write_cover_art(self, file_path: Path, track_info: Dict[str, Any]) -> None:
+    def _write_cover_art(self, file_path: Path, track_info: Dict[str, Any]) -> bool:
         for thumbnail_url in self._cover_art_candidates(track_info):
             image_bytes, mime = self._download_image(thumbnail_url)
+            if image_bytes and self._save_cover_art(file_path, image_bytes, mime):
+                return True
             if image_bytes:
-                self._save_cover_art(file_path, image_bytes, mime)
-                return
+                logger.warning("Artwork candidate downloaded successfully, but could not be verified after saving.")
 
         fallback_bytes, fallback_mime = self._fallback_cover_art()
-        self._save_cover_art(file_path, fallback_bytes, fallback_mime)
+        if self._save_cover_art(file_path, fallback_bytes, fallback_mime):
+            return True
+
+        logger.warning("Fallback artwork could not be verified after saving.")
+        return False
 
     def _extract_tags(self, track_info: Dict[str, Any]) -> Dict[str, str]:
         track_value = track_info.get("track")
@@ -533,9 +540,9 @@ class MetadataWriter:
             return "image/webp"
         return None
 
-    def _save_cover_art(self, file_path: Path, image_bytes: bytes, mime: str) -> None:
+    def _save_cover_art(self, file_path: Path, image_bytes: bytes, mime: str) -> bool:
         if not image_bytes:
-            return
+            return False
 
         try:
             id3 = ID3(str(file_path))
@@ -553,6 +560,23 @@ class MetadataWriter:
             )
         )
         id3.save(str(file_path), v2_version=3)
+        return self._verify_cover_art(file_path, image_bytes, mime)
+
+    @staticmethod
+    def _verify_cover_art(file_path: Path, image_bytes: bytes, mime: str) -> bool:
+        if not image_bytes:
+            return False
+
+        try:
+            id3 = ID3(str(file_path))
+        except ID3NoHeaderError:
+            return False
+
+        for apic in id3.getall("APIC"):
+            if apic.data == image_bytes and apic.mime == mime:
+                return True
+
+        return False
 
     @classmethod
     def _fallback_cover_art(cls) -> Tuple[bytes, str]:
