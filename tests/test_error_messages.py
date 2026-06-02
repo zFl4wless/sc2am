@@ -1,10 +1,12 @@
 import unittest
 from pathlib import Path
 from unittest.mock import Mock
+from unittest import mock
 
 import click
 
-from main import _exit_with_error
+import main
+from main import _exit_with_error, _track_label, _track_status
 from sc2am.apple_music import AppleMusicManager
 from sc2am.downloader import Downloader
 from sc2am.validator import URLValidator
@@ -60,6 +62,22 @@ class ErrorMessageTests(unittest.TestCase):
 
         self.assertEqual(str(ctx.exception), "Something went wrong.")
         logger.error.assert_called_once_with("Something went wrong.")
+
+    def test_track_label_formats_single_and_batch_tracks(self):
+        self.assertEqual(_track_label(), "Track")
+        self.assertEqual(_track_label(2, 5), "Track 2/5")
+
+    def test_track_status_logs_with_matching_severity(self):
+        logger = Mock()
+
+        with mock.patch.object(main.click, "secho") as secho_mock:
+            _track_status(logger, "Track 1/1", "ERROR: Failed", fg="red", level="error")
+
+        secho_mock.assert_called_once_with("Track 1/1: ERROR: Failed", fg="red", bold=False)
+        logger.log.assert_called_once()
+        log_args = logger.log.call_args.args
+        self.assertEqual(log_args[0], main.logging.ERROR)
+        self.assertEqual(log_args[1], "Track 1/1: ERROR: Failed")
 
 
 if __name__ == "__main__":

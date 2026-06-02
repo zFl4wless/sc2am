@@ -6,7 +6,7 @@ Command-line interface and main entry point
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, NoReturn
+from typing import Any, Dict, Optional, NoReturn, cast
 
 import click
 
@@ -38,6 +38,28 @@ def _require_downloaded_file(file_path: Optional[Path], logger) -> Path:
     return file_path
 
 
+def _context_state(ctx: Any) -> Dict[str, Any]:
+    return cast(Dict[str, Any], ctx.obj)
+
+
+def _track_label(index: Optional[int] = None, total: Optional[int] = None) -> str:
+    if index is not None and total is not None:
+        return f"Track {index}/{total}"
+    return "Track"
+
+
+def _track_status(
+    logger,
+    label: str,
+    message: str,
+    fg: str = 'blue',
+    bold: bool = False,
+    level: str = 'info',
+) -> None:
+    click.secho(f"{label}: {message}", fg=fg, bold=bold)
+    logger.log(getattr(logging, level.upper(), logging.INFO), f"{label}: {message}")
+
+
 @click.group()
 @click.option(
     '--config',
@@ -51,7 +73,7 @@ def _require_downloaded_file(file_path: Optional[Path], logger) -> Path:
     help='Logging level'
 )
 @click.pass_context
-def cli(ctx, config: Optional[str], log_level: str):
+def cli(ctx: click.Context, config: Optional[str], log_level: str):
     """
     SC2AM - Automate downloading SoundCloud tracks and importing them to Apple Music.
 
@@ -86,9 +108,9 @@ def cli(ctx, config: Optional[str], log_level: str):
     logger = setup_logging(cfg.log_level, cfg.log_file)
 
     # Store config in context for subcommands
-    ctx.ensure_object(dict)
-    ctx.obj['config'] = cfg
-    ctx.obj['logger'] = logger
+    state = _context_state(ctx)
+    state['config'] = cfg
+    state['logger'] = logger
 
 
 @cli.command()
@@ -103,27 +125,30 @@ def cli(ctx, config: Optional[str], log_level: str):
     help='Don\'t automatically open with Apple Music'
 )
 @click.pass_context
-def download(ctx, url: str, playlist: Optional[str], no_open: bool):
+def download(ctx: click.Context, url: str, playlist: Optional[str], no_open: bool):
     """
     Download a track from SoundCloud and import to Apple Music.
 
     URL should be a valid SoundCloud track URL.
     """
-    cfg = ctx.obj['config']
-    logger = ctx.obj['logger']
+    state = _context_state(ctx)
+    cfg = state['config']
+    logger = state['logger']
+    track_label = _track_label()
 
     logger.info(f"Processing URL: {url}")
 
     # Validate URL
+    _track_status(logger, track_label, "Validating SoundCloud URL...")
     is_valid, platform = URLValidator.validate_url(url)
     if not is_valid:
         _exit_with_error(logger, platform)
 
-    click.secho(f"OK: Valid {platform} URL", fg='green')
+    _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
     logger.debug(f"URL validated as {platform}")
 
     # Download track
-    click.echo("Downloading track...")
+    _track_status(logger, track_label, "Downloading track...")
     downloader = _create_downloader(cfg, logger)
     success, file_path, message = downloader.download(url)
 
@@ -132,34 +157,34 @@ def download(ctx, url: str, playlist: Optional[str], no_open: bool):
 
     file_path = _require_downloaded_file(file_path, logger)
 
-    click.secho(f"OK: {message}", fg='green')
+    _track_status(logger, track_label, f"OK: {message}", fg='green')
     logger.info(f"Successfully downloaded to {file_path}")
 
     # Open with Apple Music
     if not no_open and cfg.open_music_app:
-        click.echo("Opening with Apple Music...")
+        _track_status(logger, track_label, "Opening with Apple Music...")
         music_manager = AppleMusicManager()
         success, msg = music_manager.open_file_with_music(file_path)
         if success:
-            click.secho(f"OK: {msg}", fg='green')
+            _track_status(logger, track_label, f"OK: {msg}", fg='green')
             logger.info(msg)
         else:
-            click.secho(f"WARNING: {msg}", fg='yellow')
+            _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
             logger.warning(msg)
 
     # Add to playlist
     if playlist:
-        click.echo(f"Adding to playlist '{playlist}'...")
+        _track_status(logger, track_label, f"Adding to playlist '{playlist}'...")
         music_manager = AppleMusicManager()
         success, msg = music_manager.add_to_playlist(file_path, playlist)
         if success:
-            click.secho(f"OK: {msg}", fg='green')
+            _track_status(logger, track_label, f"OK: {msg}", fg='green')
             logger.info(msg)
         else:
-            click.secho(f"WARNING: {msg}", fg='yellow')
+            _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
             logger.warning(msg)
 
-    click.secho("\nDone!", fg='green', bold=True)
+    click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
 
 
 @cli.command()
@@ -174,14 +199,15 @@ def download(ctx, url: str, playlist: Optional[str], no_open: bool):
     help='Continue processing if a URL fails'
 )
 @click.pass_context
-def batch(ctx, batch_file: str, playlist: Optional[str], continue_on_error: bool):
+def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue_on_error: bool):
     """
     Process multiple URLs from a text file (one URL per line).
 
     Lines starting with # are treated as comments and ignored.
     """
-    cfg = ctx.obj['config']
-    logger = ctx.obj['logger']
+    state = _context_state(ctx)
+    cfg = state['config']
+    logger = state['logger']
 
     logger.info(f"Processing batch file: {batch_file}")
 
@@ -207,14 +233,15 @@ def batch(ctx, batch_file: str, playlist: Optional[str], continue_on_error: bool
     failed = 0
 
     for i, url in enumerate(urls, 1):
-        click.echo(f"\n[{i}/{len(urls)}] Processing: {url}")
+        track_label = _track_label(i, len(urls))
+        click.echo(f"\n{track_label}: Processing {url}")
         logger.debug(f"Processing URL {i}/{len(urls)}")
 
         # Download
+        _track_status(logger, track_label, "Downloading track...")
         success, file_path, message = downloader.download(url)
         if not success:
-            click.secho(f"  ERROR: {message}", fg='red')
-            logger.error(message)
+            _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
             failed += 1
             if not continue_on_error:
                 sys.exit(1)
@@ -222,24 +249,28 @@ def batch(ctx, batch_file: str, playlist: Optional[str], continue_on_error: bool
 
         file_path = _require_downloaded_file(file_path, logger)
 
-        click.secho("  OK: Downloaded", fg='green')
+        _track_status(logger, track_label, "OK: Downloaded", fg='green')
         successful += 1
 
         # Open with Apple Music
         if cfg.open_music_app:
+            _track_status(logger, track_label, "Opening with Apple Music...")
             success, msg = music_manager.open_file_with_music(file_path)
             if success:
-                click.secho("  OK: Opened with Apple Music", fg='green')
+                _track_status(logger, track_label, "OK: Opened with Apple Music", fg='green')
             else:
-                click.secho(f"  WARNING: {msg}", fg='yellow')
+                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
         # Add to playlist
         if playlist:
+            _track_status(logger, track_label, f"Adding to playlist '{playlist}'...")
             success, msg = music_manager.add_to_playlist(file_path, playlist)
             if success:
-                click.secho("  OK: Added to playlist", fg='green')
+                _track_status(logger, track_label, "OK: Added to playlist", fg='green')
             else:
-                click.secho(f"  WARNING: {msg}", fg='yellow')
+                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+
+        click.secho(f"{track_label}: Done!", fg='green', bold=True)
 
     # Summary
     click.echo("\n" + "=" * 50)
@@ -256,9 +287,9 @@ def config():
 @config.command('init')
 @click.option('--force', is_flag=True, help='Overwrite existing config')
 @click.pass_context
-def config_init(ctx, force: bool):
+def config_init(ctx: click.Context, force: bool):
     """Initialize default configuration file."""
-    logger = ctx.obj['logger']
+    logger = _context_state(ctx)['logger']
 
     click.echo("Initializing SC2AM configuration...")
     try:
@@ -276,9 +307,9 @@ def config_init(ctx, force: bool):
 
 @config.command('show')
 @click.pass_context
-def config_show(ctx):
+def config_show(ctx: click.Context):
     """Display current configuration."""
-    cfg = ctx.obj['config']
+    cfg = _context_state(ctx)['config']
 
     click.echo("\nCurrent Configuration:")
     click.echo("=" * 50)
