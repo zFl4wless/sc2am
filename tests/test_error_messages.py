@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 from pathlib import Path
 from unittest.mock import Mock
 from unittest import mock
@@ -7,6 +8,7 @@ import click
 
 import main
 from main import _exit_with_error, _track_label, _track_status
+import sc2am.apple_music as apple_music
 from sc2am.apple_music import AppleMusicManager
 from sc2am.downloader import Downloader
 from sc2am.validator import URLValidator
@@ -53,6 +55,71 @@ class ErrorMessageTests(unittest.TestCase):
 
         self.assertFalse(success)
         self.assertEqual(message, "The downloaded file was not found.")
+
+    def test_missing_playlist_returns_clear_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "track.mp3"
+            file_path.touch()
+
+            with mock.patch.object(
+                AppleMusicManager,
+                "get_playlists",
+                return_value=(True, ["Roadtrip", "Focus"], "Playlists retrieved"),
+            ), mock.patch.object(apple_music.subprocess, "run") as run_mock:
+                success, message = AppleMusicManager.add_to_playlist(
+                    file_path,
+                    "Workout",
+                )
+
+        self.assertFalse(success)
+        self.assertEqual(
+            message,
+            'Playlist "Workout" was not found in Apple Music. Please check the name and try again.',
+        )
+        run_mock.assert_not_called()
+
+    def test_duplicate_playlist_returns_clear_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "track.mp3"
+            file_path.touch()
+
+            with mock.patch.object(
+                AppleMusicManager,
+                "get_playlists",
+                return_value=(True, ["Roadtrip", "Roadtrip", "Focus"], "Playlists retrieved"),
+            ), mock.patch.object(apple_music.subprocess, "run") as run_mock:
+                success, message = AppleMusicManager.add_to_playlist(
+                    file_path,
+                    "Roadtrip",
+                )
+
+        self.assertFalse(success)
+        self.assertEqual(
+            message,
+            'Multiple playlists named "Roadtrip" were found in Apple Music. Please rename one of them or choose a unique playlist name.',
+        )
+        run_mock.assert_not_called()
+
+    def test_add_to_playlist_uses_the_resolved_playlist_name(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "track.mp3"
+            file_path.touch()
+
+            with mock.patch.object(
+                AppleMusicManager,
+                "get_playlists",
+                return_value=(True, ["Roadtrip", "Focus"], "Playlists retrieved"),
+            ), mock.patch.object(apple_music.subprocess, "run") as run_mock:
+                run_mock.return_value.returncode = 0
+                run_mock.return_value.stderr = ""
+                success, message = AppleMusicManager.add_to_playlist(
+                    file_path,
+                    "  roadtrip  ",
+                )
+
+        self.assertTrue(success)
+        self.assertEqual(message, "Added to playlist 'Roadtrip'")
+        self.assertTrue(run_mock.called)
 
     def test_exit_helper_raises_click_exception(self):
         logger = Mock()

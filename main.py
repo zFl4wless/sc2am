@@ -60,6 +60,18 @@ def _track_status(
     logger.log(getattr(logging, level.upper(), logging.INFO), f"{label}: {message}")
 
 
+def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
+    candidate = (playlist or "").strip()
+    if candidate:
+        return candidate
+
+    default_playlist = getattr(cfg, "default_playlist", None)
+    if default_playlist:
+        return str(default_playlist).strip() or None
+
+    return None
+
+
 @click.group()
 @click.option(
     '--config',
@@ -172,11 +184,13 @@ def download(ctx: click.Context, url: str, playlist: Optional[str], no_open: boo
             _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
             logger.warning(msg)
 
+    playlist_name = _resolve_playlist_name(cfg, playlist)
+
     # Add to playlist
-    if playlist:
-        _track_status(logger, track_label, f"Adding to playlist '{playlist}'...")
+    if playlist_name:
+        _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
         music_manager = AppleMusicManager()
-        success, msg = music_manager.add_to_playlist(file_path, playlist)
+        success, msg = music_manager.add_to_playlist(file_path, playlist_name)
         if success:
             _track_status(logger, track_label, f"OK: {msg}", fg='green')
             logger.info(msg)
@@ -261,10 +275,12 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
             else:
                 _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
-        # Add to playlist
-        if playlist:
-            _track_status(logger, track_label, f"Adding to playlist '{playlist}'...")
-            success, msg = music_manager.add_to_playlist(file_path, playlist)
+                playlist_name = _resolve_playlist_name(cfg, playlist)
+
+                # Add to playlist
+                if playlist_name:
+                    _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
+                    success, msg = music_manager.add_to_playlist(file_path, playlist_name)
             if success:
                 _track_status(logger, track_label, "OK: Added to playlist", fg='green')
             else:
