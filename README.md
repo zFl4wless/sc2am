@@ -55,6 +55,8 @@ python main.py download "https://soundcloud.com/artist/track"
 python main.py download "https://soundcloud.com/artist/track" --playlist "My Playlist"
 ```
 
+If you do not pass `--playlist`, SC2AM uses the configured `default_playlist` when one is set. Playlist names are matched against the playlists currently available in Apple Music, and the app will tell you clearly if the playlist is missing or if the name is duplicated.
+
 **Don't automatically open Music app:**
 ```bash
 python main.py download "https://soundcloud.com/artist/track" --no-open

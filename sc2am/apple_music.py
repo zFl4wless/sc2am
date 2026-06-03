@@ -7,7 +7,7 @@ import logging
 import subprocess
 import platform
 from pathlib import Path
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +74,16 @@ class AppleMusicManager:
         if not file_path.exists():
             return False, "The downloaded file was not found."
 
+        resolved_playlist, error_message = AppleMusicManager._resolve_playlist_name(playlist_name)
+        if resolved_playlist is None:
+            return False, error_message
+
         # AppleScript to add track to playlist
         applescript = f'''
         tell application "Music"
             activate
             set sourcePath to POSIX file "{str(file_path)}"
-            add sourcePath to playlist "{playlist_name}"
+            add sourcePath to playlist "{resolved_playlist}"
         end tell
         '''
         
@@ -95,15 +99,15 @@ class AppleMusicManager:
                 logger.warning(f"Failed to add to playlist: {error}")
                 return False, "Could not add the track to the playlist. Check that the playlist exists and Apple Music automation is allowed."
 
-            logger.info(f"Added {file_path.name} to playlist '{playlist_name}'")
-            return True, f"Added to playlist '{playlist_name}'"
-        
+            logger.info(f"Added {file_path.name} to playlist '{resolved_playlist}'")
+            return True, f"Added to playlist '{resolved_playlist}'"
+
         except Exception as e:
             logger.exception("Error running AppleScript")
             return False, "Could not add the track to the playlist. Please check the log file for details."
 
     @staticmethod
-    def get_playlists() -> Tuple[bool, list, str]:
+    def get_playlists() -> Tuple[bool, List[str], str]:
         """
         Get list of available playlists in Apple Music.
         
@@ -133,11 +137,33 @@ class AppleMusicManager:
             if not output:
                 return True, [], "No playlists found"
             
-            playlists = [p.strip() for p in output.split(',')]
+            playlists = [p.strip() for p in output.split(',') if p.strip()]
             logger.debug(f"Found {len(playlists)} playlists")
             return True, playlists, "Playlists retrieved"
         
         except Exception as e:
             logger.exception("Error fetching playlists")
             return False, [], "Could not retrieve playlists from Apple Music."
+
+    @staticmethod
+    def _resolve_playlist_name(playlist_name: str) -> Tuple[Optional[str], str]:
+        normalized_name = playlist_name.strip()
+        if not normalized_name:
+            return None, "Please provide a playlist name."
+
+        success, playlists, message = AppleMusicManager.get_playlists()
+        if not success:
+            return None, message
+
+        matches = [playlist for playlist in playlists if playlist.lower() == normalized_name.lower()]
+        if not matches:
+            return None, f'Playlist "{normalized_name}" was not found in Apple Music. Please check the name and try again.'
+
+        if len(matches) > 1:
+            return (
+                None,
+                f'Multiple playlists named "{normalized_name}" were found in Apple Music. Please rename one of them or choose a unique playlist name.',
+            )
+
+        return matches[0], f'Playlist "{matches[0]}" selected.'
 
