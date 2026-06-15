@@ -72,6 +72,13 @@ def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
     return None
 
 
+def _print_run_summary(logger, succeeded: int, failed: int) -> None:
+    summary = f"Summary: {succeeded} succeeded, {failed} failed"
+    fg = 'green' if failed == 0 else 'yellow'
+    click.secho(summary, fg=fg, bold=True)
+    logger.info(summary)
+
+
 @click.group()
 @click.option(
     '--config',
@@ -147,58 +154,66 @@ def download(ctx: click.Context, url: str, playlist: Optional[str], no_open: boo
     cfg = state['config']
     logger = state['logger']
     track_label = _track_label()
+    succeeded = 0
+    failed = 0
 
-    logger.info(f"Processing URL: {url}")
+    try:
+        logger.info(f"Processing URL: {url}")
 
-    # Validate URL
-    _track_status(logger, track_label, "Validating SoundCloud URL...")
-    is_valid, platform = URLValidator.validate_url(url)
-    if not is_valid:
-        _exit_with_error(logger, platform)
+        # Validate URL
+        _track_status(logger, track_label, "Validating SoundCloud URL...")
+        is_valid, platform = URLValidator.validate_url(url)
+        if not is_valid:
+            failed = 1
+            _exit_with_error(logger, platform)
 
-    _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
-    logger.debug(f"URL validated as {platform}")
+        _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
+        logger.debug(f"URL validated as {platform}")
 
-    # Download track
-    _track_status(logger, track_label, "Downloading track...")
-    downloader = _create_downloader(cfg, logger)
-    success, file_path, message = downloader.download(url)
+        # Download track
+        _track_status(logger, track_label, "Downloading track...")
+        downloader = _create_downloader(cfg, logger)
+        success, file_path, message = downloader.download(url)
 
-    if not success:
-        _exit_with_error(logger, message)
+        if not success:
+            failed = 1
+            _exit_with_error(logger, message)
 
-    file_path = _require_downloaded_file(file_path, logger)
+        file_path = _require_downloaded_file(file_path, logger)
 
-    _track_status(logger, track_label, f"OK: {message}", fg='green')
-    logger.info(f"Successfully downloaded to {file_path}")
+        _track_status(logger, track_label, f"OK: {message}", fg='green')
+        logger.info(f"Successfully downloaded to {file_path}")
 
-    # Open with Apple Music
-    if not no_open and cfg.open_music_app:
-        _track_status(logger, track_label, "Opening with Apple Music...")
-        music_manager = AppleMusicManager()
-        success, msg = music_manager.open_file_with_music(file_path)
-        if success:
-            _track_status(logger, track_label, f"OK: {msg}", fg='green')
-            logger.info(msg)
-        else:
-            _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
-            logger.warning(msg)
+        # Open with Apple Music
+        if not no_open and cfg.open_music_app:
+            _track_status(logger, track_label, "Opening with Apple Music...")
+            music_manager = AppleMusicManager()
+            success, msg = music_manager.open_file_with_music(file_path)
+            if success:
+                _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                logger.info(msg)
+            else:
+                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
+                logger.warning(msg)
 
-    playlist_name = _resolve_playlist_name(cfg, playlist)
+        playlist_name = _resolve_playlist_name(cfg, playlist)
 
-    # Add to playlist
-    if playlist_name:
-        _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
-        music_manager = AppleMusicManager()
-        success, msg = music_manager.add_to_playlist(file_path, playlist_name)
-        if success:
-            _track_status(logger, track_label, f"OK: {msg}", fg='green')
-            logger.info(msg)
-        else:
-            _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
-            logger.warning(msg)
+        # Add to playlist
+        if playlist_name:
+            _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
+            music_manager = AppleMusicManager()
+            success, msg = music_manager.add_to_playlist(file_path, playlist_name)
+            if success:
+                _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                logger.info(msg)
+            else:
+                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
+                logger.warning(msg)
 
-    click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
+        succeeded = 1
+        click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
+    finally:
+        _print_run_summary(logger, succeeded, failed)
 
 
 @cli.command()
@@ -245,53 +260,56 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
     music_manager = AppleMusicManager()
     successful = 0
     failed = 0
+    abort_with_error = False
 
-    for i, url in enumerate(urls, 1):
-        track_label = _track_label(i, len(urls))
-        click.echo(f"\n{track_label}: Processing {url}")
-        logger.debug(f"Processing URL {i}/{len(urls)}")
+    try:
+        for i, url in enumerate(urls, 1):
+            track_label = _track_label(i, len(urls))
+            click.echo(f"\n{track_label}: Processing {url}")
+            logger.debug(f"Processing URL {i}/{len(urls)}")
 
-        # Download
-        _track_status(logger, track_label, "Downloading track...")
-        success, file_path, message = downloader.download(url)
-        if not success:
-            _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
-            failed += 1
-            if not continue_on_error:
-                sys.exit(1)
-            continue
+            # Download
+            _track_status(logger, track_label, "Downloading track...")
+            success, file_path, message = downloader.download(url)
+            if not success:
+                _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
+                failed += 1
+                if not continue_on_error:
+                    abort_with_error = True
+                    break
+                continue
 
-        file_path = _require_downloaded_file(file_path, logger)
+            file_path = _require_downloaded_file(file_path, logger)
 
-        _track_status(logger, track_label, "OK: Downloaded", fg='green')
-        successful += 1
+            _track_status(logger, track_label, "OK: Downloaded", fg='green')
+            successful += 1
 
-        # Open with Apple Music
-        if cfg.open_music_app:
-            _track_status(logger, track_label, "Opening with Apple Music...")
-            success, msg = music_manager.open_file_with_music(file_path)
-            if success:
-                _track_status(logger, track_label, "OK: Opened with Apple Music", fg='green')
-            else:
-                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+            # Open with Apple Music
+            if cfg.open_music_app:
+                _track_status(logger, track_label, "Opening with Apple Music...")
+                success, msg = music_manager.open_file_with_music(file_path)
+                if success:
+                    _track_status(logger, track_label, "OK: Opened with Apple Music", fg='green')
+                else:
+                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
-                playlist_name = _resolve_playlist_name(cfg, playlist)
+            playlist_name = _resolve_playlist_name(cfg, playlist)
 
-                # Add to playlist
-                if playlist_name:
-                    _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
-                    success, msg = music_manager.add_to_playlist(file_path, playlist_name)
-            if success:
-                _track_status(logger, track_label, "OK: Added to playlist", fg='green')
-            else:
-                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+            # Add to playlist
+            if playlist_name:
+                _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
+                success, msg = music_manager.add_to_playlist(file_path, playlist_name)
+                if success:
+                    _track_status(logger, track_label, "OK: Added to playlist", fg='green')
+                else:
+                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
-        click.secho(f"{track_label}: Done!", fg='green', bold=True)
+            click.secho(f"{track_label}: Done!", fg='green', bold=True)
+    finally:
+        _print_run_summary(logger, successful, failed)
 
-    # Summary
-    click.echo("\n" + "=" * 50)
-    click.secho(f"Processed: {successful} successful, {failed} failed", fg='green', bold=True)
-    logger.info(f"Batch complete: {successful} successful, {failed} failed")
+    if abort_with_error:
+        sys.exit(1)
 
 
 @cli.group()
