@@ -48,16 +48,26 @@ class AppleMusicManager:
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode != 0:
-                error = result.stderr or "Unknown error"
+                error = (result.stderr or result.stdout or "Unknown error").strip()
                 logger.error(f"Failed to open file with Music app: {error}")
-                return False, "Could not open the file in Apple Music. Make sure Apple Music is installed and allowed to automate."
+                # Provide an actionable message that surfaces the underlying error
+                return (
+                    False,
+                    f"Apple Music could not be opened: {error}.\n"
+                    "Ensure Apple Music is installed and that this application is allowed to open/automate it. "
+                    "If a permissions prompt appeared, grant access in System Settings -> Privacy & Security.",
+                )
 
             logger.info(f"Opened {file_path.name} with Apple Music")
             return True, f"Opened with Apple Music"
         
-        except Exception as e:
+        except Exception:
             logger.exception("Error opening file in Apple Music")
-            return False, "Could not open the file in Apple Music. Please check the log file for details."
+            return (
+                False,
+                "Could not open the file in Apple Music due to an unexpected error. "
+                "Please check the log file for details and ensure Music.app is installed and accessible.",
+            )
 
     @staticmethod
     def add_to_playlist(file_path: Path, playlist_name: str) -> Tuple[bool, str]:
@@ -95,16 +105,24 @@ class AppleMusicManager:
             )
             
             if result.returncode != 0:
-                error = result.stderr or "Unknown error"
+                error = (result.stderr or result.stdout or "Unknown error").strip()
                 logger.warning(f"Failed to add to playlist: {error}")
-                return False, "Could not add the track to the playlist. Check that the playlist exists and Apple Music automation is allowed."
+                return (
+                    False,
+                    f"Failed to add the track to playlist '{resolved_playlist}': {error}.\n"
+                    "Verify the playlist exists, Music.app is running, and that this application is allowed to control Music (System Settings -> Privacy & Security -> Automation).",
+                )
 
             logger.info(f"Added {file_path.name} to playlist '{resolved_playlist}'")
             return True, f"Added to playlist '{resolved_playlist}'"
 
-        except Exception as e:
+        except Exception:
             logger.exception("Error running AppleScript")
-            return False, "Could not add the track to the playlist. Please check the log file for details."
+            return (
+                False,
+                "Could not add the track to the playlist due to an unexpected error. "
+                "Please check the log file for details and confirm Music.app can be automated by this process.",
+            )
 
     @staticmethod
     def get_playlists() -> Tuple[bool, List[str], str]:
@@ -128,9 +146,13 @@ class AppleMusicManager:
             )
             
             if result.returncode != 0:
-                error = result.stderr or "Unknown error"
+                error = (result.stderr or result.stdout or "Unknown error").strip()
                 logger.error(f"Failed to get playlists: {error}")
-                return False, [], "Could not retrieve playlists from Apple Music."
+                return (
+                    False,
+                    [],
+                    f"Could not retrieve playlists from Apple Music: {error}. Ensure Music.app is installed and that Automation permissions are granted.",
+                )
 
             # Parse output - AppleScript returns comma-separated names
             output = result.stdout.strip()
@@ -141,9 +163,14 @@ class AppleMusicManager:
             logger.debug(f"Found {len(playlists)} playlists")
             return True, playlists, "Playlists retrieved"
         
-        except Exception as e:
+        except Exception:
             logger.exception("Error fetching playlists")
-            return False, [], "Could not retrieve playlists from Apple Music."
+            return (
+                False,
+                [],
+                "Could not retrieve playlists from Apple Music due to an unexpected error. "
+                "Please check the log file and confirm Music.app is installed and accessible.",
+            )
 
     @staticmethod
     def _resolve_playlist_name(playlist_name: str) -> Tuple[Optional[str], str]:
