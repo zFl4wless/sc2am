@@ -11,6 +11,18 @@ The downloaded MP3 files are automatically enriched with SoundCloud metadata (ti
 - **Python 3.8+**
 - **yt-dlp** (will be installed as dependency)
 
+### macOS Prerequisites
+
+Apple Music automation relies on macOS permissions and Music.app being available locally. Before using SC2AM, make sure:
+
+- **Music.app is installed** and can be opened manually on this Mac.
+- **Music.app has been launched at least once** so the library is initialized.
+- **Automation permission is allowed** for the app you run SC2AM from, such as Terminal, iTerm, VS Code, or PyCharm.
+- **System Settings > Privacy & Security > Automation** allows that app to control Music.
+- **The Music library is accessible** on the current macOS account you are using.
+
+For a step-by-step checklist, see [`docs/macos-setup.md`](docs/macos-setup.md).
+
 ### Setup
 
 1. **Clone or download the project:**
@@ -116,15 +128,15 @@ python main.py download "https://soundcloud.com/artist/track"
 
 **Configuration Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `download_dir` | Path | `~/Downloads/sc2am` | Where to download MP3 files |
-| `music_library_path` | Path | auto-detect | Path to Music.app library |
-| `default_playlist` | String | none | Default playlist for imports |
-| `keep_downloads` | Bool | `true` | Keep MP3 files after import |
-| `open_music_app` | Bool | `true` | Auto-open Music.app |
-| `log_level` | String | `INFO` | Logging level |
-| `log_file` | Path | none | Optional log file path |
+| Option               | Type   | Default             | Description                  |
+|----------------------|--------|---------------------|------------------------------|
+| `download_dir`       | Path   | `~/Downloads/sc2am` | Where to download MP3 files  |
+| `music_library_path` | Path   | auto-detect         | Path to Music.app library    |
+| `default_playlist`   | String | none                | Default playlist for imports |
+| `keep_downloads`     | Bool   | `true`              | Keep MP3 files after import  |
+| `open_music_app`     | Bool   | `true`              | Auto-open Music.app          |
+| `log_level`          | String | `INFO`              | Logging level                |
+| `log_file`           | Path   | none                | Optional log file path       |
 
 ### Global Options
 
@@ -166,6 +178,13 @@ pip install yt-dlp --upgrade
 ### Apple Music not opening
 - Ensure Music.app is installed (comes with macOS)
 - Check your `open_music_app` setting in config
+- Confirm the app you use to run SC2AM has Automation permission for Music in System Settings
+
+### macOS permissions or prerequisites are missing
+- Open Music.app once manually and confirm it launches without errors
+- Go to **System Settings > Privacy & Security > Automation** and allow the app you use to run SC2AM to control Music
+- If you previously denied access, re-run SC2AM after re-enabling the permission so macOS can prompt again if needed
+- See [`docs/macos-setup.md`](docs/macos-setup.md) for the full checklist
 
 ### Adding to playlists fails
 - Playlist name must exactly match your Music.app playlists

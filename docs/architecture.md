@@ -13,21 +13,25 @@ SC2AM is a small command-line application that downloads a SoundCloud track, enr
 
 ## Module Responsibilities
 
-| Module | Responsibility |
-| --- | --- |
-| `main.py` | CLI commands, argument handling, and user-facing status output |
-| `sc2am/validator.py` | Strict URL validation and batch-file validation |
-| `sc2am/downloader.py` | Download orchestration, error classification, and metadata hand-off |
-| `sc2am/metadata.py` | Metadata normalization, tag writing, artwork extraction, and fallback handling |
-| `sc2am/apple_music.py` | macOS Music.app automation and playlist operations |
-| `sc2am/config_manager.py` | Configuration defaults, loading, and persistence |
-| `sc2am/logger.py` | Logging setup |
+| Module                    | Responsibility                                                                 |
+|---------------------------|--------------------------------------------------------------------------------|
+| `main.py`                 | CLI commands, argument handling, and user-facing status output                 |
+| `sc2am/validator.py`      | Strict URL validation and batch-file validation                                |
+| `sc2am/downloader.py`     | Download orchestration, error classification, and metadata hand-off            |
+| `sc2am/metadata.py`       | Metadata normalization, tag writing, artwork extraction, and fallback handling |
+| `sc2am/apple_music.py`    | macOS Music.app automation and playlist operations                             |
+| `sc2am/config_manager.py` | Configuration defaults, loading, and persistence                               |
+| `sc2am/logger.py`         | Logging setup                                                                  |
 
 ## Important Design Rules
 - Metadata should be normalized before tagging so downstream code receives predictable values.
 - Artwork handling should always prefer a valid embedded image and fall back safely when no usable artwork exists.
 - CLI errors should be clear enough for users to act on without reading stack traces.
 - The project should remain macOS-friendly but avoid hard-coding local paths or machine-specific assumptions.
+
+## macOS Setup Notes
+
+Apple Music automation depends on local macOS permissions and a working Music.app installation. The user-facing setup checklist lives in [`docs/macos-setup.md`](macos-setup.md), and the README links there as well.
 
 ## Testing Focus
 The most important tests cover:
