@@ -5,7 +5,7 @@
 We only provide security fixes for the latest stable release line.
 
 | Version | Supported          |
-| ------- | ------------------ |
+|---------|--------------------|
 | 1.x     | :white_check_mark: |
 | < 1.x   | :x:                |
 
