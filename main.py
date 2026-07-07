@@ -171,6 +171,9 @@ def download(
     failed = 0
     total = len(urls)
 
+    # Determine effective continue-on-error: CLI flag OR config default
+    effective_continue = continue_on_error or getattr(cfg, 'continue_on_error', False)
+
     # Preserve the existing single-link behavior and messaging.
     if total == 1:
         url = urls[0]
@@ -252,7 +255,7 @@ def download(
             if not is_valid:
                 failed += 1
                 _track_status(logger, track_label, f"ERROR: {platform}", fg='red', level='error')
-                if not continue_on_error:
+                if not effective_continue:
                     abort_with_error = True
                     break
                 continue
@@ -264,7 +267,7 @@ def download(
             if not success:
                 failed += 1
                 _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
-                if not continue_on_error:
+                if not effective_continue:
                     abort_with_error = True
                     break
                 continue
@@ -319,6 +322,8 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
     cfg = state['config']
     logger = state['logger']
 
+    effective_continue = continue_on_error or getattr(cfg, 'continue_on_error', False)
+
     logger.info(f"Processing batch file: {batch_file}")
 
     # Validate batch file
@@ -355,7 +360,7 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
             if not success:
                 _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
                 failed += 1
-                if not continue_on_error:
+                if not effective_continue:
                     abort_with_error = True
                     break
                 continue

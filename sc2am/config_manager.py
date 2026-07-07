@@ -49,7 +49,12 @@ class AppConfig(BaseModel):
         default=True,
         description="Automatically open Apple Music after import"
     )
-    
+    # Batch behavior
+    continue_on_error: bool = Field(
+        default=False,
+        description="When True, continue processing remaining URLs if one fails"
+    )
+
     # Logging
     log_level: str = Field(
         default="INFO",
@@ -143,26 +148,27 @@ class ConfigManager:
         """Extract configuration from environment variables (SC2AM_*)."""
         env_config = {}
         env_prefix = "SC2AM_"
-        
+
         mapping = {
             f"{env_prefix}DOWNLOAD_DIR": "download_dir",
             f"{env_prefix}MUSIC_LIBRARY": "music_library_path",
             f"{env_prefix}PLAYLIST": "default_playlist",
             f"{env_prefix}KEEP_DOWNLOADS": "keep_downloads",
             f"{env_prefix}OPEN_MUSIC": "open_music_app",
+            f"{env_prefix}CONTINUE_ON_ERROR": "continue_on_error",
             f"{env_prefix}LOG_LEVEL": "log_level",
             f"{env_prefix}LOG_FILE": "log_file",
         }
-        
+
         for env_var, config_key in mapping.items():
             value = os.getenv(env_var)
             if value is not None:
                 # Handle boolean values
-                if config_key in ["keep_downloads", "open_music_app"]:
+                if config_key in ["keep_downloads", "open_music_app", "continue_on_error"]:
                     env_config[config_key] = value.lower() in ['true', '1', 'yes']
                 else:
                     env_config[config_key] = value
-        
+
         return env_config
     
     @staticmethod

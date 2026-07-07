@@ -219,6 +219,71 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(downloader.download.call_count, 2)
         secho_mock.assert_any_call("Summary: 2 succeeded, 0 failed", fg="green", bold=True)
 
+    def test_download_respects_config_continue_on_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            download_dir = Path(tmpdir) / "downloads"
+            download_dir.mkdir()
+            file_two = download_dir / "two.mp3"
+            file_two.touch()
+
+            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            logger = Mock()
+            ctx = mock.Mock()
+            ctx.obj = {"config": cfg, "logger": logger}
+
+            downloader = Mock()
+            downloader.download.side_effect = [
+                (False, None, "Temporary network error"),
+                (True, file_two, "Downloaded: two.mp3"),
+            ]
+
+            urls = (
+                "https://soundcloud.com/artist/one",
+                "https://soundcloud.com/artist/two",
+            )
+
+            download_cmd = cast(Any, main.download)
+            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
+                mock.patch.object(main, "_create_downloader", return_value=downloader), \
+                mock.patch.object(main.click, "secho") as secho_mock:
+                # CLI flag is False, but config.continue_on_error is True -> should continue
+                download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+
+        self.assertEqual(downloader.download.call_count, 2)
+        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed", fg="yellow", bold=True)
+
+    def test_batch_respects_config_continue_on_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            batch_file = Path(tmpdir) / "urls.txt"
+            batch_file.write_text("https://soundcloud.com/artist/one\nhttps://soundcloud.com/artist/two\n")
+
+            download_dir = Path(tmpdir) / "downloads"
+            download_dir.mkdir()
+            file_two = download_dir / "two.mp3"
+            file_two.touch()
+
+            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            logger = Mock()
+            ctx = mock.Mock()
+            ctx.obj = {"config": cfg, "logger": logger}
+
+            downloader = Mock()
+            downloader.download.side_effect = [
+                (False, None, "Temporary error"),
+                (True, file_two, "Downloaded: two.mp3"),
+            ]
+
+            batch_cmd = cast(Any, main.batch)
+            with mock.patch.object(main.URLValidator, "validate_batch_file", return_value=(True, ["https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two"], [])), \
+                mock.patch.object(main, "_create_downloader", return_value=downloader), \
+                mock.patch.object(main, "AppleMusicManager"), \
+                mock.patch.object(main.click, "secho") as secho_mock:
+                # CLI flag False, config True
+                batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
+
+        self.assertEqual(downloader.download.call_count, 2)
+        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed", fg="yellow", bold=True)
+
     def test_batch_shows_final_summary_with_success_and_failure_counts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             batch_file = Path(tmpdir) / "urls.txt"
