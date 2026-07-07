@@ -6,7 +6,7 @@ Command-line interface and main entry point
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, NoReturn, cast
+from typing import Any, Dict, Optional, NoReturn, Tuple, cast
 
 import click
 
@@ -104,6 +104,9 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
       # Download and add to playlist
       sc2am download "https://soundcloud.com/artist/track" --playlist "My Playlist"
 
+      # Download multiple tracks in one run
+      sc2am download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2"
+
       # Batch process multiple URLs from file
       sc2am batch urls.txt
 
@@ -133,7 +136,7 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
 
 
 @cli.command()
-@click.argument('url')
+@click.argument('urls', nargs=-1, required=True)
 @click.option(
     '--playlist',
     help='Add to this playlist (optional)'
@@ -143,77 +146,155 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
     is_flag=True,
     help='Don\'t automatically open with Apple Music'
 )
+@click.option(
+    '--continue-on-error',
+    is_flag=True,
+    help='Continue processing remaining URLs if one fails (multi-link runs)'
+)
 @click.pass_context
-def download(ctx: click.Context, url: str, playlist: Optional[str], no_open: bool):
+def download(
+    ctx: click.Context,
+    urls: Tuple[str, ...],
+    playlist: Optional[str],
+    no_open: bool,
+    continue_on_error: bool,
+):
     """
     Download a track from SoundCloud and import to Apple Music.
 
-    URL should be a valid SoundCloud track URL.
+    URL arguments should be valid SoundCloud track URLs.
     """
     state = _context_state(ctx)
     cfg = state['config']
     logger = state['logger']
-    track_label = _track_label()
     succeeded = 0
     failed = 0
+    total = len(urls)
+
+    # Preserve the existing single-link behavior and messaging.
+    if total == 1:
+        url = urls[0]
+        track_label = _track_label()
+
+        try:
+            logger.info(f"Processing URL: {url}")
+
+            # Validate URL
+            _track_status(logger, track_label, "Validating SoundCloud URL...")
+            is_valid, platform = URLValidator.validate_url(url)
+            if not is_valid:
+                failed = 1
+                _exit_with_error(logger, platform)
+
+            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
+            logger.debug(f"URL validated as {platform}")
+
+            # Download track
+            _track_status(logger, track_label, "Downloading track...")
+            downloader = _create_downloader(cfg, logger)
+            success, file_path, message = downloader.download(url)
+
+            if not success:
+                failed = 1
+                _exit_with_error(logger, message)
+
+            file_path = _require_downloaded_file(file_path, logger)
+
+            _track_status(logger, track_label, f"OK: {message}", fg='green')
+            logger.info(f"Successfully downloaded to {file_path}")
+
+            # Open with Apple Music
+            if not no_open and cfg.open_music_app:
+                _track_status(logger, track_label, "Opening with Apple Music...")
+                music_manager = AppleMusicManager()
+                success, msg = music_manager.open_file_with_music(file_path)
+                if success:
+                    _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                    logger.info(msg)
+                else:
+                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
+                    logger.warning(msg)
+
+            playlist_name = _resolve_playlist_name(cfg, playlist)
+
+            # Add to playlist
+            if playlist_name:
+                _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
+                music_manager = AppleMusicManager()
+                success, msg = music_manager.add_to_playlist(file_path, playlist_name)
+                if success:
+                    _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                    logger.info(msg)
+                else:
+                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
+                    logger.warning(msg)
+
+            succeeded = 1
+            click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
+        finally:
+            _print_run_summary(logger, succeeded, failed)
+        return
+
+    logger.info(f"Processing {total} URLs in one download run")
+    downloader = _create_downloader(cfg, logger)
+    music_manager = AppleMusicManager()
+    playlist_name = _resolve_playlist_name(cfg, playlist)
+    abort_with_error = False
 
     try:
-        logger.info(f"Processing URL: {url}")
+        for i, url in enumerate(urls, 1):
+            track_label = _track_label(i, total)
+            click.echo(f"\n{track_label}: Processing {url}")
+            logger.info(f"Processing URL {i}/{total}: {url}")
 
-        # Validate URL
-        _track_status(logger, track_label, "Validating SoundCloud URL...")
-        is_valid, platform = URLValidator.validate_url(url)
-        if not is_valid:
-            failed = 1
-            _exit_with_error(logger, platform)
+            _track_status(logger, track_label, "Validating SoundCloud URL...")
+            is_valid, platform = URLValidator.validate_url(url)
+            if not is_valid:
+                failed += 1
+                _track_status(logger, track_label, f"ERROR: {platform}", fg='red', level='error')
+                if not continue_on_error:
+                    abort_with_error = True
+                    break
+                continue
 
-        _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
-        logger.debug(f"URL validated as {platform}")
+            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
+            _track_status(logger, track_label, "Downloading track...")
+            success, file_path, message = downloader.download(url)
 
-        # Download track
-        _track_status(logger, track_label, "Downloading track...")
-        downloader = _create_downloader(cfg, logger)
-        success, file_path, message = downloader.download(url)
+            if not success:
+                failed += 1
+                _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
+                if not continue_on_error:
+                    abort_with_error = True
+                    break
+                continue
 
-        if not success:
-            failed = 1
-            _exit_with_error(logger, message)
+            file_path = _require_downloaded_file(file_path, logger)
+            _track_status(logger, track_label, f"OK: {message}", fg='green')
 
-        file_path = _require_downloaded_file(file_path, logger)
+            if not no_open and cfg.open_music_app:
+                _track_status(logger, track_label, "Opening with Apple Music...")
+                success, msg = music_manager.open_file_with_music(file_path)
+                if success:
+                    _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                else:
+                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
-        _track_status(logger, track_label, f"OK: {message}", fg='green')
-        logger.info(f"Successfully downloaded to {file_path}")
+            if playlist_name:
+                _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
+                success, msg = music_manager.add_to_playlist(file_path, playlist_name)
+                if success:
+                    _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                else:
+                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
-        # Open with Apple Music
-        if not no_open and cfg.open_music_app:
-            _track_status(logger, track_label, "Opening with Apple Music...")
-            music_manager = AppleMusicManager()
-            success, msg = music_manager.open_file_with_music(file_path)
-            if success:
-                _track_status(logger, track_label, f"OK: {msg}", fg='green')
-                logger.info(msg)
-            else:
-                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
-                logger.warning(msg)
-
-        playlist_name = _resolve_playlist_name(cfg, playlist)
-
-        # Add to playlist
-        if playlist_name:
-            _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
-            music_manager = AppleMusicManager()
-            success, msg = music_manager.add_to_playlist(file_path, playlist_name)
-            if success:
-                _track_status(logger, track_label, f"OK: {msg}", fg='green')
-                logger.info(msg)
-            else:
-                _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
-                logger.warning(msg)
-
-        succeeded = 1
-        click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
+            succeeded += 1
+            click.secho(f"{track_label}: Done!", fg='green', bold=True)
     finally:
         _print_run_summary(logger, succeeded, failed)
+
+    if abort_with_error:
+        sys.exit(1)
 
 
 @cli.command()

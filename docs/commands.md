@@ -39,6 +39,8 @@ Use the CLI entry point directly during development.
 python main.py --help
 python main.py config show
 python main.py download "https://soundcloud.com/artist/track"
+python main.py download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2"
+python main.py download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2" --continue-on-error
 ```
 
 ## Build a Release Check
