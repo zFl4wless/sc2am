@@ -50,6 +50,7 @@ class ConfigDefaultTests(unittest.TestCase):
                 "download_dir": str(home / "Downloads" / "sc2am"),
                 "music_library_path": None,
                 "default_playlist": None,
+                "continue_on_error": False,
                 "keep_downloads": True,
                 "open_music_app": True,
                 "log_level": "INFO",
