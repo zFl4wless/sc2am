@@ -62,6 +62,21 @@ or `https://www.soundcloud.com/artist/track`.
 python main.py download "https://soundcloud.com/artist/track"
 ```
 
+**Download multiple tracks in one run:**
+```bash
+python main.py download \
+  "https://soundcloud.com/artist/track1" \
+  "https://soundcloud.com/artist/track2"
+```
+
+If you want to keep processing after one URL fails, use:
+```bash
+python main.py download \
+  "https://soundcloud.com/artist/track1" \
+  "https://soundcloud.com/artist/track2" \
+  --continue-on-error
+```
+
 **Download and add to playlist:**
 ```bash
 python main.py download "https://soundcloud.com/artist/track" --playlist "My Playlist"

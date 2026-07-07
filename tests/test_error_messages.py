@@ -175,9 +175,49 @@ class ErrorMessageTests(unittest.TestCase):
             with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
                 mock.patch.object(main, "_create_downloader", return_value=downloader), \
                 mock.patch.object(main.click, "secho") as secho_mock:
-                download_cmd.callback.__wrapped__(ctx, "https://soundcloud.com/artist/track", None, True)
+                download_cmd.callback.__wrapped__(
+                    ctx,
+                    ("https://soundcloud.com/artist/track",),
+                    None,
+                    True,
+                    False,
+                )
 
         secho_mock.assert_any_call("Summary: 1 succeeded, 0 failed", fg="green", bold=True)
+
+    def test_download_processes_multiple_links_in_one_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            download_dir = Path(tmpdir) / "downloads"
+            download_dir.mkdir()
+            file_one = download_dir / "one.mp3"
+            file_two = download_dir / "two.mp3"
+            file_one.touch()
+            file_two.touch()
+
+            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None)
+            logger = Mock()
+            ctx = mock.Mock()
+            ctx.obj = {"config": cfg, "logger": logger}
+
+            downloader = Mock()
+            downloader.download.side_effect = [
+                (True, file_one, "Downloaded: one.mp3"),
+                (True, file_two, "Downloaded: two.mp3"),
+            ]
+
+            urls = (
+                "https://soundcloud.com/artist/one",
+                "https://soundcloud.com/artist/two",
+            )
+
+            download_cmd = cast(Any, main.download)
+            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
+                mock.patch.object(main, "_create_downloader", return_value=downloader), \
+                mock.patch.object(main.click, "secho") as secho_mock:
+                download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+
+        self.assertEqual(downloader.download.call_count, 2)
+        secho_mock.assert_any_call("Summary: 2 succeeded, 0 failed", fg="green", bold=True)
 
     def test_batch_shows_final_summary_with_success_and_failure_counts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
