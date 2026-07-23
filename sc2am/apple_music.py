@@ -6,6 +6,7 @@ Handles opening MP3s with Apple Music and playlist management.
 import logging
 import subprocess
 import platform
+import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -14,7 +15,25 @@ logger = logging.getLogger(__name__)
 
 class AppleMusicManager:
     """Manages interaction with Apple Music on macOS."""
-    
+
+    _MAX_RETRIES = 3
+    _RETRY_DELAY_SECONDS = 1.0
+    _RETRYABLE_PATTERNS = (
+        "appleevent timed out",
+        "application isn't responding",
+        "application is not responding",
+        "busy",
+        "connection refused",
+        "connection reset",
+        "gateway timeout",
+        "service unavailable",
+        "temporarily unavailable",
+        "temporary failure",
+        "timed out",
+        "timeout",
+        "try again",
+    )
+
     def __init__(self):
         """Initialize Apple Music manager."""
         self._check_platform()
@@ -24,7 +43,48 @@ class AppleMusicManager:
         """Verify running on macOS."""
         if platform.system() != "Darwin":
             logger.warning("Apple Music manager requires macOS. Current system: " + platform.system())
-    
+
+    @classmethod
+    def _is_retryable_error(cls, stderr: str) -> bool:
+        lowered = (stderr or "").lower()
+        return any(pattern in lowered for pattern in cls._RETRYABLE_PATTERNS)
+
+    @classmethod
+    def _sleep_before_retry(cls, attempt: int) -> None:
+        time.sleep(cls._RETRY_DELAY_SECONDS * attempt)
+
+    @classmethod
+    def _run_command_with_retry(
+        cls,
+        cmd: list[str],
+        operation: str,
+    ) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
+        for attempt in range(1, cls._MAX_RETRIES + 1):
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                return True, result, ""
+
+            error = (result.stderr or result.stdout or "Unknown error").strip()
+            if attempt < cls._MAX_RETRIES and cls._is_retryable_error(error):
+                logger.warning(
+                    f"{operation} failed temporarily on attempt {attempt}/{cls._MAX_RETRIES}: {error}"
+                )
+                cls._sleep_before_retry(attempt)
+                continue
+
+            return False, result, error
+
+        return False, None, "Unknown error"
+
+    @classmethod
+    def _run_osascript(cls, applescript: str, operation: str) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
+        return cls._run_command_with_retry(['osascript', '-e', applescript], operation)
+
     @staticmethod
     def open_file_with_music(file_path: Path) -> Tuple[bool, str]:
         """
@@ -45,10 +105,12 @@ class AppleMusicManager:
         try:
             # Use 'open' command with -a flag to open with specific app
             cmd = ['open', '-a', 'Music', str(file_path)]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            if result.returncode != 0:
-                error = (result.stderr or result.stdout or "Unknown error").strip()
+            success, result, error = AppleMusicManager._run_command_with_retry(
+                cmd,
+                "Opening file with Music",
+            )
+
+            if not success:
                 logger.error(f"Failed to open file with Music app: {error}")
                 # Provide an actionable message that surfaces the underlying error
                 return (
@@ -98,14 +160,12 @@ class AppleMusicManager:
         '''
         
         try:
-            result = subprocess.run(
-                ['osascript', '-e', applescript],
-                capture_output=True,
-                text=True
+            success, result, error = AppleMusicManager._run_osascript(
+                applescript,
+                "Adding track to playlist",
             )
-            
-            if result.returncode != 0:
-                error = (result.stderr or result.stdout or "Unknown error").strip()
+
+            if not success:
                 logger.warning(f"Failed to add to playlist: {error}")
                 return (
                     False,
@@ -139,14 +199,12 @@ class AppleMusicManager:
         '''
         
         try:
-            result = subprocess.run(
-                ['osascript', '-e', applescript],
-                capture_output=True,
-                text=True
+            success, result, error = AppleMusicManager._run_osascript(
+                applescript,
+                "Fetching playlists",
             )
-            
-            if result.returncode != 0:
-                error = (result.stderr or result.stdout or "Unknown error").strip()
+
+            if not success:
                 logger.error(f"Failed to get playlists: {error}")
                 return (
                     False,

@@ -6,6 +6,7 @@ Handles downloading audio from various platforms using yt-dlp.
 import logging
 import json
 import subprocess
+import time
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 import shutil
@@ -17,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 class Downloader:
     """Downloads audio tracks from supported platforms."""
+
+    _MAX_RETRIES = 3
+    _RETRY_DELAY_SECONDS = 1.0
 
     _INVALID_URL_PATTERNS = (
         "unsupported url",
@@ -74,6 +78,15 @@ class Downloader:
             )
         logger.debug(f"yt-dlp found at: {yt_dlp_path}")
 
+    @classmethod
+    def _is_retryable_error(cls, stderr: str) -> bool:
+        lowered = (stderr or "").lower()
+        return any(pattern in lowered for pattern in cls._TEMPORARY_NETWORK_PATTERNS)
+
+    @classmethod
+    def _sleep_before_retry(cls, attempt: int) -> None:
+        time.sleep(cls._RETRY_DELAY_SECONDS * attempt)
+
     def download(self, url: str) -> Tuple[bool, Optional[Path], str]:
         """
         Download audio from URL.
@@ -109,44 +122,65 @@ class Downloader:
             url
         ]
         
-        try:
-            logger.debug(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minutes timeout
-            )
-            
-            if result.returncode != 0:
-                error_msg = self._classify_download_error(result.stderr)
-                logger.error(f"Download failed: {error_msg}")
-                return False, None, error_msg
+        for attempt in range(1, self._MAX_RETRIES + 1):
+            try:
+                logger.debug(f"Running command: {' '.join(cmd)}")
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minutes timeout
+                )
 
-            downloaded_file = self._resolve_downloaded_file(result.stdout)
-            if downloaded_file is None:
-                return False, None, "The download finished, but no MP3 file was created."
+                if result.returncode != 0:
+                    error_msg = self._classify_download_error(result.stderr)
+                    if attempt < self._MAX_RETRIES and self._is_retryable_error(result.stderr):
+                        logger.warning(
+                            f"Temporary download failure on attempt {attempt}/{self._MAX_RETRIES}: {error_msg}"
+                        )
+                        self._sleep_before_retry(attempt)
+                        continue
 
-            metadata_message = ""
-            if track_info:
-                meta_ok, meta_msg = self.metadata_writer.write_to_file(downloaded_file, track_info)
-                if meta_ok:
-                    metadata_message = " (metadata embedded)"
-                else:
-                    metadata_message = " (metadata could not be added)"
-                    logger.warning(f"Metadata tagging issue: {meta_msg}")
+                    logger.error(f"Download failed: {error_msg}")
+                    return False, None, error_msg
 
-            logger.info(f"Successfully downloaded: {downloaded_file.name}")
-            return True, downloaded_file, f"Downloaded: {downloaded_file.name}{metadata_message}"
-        
-        except subprocess.TimeoutExpired:
-            message = "The download timed out. Please try again later."
-            logger.error(message)
-            return False, None, message
-        except Exception as e:
-            message = "The download failed unexpectedly. Please check the log file for details."
-            logger.exception("Unexpected download error")
-            return False, None, message
+                downloaded_file = self._resolve_downloaded_file(result.stdout)
+                if downloaded_file is None:
+                    if attempt < self._MAX_RETRIES:
+                        logger.warning(
+                            f"The download finished without an MP3 file on attempt {attempt}/{self._MAX_RETRIES}; retrying."
+                        )
+                        self._sleep_before_retry(attempt)
+                        continue
+                    return False, None, "The download finished, but no MP3 file was created."
+
+                metadata_message = ""
+                if track_info:
+                    meta_ok, meta_msg = self.metadata_writer.write_to_file(downloaded_file, track_info)
+                    if meta_ok:
+                        metadata_message = " (metadata embedded)"
+                    else:
+                        metadata_message = " (metadata could not be added)"
+                        logger.warning(f"Metadata tagging issue: {meta_msg}")
+
+                logger.info(f"Successfully downloaded: {downloaded_file.name}")
+                return True, downloaded_file, f"Downloaded: {downloaded_file.name}{metadata_message}"
+
+            except subprocess.TimeoutExpired:
+                if attempt < self._MAX_RETRIES:
+                    logger.warning(
+                        f"The download timed out on attempt {attempt}/{self._MAX_RETRIES}; retrying."
+                    )
+                    self._sleep_before_retry(attempt)
+                    continue
+
+                message = "The download timed out. Please try again later."
+                logger.error(message)
+                return False, None, message
+            except Exception:
+                message = "The download failed unexpectedly. Please check the log file for details."
+                logger.exception("Unexpected download error")
+                return False, None, message
 
     @classmethod
     def _classify_download_error(cls, stderr: str) -> str:
@@ -202,24 +236,37 @@ class Downloader:
             url
         ]
         
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode != 0:
-                error_msg = Downloader._classify_download_error(result.stderr)
-                return False, None, f"Could not fetch track info: {error_msg}"
+        for attempt in range(1, Downloader._MAX_RETRIES + 1):
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
 
-            info = json.loads(result.stdout)
-            return True, info, "Info fetched successfully"
-        
-        except json.JSONDecodeError:
-            return False, None, "Could not read track information from yt-dlp."
-        except Exception as e:
-            logger.exception("Error fetching track info")
-            return False, None, "Could not fetch track information. Please check the log file for details."
+                if result.returncode != 0:
+                    error_msg = Downloader._classify_download_error(result.stderr)
+                    if attempt < Downloader._MAX_RETRIES and Downloader._is_retryable_error(result.stderr):
+                        logger.warning(
+                            f"Temporary track-info failure on attempt {attempt}/{Downloader._MAX_RETRIES}: {error_msg}"
+                        )
+                        Downloader._sleep_before_retry(attempt)
+                        continue
+                    return False, None, f"Could not fetch track info: {error_msg}"
+
+                info = json.loads(result.stdout)
+                return True, info, "Info fetched successfully"
+
+            except json.JSONDecodeError:
+                if attempt < Downloader._MAX_RETRIES:
+                    logger.warning(
+                        f"Could not parse track information on attempt {attempt}/{Downloader._MAX_RETRIES}; retrying."
+                    )
+                    Downloader._sleep_before_retry(attempt)
+                    continue
+                return False, None, "Could not read track information from yt-dlp."
+            except Exception:
+                logger.exception("Error fetching track info")
+                return False, None, "Could not fetch track information. Please check the log file for details."
 
