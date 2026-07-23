@@ -183,6 +183,8 @@ SC2AM_DOWNLOAD_DIR=~/Music python main.py download "..."
 4. **Open** - Launches Apple Music with the tagged MP3 file
 5. **Add** - (Optional) Adds track to specified playlist via AppleScript
 
+SC2AM automatically retries transient download and Apple Music import failures a few times before surfacing an error, so brief network hiccups or a busy Music.app are less likely to interrupt a run.
+
 ## Troubleshooting
 
 ### yt-dlp not found
