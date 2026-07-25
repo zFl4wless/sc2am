@@ -55,6 +55,16 @@ class AppConfig(BaseModel):
         description="When True, continue processing remaining URLs if one fails"
     )
 
+    # Workflow defaults
+    normalize_metadata: bool = Field(
+        default=True,
+        description="Automatically normalize and tag track metadata"
+    )
+    skip_existing_tracks: bool = Field(
+        default=False,
+        description="Skip tracks that already exist in Apple Music library"
+    )
+
     # Logging
     log_level: str = Field(
         default="INFO",
@@ -156,6 +166,8 @@ class ConfigManager:
             f"{env_prefix}KEEP_DOWNLOADS": "keep_downloads",
             f"{env_prefix}OPEN_MUSIC": "open_music_app",
             f"{env_prefix}CONTINUE_ON_ERROR": "continue_on_error",
+            f"{env_prefix}NORMALIZE_METADATA": "normalize_metadata",
+            f"{env_prefix}SKIP_EXISTING": "skip_existing_tracks",
             f"{env_prefix}LOG_LEVEL": "log_level",
             f"{env_prefix}LOG_FILE": "log_file",
         }
@@ -164,7 +176,7 @@ class ConfigManager:
             value = os.getenv(env_var)
             if value is not None:
                 # Handle boolean values
-                if config_key in ["keep_downloads", "open_music_app", "continue_on_error"]:
+                if config_key in ["keep_downloads", "open_music_app", "continue_on_error", "normalize_metadata", "skip_existing_tracks"]:
                     env_config[config_key] = value.lower() in ['true', '1', 'yes']
                 else:
                     env_config[config_key] = value

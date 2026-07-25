@@ -127,6 +127,8 @@ music_library_path: null
 default_playlist: null
 keep_downloads: true
 open_music_app: true
+normalize_metadata: true
+skip_existing_tracks: false
 log_level: INFO
 log_file: null
 ```
@@ -138,20 +140,24 @@ SC2AM_DOWNLOAD_DIR=~/Music/Downloads
 SC2AM_PLAYLIST="My Playlist"
 SC2AM_LOG_LEVEL=DEBUG
 SC2AM_KEEP_DOWNLOADS=false
+SC2AM_NORMALIZE_METADATA=true
+SC2AM_SKIP_EXISTING=false
 python main.py download "https://soundcloud.com/artist/track"
 ```
 
 **Configuration Options:**
 
-| Option               | Type   | Default             | Description                  |
-|----------------------|--------|---------------------|------------------------------|
-| `download_dir`       | Path   | `~/Downloads/sc2am` | Where to download MP3 files  |
-| `music_library_path` | Path   | auto-detect         | Path to Music.app library    |
-| `default_playlist`   | String | none                | Default playlist for imports |
-| `keep_downloads`     | Bool   | `true`              | Keep MP3 files after import  |
-| `open_music_app`     | Bool   | `true`              | Auto-open Music.app          |
-| `log_level`          | String | `INFO`              | Logging level                |
-| `log_file`           | Path   | none                | Optional log file path       |
+| Option                | Type   | Default             | Description                                          |
+|-----------------------|--------|---------------------|------------------------------------------------------|
+| `download_dir`        | Path   | `~/Downloads/sc2am` | Where to download MP3 files                          |
+| `music_library_path`  | Path   | auto-detect         | Path to Music.app library                            |
+| `default_playlist`    | String | none                | Default playlist for imports (workflow setting)      |
+| `keep_downloads`      | Bool   | `true`              | Keep MP3 files after import                          |
+| `open_music_app`      | Bool   | `true`              | Auto-open Music.app                                  |
+| `normalize_metadata`  | Bool   | `true`              | Normalize and tag track metadata (workflow setting)  |
+| `skip_existing_tracks`| Bool   | `false`             | Skip tracks already in Music library (workflow)      |
+| `log_level`           | String | `INFO`              | Logging level (workflow setting)                     |
+| `log_file`            | Path   | none                | Optional log file path                               |
 
 ### Global Options
 
