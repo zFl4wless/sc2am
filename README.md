@@ -191,6 +191,47 @@ SC2AM_DOWNLOAD_DIR=~/Music python main.py download "..."
 
 SC2AM automatically retries transient download and Apple Music import failures a few times before surfacing an error, so brief network hiccups or a busy Music.app are less likely to interrupt a run.
 
+### Batch Processing Output
+
+When running batch operations with multiple links or URLs from a file, SC2AM provides improved logging and summary output to help you debug and understand the results:
+
+- **Grouped logs** - Each track is clearly separated with visual dividers for easy scanning
+- **Real-time status** - Per-track status updates show what SC2AM is doing (downloading, opening, adding to playlist)
+- **Success rate** - Final summary includes percentage of successful imports
+- **Failed track details** - If any tracks fail, the summary lists each failed URL with its specific error message
+
+Example output:
+```
+──────────────────────────────────────────────
+Track 1/3: Processing https://soundcloud.com/artist/track1
+Track 1/3: Validating SoundCloud URL...
+Track 1/3: OK: Valid SoundCloud URL
+Track 1/3: Downloading track...
+Track 1/3: OK: Downloaded: track1.mp3
+Track 1/3: Done!
+
+──────────────────────────────────────────────
+Track 2/3: Processing https://soundcloud.com/artist/track2
+Track 2/3: Validating SoundCloud URL...
+Track 2/3: OK: Valid SoundCloud URL
+Track 2/3: Downloading track...
+Track 2/3: ERROR: Track not found
+
+──────────────────────────────────────────────
+Track 3/3: Processing https://soundcloud.com/artist/track3
+Track 3/3: Validating SoundCloud URL...
+Track 3/3: OK: Valid SoundCloud URL
+Track 3/3: Downloading track...
+Track 3/3: OK: Downloaded: track3.mp3
+Track 3/3: Done!
+
+Summary: 2 succeeded, 1 failed (67% success rate)
+
+Failed tracks:
+  1. https://soundcloud.com/artist/track2
+     Error: Track not found
+```
+
 ## Troubleshooting
 
 ### yt-dlp not found
