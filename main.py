@@ -72,11 +72,22 @@ def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
     return None
 
 
-def _print_run_summary(logger, succeeded: int, failed: int) -> None:
-    summary = f"Summary: {succeeded} succeeded, {failed} failed"
+def _print_run_summary(logger, succeeded: int, failed: int, failed_items: Optional[list] = None) -> None:
+    total = succeeded + failed
+    success_rate = int((succeeded / total * 100)) if total > 0 else 0
+    summary = f"Summary: {succeeded} succeeded, {failed} failed ({success_rate}% success rate)"
     fg = 'green' if failed == 0 else 'yellow'
     click.secho(summary, fg=fg, bold=True)
     logger.info(summary)
+
+    # Print detailed error list if there were failures
+    if failed_items and len(failed_items) > 0:
+        click.secho("\nFailed tracks:", fg='red', bold=True)
+        for idx, (url, error) in enumerate(failed_items, 1):
+            click.secho(f"  {idx}. {url}", fg='red')
+            click.secho(f"     Error: {error}", fg='red')
+            logger.error(f"Failed: {url} - {error}")
+        click.echo()
 
 
 @click.group()
@@ -235,7 +246,7 @@ def download(
             succeeded = 1
             click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
         finally:
-            _print_run_summary(logger, succeeded, failed)
+            _print_run_summary(logger, succeeded, failed, None)
         return
 
     logger.info(f"Processing {total} URLs in one download run")
@@ -243,17 +254,21 @@ def download(
     music_manager = AppleMusicManager()
     playlist_name = _resolve_playlist_name(cfg, playlist)
     abort_with_error = False
+    failed_items = []
 
     try:
         for i, url in enumerate(urls, 1):
             track_label = _track_label(i, total)
-            click.echo(f"\n{track_label}: Processing {url}")
+            click.echo(f"\n{'─' * 50}")
+            click.echo(f"{track_label}: Processing {url}")
             logger.info(f"Processing URL {i}/{total}: {url}")
 
             _track_status(logger, track_label, "Validating SoundCloud URL...")
             is_valid, platform = URLValidator.validate_url(url)
             if not is_valid:
                 failed += 1
+                error_msg = platform
+                failed_items.append((url, error_msg))
                 _track_status(logger, track_label, f"ERROR: {platform}", fg='red', level='error')
                 if not effective_continue:
                     abort_with_error = True
@@ -266,6 +281,7 @@ def download(
 
             if not success:
                 failed += 1
+                failed_items.append((url, message))
                 _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
                 if not effective_continue:
                     abort_with_error = True
@@ -287,14 +303,14 @@ def download(
                 _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
                 success, msg = music_manager.add_to_playlist(file_path, playlist_name)
                 if success:
-                    _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                    _track_status(logger, track_label, "OK: Added to playlist", fg='green')
                 else:
                     _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
 
             succeeded += 1
             click.secho(f"{track_label}: Done!", fg='green', bold=True)
     finally:
-        _print_run_summary(logger, succeeded, failed)
+        _print_run_summary(logger, succeeded, failed, failed_items)
 
     if abort_with_error:
         sys.exit(1)
@@ -347,17 +363,21 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
     successful = 0
     failed = 0
     abort_with_error = False
+    failed_items = []
 
     try:
         for i, url in enumerate(urls, 1):
             track_label = _track_label(i, len(urls))
-            click.echo(f"\n{track_label}: Processing {url}")
+            click.echo(f"\n{'─' * 50}")
+            click.echo(f"{track_label}: Processing {url}")
             logger.debug(f"Processing URL {i}/{len(urls)}")
 
             # Download
             _track_status(logger, track_label, "Downloading track...")
             success, file_path, message = downloader.download(url)
             if not success:
+                error_msg = message
+                failed_items.append((url, error_msg))
                 _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
                 failed += 1
                 if not effective_continue:
@@ -392,7 +412,7 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
 
             click.secho(f"{track_label}: Done!", fg='green', bold=True)
     finally:
-        _print_run_summary(logger, successful, failed)
+        _print_run_summary(logger, successful, failed, failed_items)
 
     if abort_with_error:
         sys.exit(1)

@@ -240,8 +240,8 @@ class ErrorMessageTests(unittest.TestCase):
         with mock.patch.object(click, "secho") as secho_mock:
             main._print_run_summary(logger, 3, 1)
 
-        secho_mock.assert_called_once_with("Summary: 3 succeeded, 1 failed", fg="yellow", bold=True)
-        logger.info.assert_called_once_with("Summary: 3 succeeded, 1 failed")
+        secho_mock.assert_any_call("Summary: 3 succeeded, 1 failed (75% success rate)", fg="yellow", bold=True)
+        logger.info.assert_called_once_with("Summary: 3 succeeded, 1 failed (75% success rate)")
 
     def test_download_shows_final_summary_for_successful_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -270,7 +270,7 @@ class ErrorMessageTests(unittest.TestCase):
                     False,
                 )
 
-        secho_mock.assert_any_call("Summary: 1 succeeded, 0 failed", fg="green", bold=True)
+        secho_mock.assert_any_call("Summary: 1 succeeded, 0 failed (100% success rate)", fg="green", bold=True)
 
     def test_download_processes_multiple_links_in_one_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -304,7 +304,7 @@ class ErrorMessageTests(unittest.TestCase):
                 download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         self.assertEqual(downloader.download.call_count, 2)
-        secho_mock.assert_any_call("Summary: 2 succeeded, 0 failed", fg="green", bold=True)
+        secho_mock.assert_any_call("Summary: 2 succeeded, 0 failed (100% success rate)", fg="green", bold=True)
 
     def test_download_respects_config_continue_on_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -337,7 +337,7 @@ class ErrorMessageTests(unittest.TestCase):
                 download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         self.assertEqual(downloader.download.call_count, 2)
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed", fg="yellow", bold=True)
+        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
 
     def test_batch_respects_config_continue_on_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -369,7 +369,7 @@ class ErrorMessageTests(unittest.TestCase):
                 batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
 
         self.assertEqual(downloader.download.call_count, 2)
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed", fg="yellow", bold=True)
+        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
 
     def test_batch_shows_final_summary_with_success_and_failure_counts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -399,7 +399,75 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(click, "secho") as secho_mock:
                 batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, True)
 
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed", fg="yellow", bold=True)
+        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
+
+    def test_batch_shows_detailed_error_list_for_failed_tracks(self):
+        logger = Mock()
+        failed_items = [
+            ("https://soundcloud.com/artist/one", "Track not found"),
+            ("https://soundcloud.com/artist/two", "Temporary network error"),
+        ]
+
+        with mock.patch.object(click, "secho") as secho_mock:
+            main._print_run_summary(logger, 1, 2, failed_items)
+
+        # Check that summary is printed
+        secho_mock.assert_any_call("Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True)
+        # Check that error header is printed (with newline prefix)
+        secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
+        # Check that each error is printed
+        secho_mock.assert_any_call("  1. https://soundcloud.com/artist/one", fg="red")
+        secho_mock.assert_any_call("     Error: Track not found", fg="red")
+        secho_mock.assert_any_call("  2. https://soundcloud.com/artist/two", fg="red")
+        secho_mock.assert_any_call("     Error: Temporary network error", fg="red")
+
+    def test_run_summary_does_not_show_error_list_when_no_failures(self):
+        logger = Mock()
+
+        with mock.patch.object(click, "secho") as secho_mock:
+            main._print_run_summary(logger, 3, 0, None)
+
+        secho_mock.assert_called_once_with("Summary: 3 succeeded, 0 failed (100% success rate)", fg="green", bold=True)
+        logger.info.assert_called_once_with("Summary: 3 succeeded, 0 failed (100% success rate)")
+
+    def test_multi_link_download_collects_and_reports_failed_urls(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            download_dir = Path(tmpdir) / "downloads"
+            download_dir.mkdir()
+            file_one = download_dir / "one.mp3"
+            file_one.touch()
+
+            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            logger = Mock()
+            ctx = mock.Mock()
+            ctx.obj = {"config": cfg, "logger": logger}
+
+            downloader = Mock()
+            downloader.download.side_effect = [
+                (True, file_one, "Downloaded: one.mp3"),
+                (False, None, "Track not found"),
+                (False, None, "Private track"),
+            ]
+
+            urls = (
+                "https://soundcloud.com/artist/one",
+                "https://soundcloud.com/artist/two",
+                "https://soundcloud.com/artist/three",
+            )
+
+            download_cmd = cast(Any, main.download)
+            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
+                mock.patch.object(main, "_create_downloader", return_value=downloader), \
+                mock.patch.object(click, "secho") as secho_mock:
+                download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+
+        # Verify summary shows correct counts
+        secho_mock.assert_any_call("Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True)
+        # Verify error header is shown
+        secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
+        # Verify failed URLs are listed
+        secho_mock.assert_any_call("  1. https://soundcloud.com/artist/two", fg="red")
+        secho_mock.assert_any_call("  2. https://soundcloud.com/artist/three", fg="red")
 
 
 if __name__ == "__main__":
