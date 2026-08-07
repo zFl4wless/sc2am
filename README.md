@@ -2,6 +2,17 @@
 
 A Python CLI tool that automates downloading tracks from SoundCloud and importing them into Apple Music on macOS.
 
+Overview
+--------
+
+SC2AM provides a small, repeatable workflow for importing SoundCloud tracks into your macOS Music library:
+
+- Validate a SoundCloud track URL
+- Download the audio using yt-dlp and convert/normalize to MP3
+- Embed metadata (title, artist, album, genre, date) and cover artwork
+- Open Music.app and import the tagged MP3
+- Optionally add the track to a specified playlist
+
 The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, with improved title and artist mapping so Apple Music shows the correct track information after import.
 
 ## Installation
@@ -40,6 +51,12 @@ source venv/bin/activate
 3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
+```
+
+4. **Install from source (optional)**
+If you want to work on the project or install it in editable mode:
+```bash
+pip install -e .
 ```
 
 4. **Initialize configuration (optional):**
