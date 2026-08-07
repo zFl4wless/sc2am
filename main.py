@@ -94,20 +94,20 @@ def _print_run_summary(logger, succeeded: int, failed: int, failed_items: Option
 @click.option(
     '--config',
     type=click.Path(exists=True),
-    help='Path to custom config file'
+    help='Path to custom YAML config file (overrides default ~/.sc2am/config.yaml)'
 )
 @click.option(
     '--log-level',
     type=click.Choice(LOG_LEVELS),
     default=ConfigManager.default_config_data()["log_level"],
-    help='Logging level'
+    help='Logging level (overrides value in config file)'
 )
 @click.pass_context
 def cli(ctx: click.Context, config: Optional[str], log_level: str):
-    """
-    SC2AM - Automate downloading SoundCloud tracks and importing them to Apple Music.
+    """SC2AM - Automate downloading SoundCloud tracks and importing them to Apple Music.
 
-    \b
+    Use `sc2am --help` and `sc2am <command> --help` for command-specific options.
+
     Examples:
       # Download and open a single track
       sc2am download "https://soundcloud.com/artist/track"
@@ -118,10 +118,10 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
       # Download multiple tracks in one run
       sc2am download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2"
 
-      # Batch process multiple URLs from file
+      # Batch process multiple URLs from file (one URL per line, '#' comments allowed)
       sc2am batch urls.txt
 
-      # Initialize default config
+      # Initialize default config (creates ~/.sc2am/config.yaml)
       sc2am config init
     """
     # Load configuration
@@ -150,17 +150,17 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
 @click.argument('urls', nargs=-1, required=True)
 @click.option(
     '--playlist',
-    help='Add to this playlist (optional)'
+    help='Add to this playlist (optional). If omitted, the configured `default_playlist` is used when present.'
 )
 @click.option(
     '--no-open',
     is_flag=True,
-    help='Don\'t automatically open with Apple Music'
+    help='Do not automatically open the tagged MP3 in Apple Music after download/import'
 )
 @click.option(
     '--continue-on-error',
     is_flag=True,
-    help='Continue processing remaining URLs if one fails (multi-link runs)'
+    help='Continue processing remaining URLs if one fails (useful for batch or multi-URL runs)'
 )
 @click.pass_context
 def download(
@@ -170,10 +170,12 @@ def download(
     no_open: bool,
     continue_on_error: bool,
 ):
-    """
-    Download a track from SoundCloud and import to Apple Music.
+    """Download one or more SoundCloud track URLs and import them into Apple Music.
 
-    URL arguments should be valid SoundCloud track URLs.
+    Provide one or more SoundCloud track URLs as arguments. For single-URL runs the
+    command will fail fast on validation or download errors (preserving the original
+    strict behavior). For multiple URLs or batch runs you can use `--continue-on-error`
+    or set `continue_on_error` in your config to keep processing remaining items.
     """
     state = _context_state(ctx)
     cfg = state['config']
@@ -320,19 +322,20 @@ def download(
 @click.argument('batch_file', type=click.Path(exists=True))
 @click.option(
     '--playlist',
-    help='Add all tracks to this playlist (optional)'
+    help='Add all found tracks to this playlist (optional). Names are matched against existing Music playlists.'
 )
 @click.option(
     '--continue-on-error',
     is_flag=True,
-    help='Continue processing if a URL fails'
+    help='Continue processing other URLs in the file if one fails (useful for large batches)'
 )
 @click.pass_context
 def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue_on_error: bool):
-    """
-    Process multiple URLs from a text file (one URL per line).
+    """Process multiple SoundCloud URLs from a text file (one URL per line).
 
-    Lines starting with # are treated as comments and ignored.
+    Lines starting with `#` are treated as comments and ignored. URLs will be trimmed
+    and validated; invalid lines are reported and (depending on `--continue-on-error`)
+    will either abort or be skipped.
     """
     state = _context_state(ctx)
     cfg = state['config']
@@ -428,7 +431,10 @@ def config():
 @click.option('--force', is_flag=True, help='Overwrite existing config')
 @click.pass_context
 def config_init(ctx: click.Context, force: bool):
-    """Initialize default configuration file."""
+    """Create a default configuration file at `~/.sc2am/config.yaml`.
+
+    Use `--force` to overwrite an existing config file.
+    """
     logger = _context_state(ctx)['logger']
 
     click.echo("Initializing SC2AM configuration...")
@@ -448,7 +454,10 @@ def config_init(ctx: click.Context, force: bool):
 @config.command('show')
 @click.pass_context
 def config_show(ctx: click.Context):
-    """Display current configuration."""
+    """Display the current effective configuration and workflow settings.
+
+    Values may come from the config file or be overridden by environment variables.
+    """
     cfg = _context_state(ctx)['config']
 
     click.echo("\nCurrent Configuration:")
