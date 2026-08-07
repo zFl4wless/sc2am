@@ -1,0 +1,44 @@
+# Sample SC2AM configuration file
+# Copy this file to ~/.sc2am/config.yaml and edit values to match your system
+# Lines starting with '#' are comments and can be removed when you save your config.
+
+# Directory where downloaded MP3 files are stored before (optionally) being imported.
+download_dir: ~/Downloads/sc2am
+
+# Optional: explicit path to the Music.app library (leave null to auto-detect)
+music_library_path: null
+
+# Default playlist name to add imported tracks to. Set to null to disable.
+default_playlist: "My Imported Tracks"
+
+# Keep downloaded MP3 files after import. Set to false to delete them after import.
+keep_downloads: true
+
+# Open Music.app automatically after tagging the MP3 file.
+open_music_app: true
+
+# Automatically normalize and embed metadata (title/artist/album/date/genre) and cover art.
+normalize_metadata: true
+
+# If true, SC2AM will attempt to skip tracks that appear to already exist in your Music library.
+skip_existing_tracks: false
+
+# Logging verbosity. Typical values: DEBUG, INFO, WARNING, ERROR
+log_level: INFO
+
+# Optional log file path. Set to null to only log to stdout.
+log_file: null
+
+# When processing multiple links (batch or multiple URLs), if true SC2AM continues after an
+# individual track error instead of aborting the entire run.
+continue_on_error: false
+
+# Example environment variable overrides (for reference):
+# SC2AM_DOWNLOAD_DIR=~/Music/Downloads
+# SC2AM_PLAYLIST="My Imported Tracks"
+# SC2AM_LOG_LEVEL=DEBUG
+# SC2AM_KEEP_DOWNLOADS=false
+# SC2AM_NORMALIZE_METADATA=true
+# SC2AM_SKIP_EXISTING=false
+
+# End of sample config
