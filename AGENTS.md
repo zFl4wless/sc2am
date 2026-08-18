@@ -48,9 +48,13 @@ If behavior changes in a user-visible way, update at least one of:
 - `docs/commands.md`
 - `.github/pull_request_template.md`
 
+## Commit and PR Conventions
+- Prefer conventional-style commit prefixes used in this repo, such as `fix:`, `feat:`, `chore:`, `docs:`, and `refactor:`.
+- Keep the subject in lower-case style and use the user's preferred verb form, for example `fix: adds ...` (instead of `fix: add ...`).
+- When drafting PR text, follow `.github/pull_request_template.md` exactly, including the sections `Summary`, `Changes`, `Validation`, `Notes`, and `Checklist`.
+
 ## Good Agent Behavior
 - Ask for clarification only when the repository context is insufficient.
 - Do not guess about file formats or platform behavior when existing code can be inspected.
 - Prefer direct verification over assumptions.
 - Leave the codebase cleaner and easier to understand than before.
-

@@ -91,21 +91,21 @@ def download(self, url: str):
 
 ## Commit Message Guidelines
 
-- Use clear, descriptive titles
-- Reference issues: `Fix #123`
-- Start with imperative: "Add feature", not "Added feature"
+- Use clear, descriptive titles with conventional prefixes seen in this repo, such as `fix:`, `feat:`, `chore:`, `docs:`, `refactor:`
+- Keep the prefix and summary in lower-case style (for example `feat: adds ...`)
+- Reference issues where relevant, for example `fix: adds retry for timeout handling (#123)`
 
 Examples:
-- `Fix: Handle empty URLs in batch file`
-- `Add: Support for Spotify playlists`
-- `Docs: Update installation instructions`
-- `Refactor: Simplify downloader logic`
+- `fix: adds handling for empty URLs in batch files`
+- `feat: adds support for Spotify playlists`
+- `docs: adds installation troubleshooting notes`
+- `refactor: adds clearer downloader flow boundaries`
 
 ## Pull Request Process
 
 1. Update documentation
 2. Keep commits clean and organized
-3. Provide clear description of changes
+3. Provide clear description of changes using `.github/pull_request_template.md`
 
 ## Areas for Contribution
 
