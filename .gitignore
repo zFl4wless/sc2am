@@ -34,6 +34,9 @@ wheels/
 # Configuration (keep template, ignore user-specific)
 config/
 ~/.sc2am/
+.env
+.env.*
+!.env.example
 
 # Logs
 *.log
@@ -46,4 +49,3 @@ htmlcov/
 # Temporary files
 *.tmp
 temp/
-
