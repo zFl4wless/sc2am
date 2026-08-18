@@ -27,6 +27,7 @@ SC2AM is a small command-line application that downloads a SoundCloud track, enr
 - Metadata should be normalized before tagging so downstream code receives predictable values.
 - Artwork handling should always prefer a valid embedded image and fall back safely when no usable artwork exists.
 - CLI errors should be clear enough for users to act on without reading stack traces.
+- CLI exit codes should stay stable (`0` success, `1` processing failure, `2` usage/config input error) so automation can rely on them.
 - The project should remain macOS-friendly but avoid hard-coding local paths or machine-specific assumptions.
 
 ## macOS Setup Notes
@@ -44,4 +45,3 @@ The most important tests cover:
 
 ## Release Notes
 When preparing a release, verify that the code version and package version match, then summarize user-visible improvements in release notes.
-

@@ -208,6 +208,16 @@ SC2AM_DOWNLOAD_DIR=~/Music python main.py download "..."
 
 SC2AM automatically retries transient download and Apple Music import failures a few times before surfacing an error, so brief network hiccups or a busy Music.app are less likely to interrupt a run.
 
+### Exit Codes and Logging Behavior
+
+SC2AM now returns stable exit codes for scripting:
+
+- `0` - all requested work succeeded
+- `1` - at least one item failed during processing
+- `2` - usage/input error (for example invalid CLI input or invalid configuration)
+
+CLI progress output is written as clean status lines. Python logger output on the console is limited to warnings and errors so informational log lines do not duplicate the CLI status messages. To retain detailed logs, configure `log_file`.
+
 ### Batch Processing Output
 
 When running batch operations with multiple links or URLs from a file, SC2AM provides improved logging and summary output to help you debug and understand the results:

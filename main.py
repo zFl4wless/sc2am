@@ -5,6 +5,7 @@ Command-line interface and main entry point
 
 import logging
 import sys
+from enum import IntEnum
 from pathlib import Path
 from typing import Any, Dict, Optional, NoReturn, Tuple, cast
 
@@ -17,9 +18,22 @@ from sc2am.downloader import Downloader
 from sc2am.apple_music import AppleMusicManager
 
 
-def _exit_with_error(logger, message: str, detail: Optional[str] = None) -> NoReturn:
+class ExitCode(IntEnum):
+    SUCCESS = 0
+    ERROR = 1
+    USAGE = 2
+
+
+def _exit_with_error(
+    logger,
+    message: str,
+    detail: Optional[str] = None,
+    exit_code: int = int(ExitCode.ERROR),
+) -> NoReturn:
     logger.error(detail or message)
-    raise click.ClickException(message)
+    exc = click.ClickException(message)
+    exc.exit_code = exit_code
+    raise exc
 
 
 def _create_downloader(cfg, logger) -> Downloader:
@@ -129,9 +143,11 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
     try:
         cfg = ConfigManager.get_config(config_path)
     except Exception as exc:
-        raise click.ClickException(
+        click_exc = click.ClickException(
             "Failed to load configuration. Please check your config file and environment variables."
-        ) from exc
+        )
+        click_exc.exit_code = int(ExitCode.USAGE)
+        raise click_exc from exc
 
     # Override log level if specified
     if log_level:
@@ -206,7 +222,7 @@ def download(
             is_valid, platform = URLValidator.validate_url(url)
             if not is_valid:
                 failed = 1
-                _exit_with_error(logger, platform)
+                _exit_with_error(logger, platform, exit_code=int(ExitCode.USAGE))
 
             _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
             logger.debug(f"URL validated as {platform}")
@@ -267,7 +283,6 @@ def download(
     downloader = _create_downloader(cfg, logger)
     music_manager = AppleMusicManager()
     playlist_name = _resolve_playlist_name(cfg, playlist)
-    abort_with_error = False
     failed_items = []
 
     try:
@@ -285,7 +300,6 @@ def download(
                 failed_items.append((url, error_msg))
                 _track_status(logger, track_label, f"ERROR: {platform}", fg='red', level='error')
                 if not effective_continue:
-                    abort_with_error = True
                     break
                 continue
 
@@ -309,7 +323,6 @@ def download(
                 failed_items.append((url, message))
                 _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
                 if not effective_continue:
-                    abort_with_error = True
                     break
                 continue
 
@@ -337,8 +350,8 @@ def download(
     finally:
         _print_run_summary(logger, succeeded, failed, failed_items)
 
-    if abort_with_error:
-        sys.exit(1)
+    if failed > 0:
+        sys.exit(int(ExitCode.ERROR))
 
 
 @cli.command()
@@ -382,7 +395,11 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
             logger.error(f"Line {line_num}: {error}")
 
     if not urls:
-        _exit_with_error(logger, "No valid URLs found in batch file.")
+        _exit_with_error(
+            logger,
+            "No valid URLs found in batch file.",
+            exit_code=int(ExitCode.USAGE),
+        )
 
     click.secho(f"OK: Found {len(urls)} valid URL(s)", fg='green')
     logger.info(f"Found {len(urls)} valid URLs")
@@ -392,9 +409,8 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
 
     music_manager = AppleMusicManager()
     successful = 0
-    failed = 0
-    abort_with_error = False
-    failed_items = []
+    failed = len(errors)
+    failed_items = [(f"line {line_num}", error) for line_num, error in errors]
 
     try:
         for i, url in enumerate(urls, 1):
@@ -423,7 +439,6 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
                 _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
                 failed += 1
                 if not effective_continue:
-                    abort_with_error = True
                     break
                 continue
 
@@ -456,8 +471,8 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
     finally:
         _print_run_summary(logger, successful, failed, failed_items)
 
-    if abort_with_error:
-        sys.exit(1)
+    if failed > 0:
+        sys.exit(int(ExitCode.ERROR))
 
 
 @cli.group()

@@ -8,7 +8,7 @@ from unittest import mock
 import click
 
 import main
-from main import _exit_with_error, _track_label, _track_status
+from main import ExitCode, _exit_with_error, _track_label, _track_status
 import sc2am.apple_music as apple_music
 import sc2am.downloader as downloader_module
 from sc2am.apple_music import AppleMusicManager
@@ -216,7 +216,20 @@ class ErrorMessageTests(unittest.TestCase):
             _exit_with_error(logger, "Something went wrong.")
 
         self.assertEqual(str(ctx.exception), "Something went wrong.")
+        self.assertEqual(ctx.exception.exit_code, int(ExitCode.ERROR))
         logger.error.assert_called_once_with("Something went wrong.")
+
+    def test_exit_helper_supports_custom_exit_code(self):
+        logger = Mock()
+
+        with self.assertRaises(click.ClickException) as ctx:
+            _exit_with_error(
+                logger,
+                "Invalid URL input.",
+                exit_code=int(ExitCode.USAGE),
+            )
+
+        self.assertEqual(ctx.exception.exit_code, int(ExitCode.USAGE))
 
     def test_track_label_formats_single_and_batch_tracks(self):
         self.assertEqual(_track_label(), "Track")
@@ -334,9 +347,11 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(main, "_create_downloader", return_value=downloader), \
                 mock.patch.object(click, "secho") as secho_mock:
                 # CLI flag is False, but config.continue_on_error is True -> should continue
-                download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+                with self.assertRaises(SystemExit) as exit_ctx:
+                    download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         self.assertEqual(downloader.download.call_count, 2)
+        self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
 
     def test_batch_respects_config_continue_on_error(self):
@@ -366,9 +381,11 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(apple_music, "AppleMusicManager"), \
                 mock.patch.object(click, "secho") as secho_mock:
                 # CLI flag False, config True
-                batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
+                with self.assertRaises(SystemExit) as exit_ctx:
+                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
 
         self.assertEqual(downloader.download.call_count, 2)
+        self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
 
     def test_batch_shows_final_summary_with_success_and_failure_counts(self):
@@ -397,8 +414,10 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(main, "_create_downloader", return_value=downloader), \
                 mock.patch.object(apple_music, "AppleMusicManager"), \
                 mock.patch.object(click, "secho") as secho_mock:
-                batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, True)
+                with self.assertRaises(SystemExit) as exit_ctx:
+                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, True)
 
+        self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
 
     def test_batch_shows_detailed_error_list_for_failed_tracks(self):
@@ -459,15 +478,54 @@ class ErrorMessageTests(unittest.TestCase):
             with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
                 mock.patch.object(main, "_create_downloader", return_value=downloader), \
                 mock.patch.object(click, "secho") as secho_mock:
-                download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+                with self.assertRaises(SystemExit) as exit_ctx:
+                    download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         # Verify summary shows correct counts
+        self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call("Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True)
         # Verify error header is shown
         secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
         # Verify failed URLs are listed
         secho_mock.assert_any_call("  1. https://soundcloud.com/artist/two", fg="red")
         secho_mock.assert_any_call("  2. https://soundcloud.com/artist/three", fg="red")
+
+    def test_batch_counts_input_line_errors_as_failures(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            batch_file = Path(tmpdir) / "urls.txt"
+            batch_file.write_text("bad-url\nhttps://soundcloud.com/artist/ok\n")
+
+            download_dir = Path(tmpdir) / "downloads"
+            download_dir.mkdir()
+            file_one = download_dir / "ok.mp3"
+            file_one.touch()
+
+            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            logger = Mock()
+            ctx = mock.Mock()
+            ctx.obj = {"config": cfg, "logger": logger}
+
+            downloader = Mock()
+            downloader.download.return_value = (True, file_one, "Downloaded: ok.mp3")
+
+            batch_cmd = cast(Any, main.batch)
+            with mock.patch.object(
+                main.URLValidator,
+                "validate_batch_file",
+                return_value=(
+                    False,
+                    ["https://soundcloud.com/artist/ok"],
+                    [(1, "Please provide a valid URL.")],
+                ),
+            ), mock.patch.object(main, "_create_downloader", return_value=downloader), \
+                mock.patch.object(apple_music, "AppleMusicManager"), \
+                mock.patch.object(click, "secho") as secho_mock:
+                with self.assertRaises(SystemExit) as exit_ctx:
+                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
+
+        self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
+        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call("  1. line 1", fg="red")
 
 
 if __name__ == "__main__":
