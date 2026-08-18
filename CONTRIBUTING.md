@@ -50,6 +50,10 @@ source venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
+Dependency policy:
+- `pyproject.toml` is the single source of truth for runtime and development dependencies.
+- `requirements.txt` and `requirements-dev.txt` are compatibility wrappers for tooling and local workflows.
+
 ## Code Style
 
 - **Python**: Follow PEP 8, format with Black

@@ -310,6 +310,10 @@ black sc2am/
 flake8 sc2am/
 ```
 
+Dependency source of truth:
+- `pyproject.toml` is the canonical dependency definition.
+- `requirements.txt` and `requirements-dev.txt` are thin compatibility wrappers that install from project metadata.
+
 ## License
 
 MIT License - see LICENSE file for details

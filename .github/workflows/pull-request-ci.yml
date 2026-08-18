@@ -24,6 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: |
+            pyproject.toml
             requirements.txt
             requirements-dev.txt
 

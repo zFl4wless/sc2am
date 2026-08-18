@@ -11,6 +11,8 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
+`pyproject.toml` is the dependency source of truth. The requirements files are thin wrappers for compatibility.
+
 ## Run the Test Suite
 Run tests from the repository root with the project root on `PYTHONPATH`.
 
@@ -56,4 +58,3 @@ python -m build
 3. Run the test suite.
 4. Create a Git tag such as `v1.2.0`.
 5. Publish the GitHub release with release notes.
-
