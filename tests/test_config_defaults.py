@@ -28,19 +28,26 @@ class ConfigDefaultTests(unittest.TestCase):
         self.assertIsNone(default_config["log_file"])
 
     def test_create_default_config_writes_normalized_yaml(self):
-        with tempfile.TemporaryDirectory() as temp_home, tempfile.TemporaryDirectory() as temp_config:
+        with (
+            tempfile.TemporaryDirectory() as temp_home,
+            tempfile.TemporaryDirectory() as temp_config,
+        ):
             home = Path(temp_home)
             config_dir = Path(temp_config) / ".sc2am"
             config_file = config_dir / "config.yaml"
 
-            with patch.object(config_manager.Path, "home", return_value=home), patch.object(
-                ConfigManager,
-                "CONFIG_DIR",
-                config_dir,
-            ), patch.object(
-                ConfigManager,
-                "CONFIG_FILE",
-                config_file,
+            with (
+                patch.object(config_manager.Path, "home", return_value=home),
+                patch.object(
+                    ConfigManager,
+                    "CONFIG_DIR",
+                    config_dir,
+                ),
+                patch.object(
+                    ConfigManager,
+                    "CONFIG_FILE",
+                    config_file,
+                ),
             ):
                 created_path = ConfigManager.create_default_config(force=True)
 
@@ -63,12 +70,13 @@ class ConfigDefaultTests(unittest.TestCase):
             self.assertEqual(written_config, expected_config)
 
     def test_partial_config_load_still_fills_missing_defaults(self):
-        with tempfile.TemporaryDirectory() as temp_home, tempfile.TemporaryDirectory() as temp_config:
+        with (
+            tempfile.TemporaryDirectory() as temp_home,
+            tempfile.TemporaryDirectory() as temp_config,
+        ):
             home = Path(temp_home)
             config_file = Path(temp_config) / "config.yaml"
-            config_file.write_text(
-                "default_playlist: Roadtrip\nkeep_downloads: false\n"
-            )
+            config_file.write_text("default_playlist: Roadtrip\nkeep_downloads: false\n")
 
             with patch.object(config_manager.Path, "home", return_value=home):
                 cfg = ConfigManager.get_config(config_file)
@@ -82,7 +90,10 @@ class ConfigDefaultTests(unittest.TestCase):
         self.assertEqual(cfg.log_level, "INFO")
 
     def test_missing_config_file_still_returns_default_configuration(self):
-        with tempfile.TemporaryDirectory() as temp_home, tempfile.TemporaryDirectory() as temp_config:
+        with (
+            tempfile.TemporaryDirectory() as temp_home,
+            tempfile.TemporaryDirectory() as temp_config,
+        ):
             home = Path(temp_home)
             config_file = Path(temp_config) / "config.yaml"
 
@@ -100,7 +111,10 @@ class ConfigDefaultTests(unittest.TestCase):
         self.assertIsNone(cfg.log_file)
 
     def test_environment_variables_override_yaml_configuration(self):
-        with tempfile.TemporaryDirectory() as temp_home, tempfile.TemporaryDirectory() as temp_config:
+        with (
+            tempfile.TemporaryDirectory() as temp_home,
+            tempfile.TemporaryDirectory() as temp_config,
+        ):
             home = Path(temp_home)
             config_file = Path(temp_config) / "config.yaml"
             config_file.write_text(
@@ -113,19 +127,22 @@ class ConfigDefaultTests(unittest.TestCase):
                 "log_level: warning\n"
             )
 
-            with patch.object(config_manager.Path, "home", return_value=home), patch.dict(
-                config_manager.os.environ,
-                {
-                    "SC2AM_DOWNLOAD_DIR": "/tmp/from-env",
-                    "SC2AM_PLAYLIST": "Env Playlist",
-                    "SC2AM_KEEP_DOWNLOADS": "false",
-                    "SC2AM_OPEN_MUSIC": "false",
-                    "SC2AM_NORMALIZE_METADATA": "true",
-                    "SC2AM_SKIP_EXISTING": "true",
-                    "SC2AM_LOG_LEVEL": "debug",
-                    "SC2AM_LOG_FILE": "/tmp/sc2am.log",
-                },
-                clear=False,
+            with (
+                patch.object(config_manager.Path, "home", return_value=home),
+                patch.dict(
+                    config_manager.os.environ,
+                    {
+                        "SC2AM_DOWNLOAD_DIR": "/tmp/from-env",
+                        "SC2AM_PLAYLIST": "Env Playlist",
+                        "SC2AM_KEEP_DOWNLOADS": "false",
+                        "SC2AM_OPEN_MUSIC": "false",
+                        "SC2AM_NORMALIZE_METADATA": "true",
+                        "SC2AM_SKIP_EXISTING": "true",
+                        "SC2AM_LOG_LEVEL": "debug",
+                        "SC2AM_LOG_FILE": "/tmp/sc2am.log",
+                    },
+                    clear=False,
+                ),
             ):
                 cfg = ConfigManager.get_config(config_file)
 
@@ -138,10 +155,12 @@ class ConfigDefaultTests(unittest.TestCase):
         self.assertEqual(cfg.log_level, "DEBUG")
         self.assertEqual(cfg.log_file, Path("/tmp/sc2am.log"))
 
-
     def test_workflow_settings_configuration_and_overrides(self):
         """Test that workflow defaults (normalize_metadata, skip_existing_tracks) work correctly."""
-        with tempfile.TemporaryDirectory() as temp_home, tempfile.TemporaryDirectory() as temp_config:
+        with (
+            tempfile.TemporaryDirectory() as temp_home,
+            tempfile.TemporaryDirectory() as temp_config,
+        ):
             home = Path(temp_home)
             config_file = Path(temp_config) / "config.yaml"
             config_file.write_text(
@@ -163,4 +182,3 @@ class ConfigDefaultTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

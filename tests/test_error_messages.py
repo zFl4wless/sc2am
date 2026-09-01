@@ -53,13 +53,25 @@ class ErrorMessageTests(unittest.TestCase):
             with mock.patch.object(Downloader, "_check_dependencies"):
                 downloader = Downloader(download_dir)
 
-            first_attempt = Mock(returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable")
+            first_attempt = Mock(
+                returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable"
+            )
             second_attempt = Mock(returncode=0, stdout=f"{file_path}\n", stderr="")
 
-            with mock.patch.object(downloader, "get_track_info", return_value=(True, None, "Info fetched successfully")), \
-                mock.patch.object(downloader_module.subprocess, "run", side_effect=[first_attempt, second_attempt]) as run_mock, \
-                mock.patch.object(downloader_module.time, "sleep") as sleep_mock:
-                success, result_path, message = downloader.download("https://soundcloud.com/artist/track")
+            with (
+                mock.patch.object(
+                    downloader,
+                    "get_track_info",
+                    return_value=(True, None, "Info fetched successfully"),
+                ),
+                mock.patch.object(
+                    downloader_module.subprocess, "run", side_effect=[first_attempt, second_attempt]
+                ) as run_mock,
+                mock.patch.object(downloader_module.time, "sleep") as sleep_mock,
+            ):
+                success, result_path, message = downloader.download(
+                    "https://soundcloud.com/artist/track"
+                )
 
         self.assertTrue(success)
         self.assertEqual(result_path, file_path)
@@ -77,10 +89,20 @@ class ErrorMessageTests(unittest.TestCase):
 
             failure = Mock(returncode=1, stdout="", stderr="HTTP Error 404: Not Found")
 
-            with mock.patch.object(downloader, "get_track_info", return_value=(True, None, "Info fetched successfully")), \
-                mock.patch.object(downloader_module.subprocess, "run", return_value=failure) as run_mock, \
-                mock.patch.object(downloader_module.time, "sleep") as sleep_mock:
-                success, result_path, message = downloader.download("https://soundcloud.com/artist/track")
+            with (
+                mock.patch.object(
+                    downloader,
+                    "get_track_info",
+                    return_value=(True, None, "Info fetched successfully"),
+                ),
+                mock.patch.object(
+                    downloader_module.subprocess, "run", return_value=failure
+                ) as run_mock,
+                mock.patch.object(downloader_module.time, "sleep") as sleep_mock,
+            ):
+                success, result_path, message = downloader.download(
+                    "https://soundcloud.com/artist/track"
+                )
 
         self.assertFalse(success)
         self.assertIsNone(result_path)
@@ -105,8 +127,12 @@ class ErrorMessageTests(unittest.TestCase):
             first_attempt = Mock(returncode=1, stdout="", stderr="AppleEvent timed out")
             second_attempt = Mock(returncode=0, stdout="", stderr="")
 
-            with mock.patch.object(apple_music.subprocess, "run", side_effect=[first_attempt, second_attempt]) as run_mock, \
-                mock.patch.object(apple_music.time, "sleep") as sleep_mock:
+            with (
+                mock.patch.object(
+                    apple_music.subprocess, "run", side_effect=[first_attempt, second_attempt]
+                ) as run_mock,
+                mock.patch.object(apple_music.time, "sleep") as sleep_mock,
+            ):
                 success, message = AppleMusicManager.open_file_with_music(file_path)
 
         self.assertTrue(success)
@@ -128,11 +154,14 @@ class ErrorMessageTests(unittest.TestCase):
             file_path = Path(tmpdir) / "track.mp3"
             file_path.touch()
 
-            with mock.patch.object(
-                AppleMusicManager,
-                "get_playlists",
-                return_value=(True, ["Roadtrip", "Focus"], "Playlists retrieved"),
-            ), mock.patch.object(apple_music.subprocess, "run") as run_mock:
+            with (
+                mock.patch.object(
+                    AppleMusicManager,
+                    "get_playlists",
+                    return_value=(True, ["Roadtrip", "Focus"], "Playlists retrieved"),
+                ),
+                mock.patch.object(apple_music.subprocess, "run") as run_mock,
+            ):
                 success, message = AppleMusicManager.add_to_playlist(
                     file_path,
                     "Workout",
@@ -150,11 +179,14 @@ class ErrorMessageTests(unittest.TestCase):
             file_path = Path(tmpdir) / "track.mp3"
             file_path.touch()
 
-            with mock.patch.object(
-                AppleMusicManager,
-                "get_playlists",
-                return_value=(True, ["Roadtrip", "Roadtrip", "Focus"], "Playlists retrieved"),
-            ), mock.patch.object(apple_music.subprocess, "run") as run_mock:
+            with (
+                mock.patch.object(
+                    AppleMusicManager,
+                    "get_playlists",
+                    return_value=(True, ["Roadtrip", "Roadtrip", "Focus"], "Playlists retrieved"),
+                ),
+                mock.patch.object(apple_music.subprocess, "run") as run_mock,
+            ):
                 success, message = AppleMusicManager.add_to_playlist(
                     file_path,
                     "Roadtrip",
@@ -172,11 +204,14 @@ class ErrorMessageTests(unittest.TestCase):
             file_path = Path(tmpdir) / "track.mp3"
             file_path.touch()
 
-            with mock.patch.object(
-                AppleMusicManager,
-                "get_playlists",
-                return_value=(True, ["Roadtrip", "Focus"], "Playlists retrieved"),
-            ), mock.patch.object(apple_music.subprocess, "run") as run_mock:
+            with (
+                mock.patch.object(
+                    AppleMusicManager,
+                    "get_playlists",
+                    return_value=(True, ["Roadtrip", "Focus"], "Playlists retrieved"),
+                ),
+                mock.patch.object(apple_music.subprocess, "run") as run_mock,
+            ):
                 run_mock.return_value.returncode = 0
                 run_mock.return_value.stderr = ""
                 success, message = AppleMusicManager.add_to_playlist(
@@ -196,12 +231,17 @@ class ErrorMessageTests(unittest.TestCase):
             first_attempt = Mock(returncode=1, stdout="", stderr="AppleEvent timed out")
             second_attempt = Mock(returncode=0, stdout="", stderr="")
 
-            with mock.patch.object(
-                AppleMusicManager,
-                "get_playlists",
-                return_value=(True, ["Roadtrip"], "Playlists retrieved"),
-            ), mock.patch.object(apple_music.subprocess, "run", side_effect=[first_attempt, second_attempt]) as run_mock, \
-                mock.patch.object(apple_music.time, "sleep") as sleep_mock:
+            with (
+                mock.patch.object(
+                    AppleMusicManager,
+                    "get_playlists",
+                    return_value=(True, ["Roadtrip"], "Playlists retrieved"),
+                ),
+                mock.patch.object(
+                    apple_music.subprocess, "run", side_effect=[first_attempt, second_attempt]
+                ) as run_mock,
+                mock.patch.object(apple_music.time, "sleep") as sleep_mock,
+            ):
                 success, message = AppleMusicManager.add_to_playlist(file_path, "Roadtrip")
 
         self.assertTrue(success)
@@ -253,7 +293,9 @@ class ErrorMessageTests(unittest.TestCase):
         with mock.patch.object(click, "secho") as secho_mock:
             main._print_run_summary(logger, 3, 1)
 
-        secho_mock.assert_any_call("Summary: 3 succeeded, 1 failed (75% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 3 succeeded, 1 failed (75% success rate)", fg="yellow", bold=True
+        )
         logger.info.assert_called_once_with("Summary: 3 succeeded, 1 failed (75% success rate)")
 
     def test_download_shows_final_summary_for_successful_run(self):
@@ -272,9 +314,13 @@ class ErrorMessageTests(unittest.TestCase):
             downloader.download.return_value = (True, file_path, "Downloaded: track.mp3")
 
             download_cmd = cast(Any, main.download)
-            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
-                mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(click, "secho") as secho_mock:
+            with (
+                mock.patch.object(
+                    main.URLValidator, "validate_url", return_value=(True, "SoundCloud")
+                ),
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 download_cmd.callback.__wrapped__(
                     ctx,
                     ("https://soundcloud.com/artist/track",),
@@ -283,7 +329,9 @@ class ErrorMessageTests(unittest.TestCase):
                     False,
                 )
 
-        secho_mock.assert_any_call("Summary: 1 succeeded, 0 failed (100% success rate)", fg="green", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 0 failed (100% success rate)", fg="green", bold=True
+        )
 
     def test_download_processes_multiple_links_in_one_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -311,13 +359,19 @@ class ErrorMessageTests(unittest.TestCase):
             )
 
             download_cmd = cast(Any, main.download)
-            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
-                mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(click, "secho") as secho_mock:
+            with (
+                mock.patch.object(
+                    main.URLValidator, "validate_url", return_value=(True, "SoundCloud")
+                ),
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         self.assertEqual(downloader.download.call_count, 2)
-        secho_mock.assert_any_call("Summary: 2 succeeded, 0 failed (100% success rate)", fg="green", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 2 succeeded, 0 failed (100% success rate)", fg="green", bold=True
+        )
 
     def test_download_respects_config_continue_on_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -326,7 +380,12 @@ class ErrorMessageTests(unittest.TestCase):
             file_two = download_dir / "two.mp3"
             file_two.touch()
 
-            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            cfg = Mock(
+                download_dir=download_dir,
+                open_music_app=False,
+                default_playlist=None,
+                continue_on_error=True,
+            )
             logger = Mock()
             ctx = mock.Mock()
             ctx.obj = {"config": cfg, "logger": logger}
@@ -343,28 +402,41 @@ class ErrorMessageTests(unittest.TestCase):
             )
 
             download_cmd = cast(Any, main.download)
-            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
-                mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(click, "secho") as secho_mock:
+            with (
+                mock.patch.object(
+                    main.URLValidator, "validate_url", return_value=(True, "SoundCloud")
+                ),
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 # CLI flag is False, but config.continue_on_error is True -> should continue
                 with self.assertRaises(SystemExit) as exit_ctx:
                     download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         self.assertEqual(downloader.download.call_count, 2)
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+        )
 
     def test_batch_respects_config_continue_on_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             batch_file = Path(tmpdir) / "urls.txt"
-            batch_file.write_text("https://soundcloud.com/artist/one\nhttps://soundcloud.com/artist/two\n")
+            batch_file.write_text(
+                "https://soundcloud.com/artist/one\nhttps://soundcloud.com/artist/two\n"
+            )
 
             download_dir = Path(tmpdir) / "downloads"
             download_dir.mkdir()
             file_two = download_dir / "two.mp3"
             file_two.touch()
 
-            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            cfg = Mock(
+                download_dir=download_dir,
+                open_music_app=False,
+                default_playlist=None,
+                continue_on_error=True,
+            )
             logger = Mock()
             ctx = mock.Mock()
             ctx.obj = {"config": cfg, "logger": logger}
@@ -376,22 +448,36 @@ class ErrorMessageTests(unittest.TestCase):
             ]
 
             batch_cmd = cast(Any, main.batch)
-            with mock.patch.object(main.URLValidator, "validate_batch_file", return_value=(True, ["https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two"], [])), \
-                mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(apple_music, "AppleMusicManager"), \
-                mock.patch.object(click, "secho") as secho_mock:
+            with (
+                mock.patch.object(
+                    main.URLValidator,
+                    "validate_batch_file",
+                    return_value=(
+                        True,
+                        ["https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two"],
+                        [],
+                    ),
+                ),
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(apple_music, "AppleMusicManager"),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 # CLI flag False, config True
                 with self.assertRaises(SystemExit) as exit_ctx:
                     batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
 
         self.assertEqual(downloader.download.call_count, 2)
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+        )
 
     def test_batch_shows_final_summary_with_success_and_failure_counts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             batch_file = Path(tmpdir) / "urls.txt"
-            batch_file.write_text("https://soundcloud.com/artist/one\nhttps://soundcloud.com/artist/two\n")
+            batch_file.write_text(
+                "https://soundcloud.com/artist/one\nhttps://soundcloud.com/artist/two\n"
+            )
 
             download_dir = Path(tmpdir) / "downloads"
             download_dir.mkdir()
@@ -406,19 +492,35 @@ class ErrorMessageTests(unittest.TestCase):
             downloader = Mock()
             downloader.download.side_effect = [
                 (True, file_path, "Downloaded: track.mp3"),
-                (False, None, "The URL is invalid or not supported. Please check the link and try again."),
+                (
+                    False,
+                    None,
+                    "The URL is invalid or not supported. Please check the link and try again.",
+                ),
             ]
 
             batch_cmd = cast(Any, main.batch)
-            with mock.patch.object(main.URLValidator, "validate_batch_file", return_value=(True, ["https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two"], [])), \
-                mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(apple_music, "AppleMusicManager"), \
-                mock.patch.object(click, "secho") as secho_mock:
+            with (
+                mock.patch.object(
+                    main.URLValidator,
+                    "validate_batch_file",
+                    return_value=(
+                        True,
+                        ["https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two"],
+                        [],
+                    ),
+                ),
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(apple_music, "AppleMusicManager"),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 with self.assertRaises(SystemExit) as exit_ctx:
                     batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, True)
 
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+        )
 
     def test_batch_shows_detailed_error_list_for_failed_tracks(self):
         logger = Mock()
@@ -431,7 +533,9 @@ class ErrorMessageTests(unittest.TestCase):
             main._print_run_summary(logger, 1, 2, failed_items)
 
         # Check that summary is printed
-        secho_mock.assert_any_call("Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True
+        )
         # Check that error header is printed (with newline prefix)
         secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
         # Check that each error is printed
@@ -446,7 +550,9 @@ class ErrorMessageTests(unittest.TestCase):
         with mock.patch.object(click, "secho") as secho_mock:
             main._print_run_summary(logger, 3, 0, None)
 
-        secho_mock.assert_called_once_with("Summary: 3 succeeded, 0 failed (100% success rate)", fg="green", bold=True)
+        secho_mock.assert_called_once_with(
+            "Summary: 3 succeeded, 0 failed (100% success rate)", fg="green", bold=True
+        )
         logger.info.assert_called_once_with("Summary: 3 succeeded, 0 failed (100% success rate)")
 
     def test_multi_link_download_collects_and_reports_failed_urls(self):
@@ -456,7 +562,12 @@ class ErrorMessageTests(unittest.TestCase):
             file_one = download_dir / "one.mp3"
             file_one.touch()
 
-            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            cfg = Mock(
+                download_dir=download_dir,
+                open_music_app=False,
+                default_playlist=None,
+                continue_on_error=True,
+            )
             logger = Mock()
             ctx = mock.Mock()
             ctx.obj = {"config": cfg, "logger": logger}
@@ -475,15 +586,21 @@ class ErrorMessageTests(unittest.TestCase):
             )
 
             download_cmd = cast(Any, main.download)
-            with mock.patch.object(main.URLValidator, "validate_url", return_value=(True, "SoundCloud")), \
-                mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(click, "secho") as secho_mock:
+            with (
+                mock.patch.object(
+                    main.URLValidator, "validate_url", return_value=(True, "SoundCloud")
+                ),
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 with self.assertRaises(SystemExit) as exit_ctx:
                     download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
 
         # Verify summary shows correct counts
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
-        secho_mock.assert_any_call("Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True
+        )
         # Verify error header is shown
         secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
         # Verify failed URLs are listed
@@ -500,7 +617,12 @@ class ErrorMessageTests(unittest.TestCase):
             file_one = download_dir / "ok.mp3"
             file_one.touch()
 
-            cfg = Mock(download_dir=download_dir, open_music_app=False, default_playlist=None, continue_on_error=True)
+            cfg = Mock(
+                download_dir=download_dir,
+                open_music_app=False,
+                default_playlist=None,
+                continue_on_error=True,
+            )
             logger = Mock()
             ctx = mock.Mock()
             ctx.obj = {"config": cfg, "logger": logger}
@@ -509,22 +631,27 @@ class ErrorMessageTests(unittest.TestCase):
             downloader.download.return_value = (True, file_one, "Downloaded: ok.mp3")
 
             batch_cmd = cast(Any, main.batch)
-            with mock.patch.object(
-                main.URLValidator,
-                "validate_batch_file",
-                return_value=(
-                    False,
-                    ["https://soundcloud.com/artist/ok"],
-                    [(1, "Please provide a valid URL.")],
+            with (
+                mock.patch.object(
+                    main.URLValidator,
+                    "validate_batch_file",
+                    return_value=(
+                        False,
+                        ["https://soundcloud.com/artist/ok"],
+                        [(1, "Please provide a valid URL.")],
+                    ),
                 ),
-            ), mock.patch.object(main, "_create_downloader", return_value=downloader), \
-                mock.patch.object(apple_music, "AppleMusicManager"), \
-                mock.patch.object(click, "secho") as secho_mock:
+                mock.patch.object(main, "_create_downloader", return_value=downloader),
+                mock.patch.object(apple_music, "AppleMusicManager"),
+                mock.patch.object(click, "secho") as secho_mock,
+            ):
                 with self.assertRaises(SystemExit) as exit_ctx:
                     batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
 
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
-        secho_mock.assert_any_call("Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True)
+        secho_mock.assert_any_call(
+            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+        )
         secho_mock.assert_any_call("  1. line 1", fg="red")
 
 

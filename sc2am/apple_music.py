@@ -37,12 +37,14 @@ class AppleMusicManager:
     def __init__(self):
         """Initialize Apple Music manager."""
         self._check_platform()
-    
+
     @staticmethod
     def _check_platform() -> None:
         """Verify running on macOS."""
         if platform.system() != "Darwin":
-            logger.warning("Apple Music manager requires macOS. Current system: " + platform.system())
+            logger.warning(
+                "Apple Music manager requires macOS. Current system: " + platform.system()
+            )
 
     @classmethod
     def _is_retryable_error(cls, stderr: str) -> bool:
@@ -60,11 +62,7 @@ class AppleMusicManager:
         operation: str,
     ) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
         for attempt in range(1, cls._MAX_RETRIES + 1):
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode == 0:
                 return True, result, ""
@@ -82,29 +80,31 @@ class AppleMusicManager:
         return False, None, "Unknown error"
 
     @classmethod
-    def _run_osascript(cls, applescript: str, operation: str) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
-        return cls._run_command_with_retry(['osascript', '-e', applescript], operation)
+    def _run_osascript(
+        cls, applescript: str, operation: str
+    ) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
+        return cls._run_command_with_retry(["osascript", "-e", applescript], operation)
 
     @staticmethod
     def open_file_with_music(file_path: Path) -> Tuple[bool, str]:
         """
         Open MP3 file with Apple Music.
-        
+
         Args:
             file_path: Path to MP3 file
-            
+
         Returns:
             Tuple of (success, message)
         """
         if not file_path.exists():
             return False, "The downloaded file was not found."
 
-        if not file_path.suffix.lower() == '.mp3':
+        if not file_path.suffix.lower() == ".mp3":
             return False, "The selected file is not an MP3."
 
         try:
             # Use 'open' command with -a flag to open with specific app
-            cmd = ['open', '-a', 'Music', str(file_path)]
+            cmd = ["open", "-a", "Music", str(file_path)]
             success, result, error = AppleMusicManager._run_command_with_retry(
                 cmd,
                 "Opening file with Music",
@@ -121,8 +121,8 @@ class AppleMusicManager:
                 )
 
             logger.info(f"Opened {file_path.name} with Apple Music")
-            return True, f"Opened with Apple Music"
-        
+            return True, "Opened with Apple Music"
+
         except Exception:
             logger.exception("Error opening file in Apple Music")
             return (
@@ -135,11 +135,11 @@ class AppleMusicManager:
     def add_to_playlist(file_path: Path, playlist_name: str) -> Tuple[bool, str]:
         """
         Add track to Apple Music playlist via AppleScript.
-        
+
         Args:
             file_path: Path to MP3 file
             playlist_name: Name of target playlist
-            
+
         Returns:
             Tuple of (success, message)
         """
@@ -151,14 +151,14 @@ class AppleMusicManager:
             return False, error_message
 
         # AppleScript to add track to playlist
-        applescript = f'''
+        applescript = f"""
         tell application "Music"
             activate
             set sourcePath to POSIX file "{str(file_path)}"
             add sourcePath to playlist "{resolved_playlist}"
         end tell
-        '''
-        
+        """
+
         try:
             success, result, error = AppleMusicManager._run_osascript(
                 applescript,
@@ -188,16 +188,16 @@ class AppleMusicManager:
     def get_playlists() -> Tuple[bool, List[str], str]:
         """
         Get list of available playlists in Apple Music.
-        
+
         Returns:
             Tuple of (success, playlist_names, message)
         """
-        applescript = '''
+        applescript = """
         tell application "Music"
             return name of playlists
         end tell
-        '''
-        
+        """
+
         try:
             success, result, error = AppleMusicManager._run_osascript(
                 applescript,
@@ -216,11 +216,11 @@ class AppleMusicManager:
             output = result.stdout.strip()
             if not output:
                 return True, [], "No playlists found"
-            
-            playlists = [p.strip() for p in output.split(',') if p.strip()]
+
+            playlists = [p.strip() for p in output.split(",") if p.strip()]
             logger.debug(f"Found {len(playlists)} playlists")
             return True, playlists, "Playlists retrieved"
-        
+
         except Exception:
             logger.exception("Error fetching playlists")
             return (
@@ -240,9 +240,14 @@ class AppleMusicManager:
         if not success:
             return None, message
 
-        matches = [playlist for playlist in playlists if playlist.lower() == normalized_name.lower()]
+        matches = [
+            playlist for playlist in playlists if playlist.lower() == normalized_name.lower()
+        ]
         if not matches:
-            return None, f'Playlist "{normalized_name}" was not found in Apple Music. Please check the name and try again.'
+            return (
+                None,
+                f'Playlist "{normalized_name}" was not found in Apple Music. Please check the name and try again.',
+            )
 
         if len(matches) > 1:
             return (
@@ -251,4 +256,3 @@ class AppleMusicManager:
             )
 
         return matches[0], f'Playlist "{matches[0]}" selected.'
-

@@ -19,7 +19,7 @@ The downloaded MP3 files are automatically enriched with SoundCloud metadata (ti
 
 ### Requirements
 - **macOS** (Apple Music integration requires macOS)
-- **Python 3.8+**
+- **Python 3.10+**
 - **yt-dlp** (will be installed as dependency)
 
 ### macOS Prerequisites

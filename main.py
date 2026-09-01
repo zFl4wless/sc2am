@@ -66,9 +66,9 @@ def _track_status(
     logger,
     label: str,
     message: str,
-    fg: str = 'blue',
+    fg: str = "blue",
     bold: bool = False,
-    level: str = 'info',
+    level: str = "info",
 ) -> None:
     click.secho(f"{label}: {message}", fg=fg, bold=bold)
     logger.log(getattr(logging, level.upper(), logging.INFO), f"{label}: {message}")
@@ -86,35 +86,37 @@ def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
     return None
 
 
-def _print_run_summary(logger, succeeded: int, failed: int, failed_items: Optional[list] = None) -> None:
+def _print_run_summary(
+    logger, succeeded: int, failed: int, failed_items: Optional[list] = None
+) -> None:
     total = succeeded + failed
     success_rate = int((succeeded / total * 100)) if total > 0 else 0
     summary = f"Summary: {succeeded} succeeded, {failed} failed ({success_rate}% success rate)"
-    fg = 'green' if failed == 0 else 'yellow'
+    fg = "green" if failed == 0 else "yellow"
     click.secho(summary, fg=fg, bold=True)
     logger.info(summary)
 
     # Print detailed error list if there were failures
     if failed_items and len(failed_items) > 0:
-        click.secho("\nFailed tracks:", fg='red', bold=True)
+        click.secho("\nFailed tracks:", fg="red", bold=True)
         for idx, (url, error) in enumerate(failed_items, 1):
-            click.secho(f"  {idx}. {url}", fg='red')
-            click.secho(f"     Error: {error}", fg='red')
+            click.secho(f"  {idx}. {url}", fg="red")
+            click.secho(f"     Error: {error}", fg="red")
             logger.error(f"Failed: {url} - {error}")
         click.echo()
 
 
 @click.group()
 @click.option(
-    '--config',
+    "--config",
     type=click.Path(exists=True),
-    help='Path to custom YAML config file (overrides default ~/.sc2am/config.yaml)'
+    help="Path to custom YAML config file (overrides default ~/.sc2am/config.yaml)",
 )
 @click.option(
-    '--log-level',
+    "--log-level",
     type=click.Choice(LOG_LEVELS),
     default=ConfigManager.default_config_data()["log_level"],
-    help='Logging level (overrides value in config file)'
+    help="Logging level (overrides value in config file)",
 )
 @click.pass_context
 def cli(ctx: click.Context, config: Optional[str], log_level: str):
@@ -158,30 +160,30 @@ def cli(ctx: click.Context, config: Optional[str], log_level: str):
 
     # Store config in context for subcommands
     state = _context_state(ctx)
-    state['config'] = cfg
-    state['logger'] = logger
+    state["config"] = cfg
+    state["logger"] = logger
 
 
 @cli.command()
-@click.argument('urls', nargs=-1, required=True)
+@click.argument("urls", nargs=-1, required=True)
 @click.option(
-    '--playlist',
-    help='Add to this playlist (optional). If omitted, the configured `default_playlist` is used when present.'
+    "--playlist",
+    help="Add to this playlist (optional). If omitted, the configured `default_playlist` is used when present.",
 )
 @click.option(
-    '--no-open',
+    "--no-open",
     is_flag=True,
-    help='Do not automatically open the tagged MP3 in Apple Music after download/import'
+    help="Do not automatically open the tagged MP3 in Apple Music after download/import",
 )
 @click.option(
-    '--continue-on-error',
+    "--continue-on-error",
     is_flag=True,
-    help='Continue processing remaining URLs if one fails (useful for batch or multi-URL runs)'
+    help="Continue processing remaining URLs if one fails (useful for batch or multi-URL runs)",
 )
 @click.option(
-    '--dry-run',
+    "--dry-run",
     is_flag=True,
-    help='Preview actions without making changes to files or Apple Music (no downloads or imports)'
+    help="Preview actions without making changes to files or Apple Music (no downloads or imports)",
 )
 @click.pass_context
 def download(
@@ -191,7 +193,7 @@ def download(
     no_open: bool,
     continue_on_error: bool,
     dry_run: bool = False,
- ):
+):
     """Download one or more SoundCloud track URLs and import them into Apple Music.
 
     Provide one or more SoundCloud track URLs as arguments. For single-URL runs the
@@ -200,14 +202,14 @@ def download(
     or set `continue_on_error` in your config to keep processing remaining items.
     """
     state = _context_state(ctx)
-    cfg = state['config']
-    logger = state['logger']
+    cfg = state["config"]
+    logger = state["logger"]
     succeeded = 0
     failed = 0
     total = len(urls)
 
     # Determine effective continue-on-error: CLI flag OR config default
-    effective_continue = continue_on_error or getattr(cfg, 'continue_on_error', False)
+    effective_continue = continue_on_error or getattr(cfg, "continue_on_error", False)
 
     # Preserve the existing single-link behavior and messaging.
     if total == 1:
@@ -224,7 +226,7 @@ def download(
                 failed = 1
                 _exit_with_error(logger, platform, exit_code=int(ExitCode.USAGE))
 
-            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
+            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg="green")
             logger.debug(f"URL validated as {platform}")
 
             # Download track
@@ -238,22 +240,27 @@ def download(
 
             file_path = _require_downloaded_file(file_path, logger)
 
-            _track_status(logger, track_label, f"OK: {message}", fg='green')
+            _track_status(logger, track_label, f"OK: {message}", fg="green")
             logger.info(f"Successfully downloaded to {file_path}")
 
             # Open with Apple Music
             if dry_run:
-                _track_status(logger, track_label, "DRY-RUN: Skipping open/import steps (preview mode).", fg='yellow')
+                _track_status(
+                    logger,
+                    track_label,
+                    "DRY-RUN: Skipping open/import steps (preview mode).",
+                    fg="yellow",
+                )
             else:
                 if not no_open and cfg.open_music_app:
                     _track_status(logger, track_label, "Opening with Apple Music...")
                     music_manager = AppleMusicManager()
                     success, msg = music_manager.open_file_with_music(file_path)
                     if success:
-                        _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                        _track_status(logger, track_label, f"OK: {msg}", fg="green")
                         logger.info(msg)
                     else:
-                        _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
+                        _track_status(logger, track_label, f"WARNING: {msg}", fg="yellow")
                         logger.warning(msg)
 
             playlist_name = _resolve_playlist_name(cfg, playlist)
@@ -261,20 +268,25 @@ def download(
             # Add to playlist (or dry-run preview)
             if playlist_name:
                 if dry_run:
-                    _track_status(logger, track_label, f"DRY-RUN: Would add to playlist '{playlist_name}'", fg='yellow')
+                    _track_status(
+                        logger,
+                        track_label,
+                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
+                        fg="yellow",
+                    )
                 else:
                     _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
                     music_manager = AppleMusicManager()
                     success, msg = music_manager.add_to_playlist(file_path, playlist_name)
                     if success:
-                        _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                        _track_status(logger, track_label, f"OK: {msg}", fg="green")
                         logger.info(msg)
                     else:
-                        _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow')
+                        _track_status(logger, track_label, f"WARNING: {msg}", fg="yellow")
                         logger.warning(msg)
 
             succeeded = 1
-            click.secho(f"\n{track_label}: Done!", fg='green', bold=True)
+            click.secho(f"\n{track_label}: Done!", fg="green", bold=True)
         finally:
             _print_run_summary(logger, succeeded, failed, None)
         return
@@ -298,21 +310,30 @@ def download(
                 failed += 1
                 error_msg = platform
                 failed_items.append((url, error_msg))
-                _track_status(logger, track_label, f"ERROR: {platform}", fg='red', level='error')
+                _track_status(logger, track_label, f"ERROR: {platform}", fg="red", level="error")
                 if not effective_continue:
                     break
                 continue
 
-            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg='green')
+            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg="green")
             # If dry-run, skip download and music operations but show intended actions
             if dry_run:
-                _track_status(logger, track_label, "DRY-RUN: Would download track", fg='yellow')
+                _track_status(logger, track_label, "DRY-RUN: Would download track", fg="yellow")
                 if not no_open and cfg.open_music_app:
-                    _track_status(logger, track_label, "DRY-RUN: Would open with Apple Music", fg='yellow')
+                    _track_status(
+                        logger, track_label, "DRY-RUN: Would open with Apple Music", fg="yellow"
+                    )
                 if playlist_name:
-                    _track_status(logger, track_label, f"DRY-RUN: Would add to playlist '{playlist_name}'", fg='yellow')
+                    _track_status(
+                        logger,
+                        track_label,
+                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
+                        fg="yellow",
+                    )
                 succeeded += 1
-                click.secho(f"{track_label}: DRY-RUN complete (no changes made)", fg='yellow', bold=True)
+                click.secho(
+                    f"{track_label}: DRY-RUN complete (no changes made)", fg="yellow", bold=True
+                )
                 continue
 
             _track_status(logger, track_label, "Downloading track...")
@@ -321,32 +342,36 @@ def download(
             if not success:
                 failed += 1
                 failed_items.append((url, message))
-                _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
+                _track_status(logger, track_label, f"ERROR: {message}", fg="red", level="error")
                 if not effective_continue:
                     break
                 continue
 
             file_path = _require_downloaded_file(file_path, logger)
-            _track_status(logger, track_label, f"OK: {message}", fg='green')
+            _track_status(logger, track_label, f"OK: {message}", fg="green")
 
             if not no_open and cfg.open_music_app:
                 _track_status(logger, track_label, "Opening with Apple Music...")
                 success, msg = music_manager.open_file_with_music(file_path)
                 if success:
-                    _track_status(logger, track_label, f"OK: {msg}", fg='green')
+                    _track_status(logger, track_label, f"OK: {msg}", fg="green")
                 else:
-                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+                    _track_status(
+                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
+                    )
 
             if playlist_name:
                 _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
                 success, msg = music_manager.add_to_playlist(file_path, playlist_name)
                 if success:
-                    _track_status(logger, track_label, "OK: Added to playlist", fg='green')
+                    _track_status(logger, track_label, "OK: Added to playlist", fg="green")
                 else:
-                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+                    _track_status(
+                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
+                    )
 
             succeeded += 1
-            click.secho(f"{track_label}: Done!", fg='green', bold=True)
+            click.secho(f"{track_label}: Done!", fg="green", bold=True)
     finally:
         _print_run_summary(logger, succeeded, failed, failed_items)
 
@@ -355,23 +380,29 @@ def download(
 
 
 @cli.command()
-@click.argument('batch_file', type=click.Path(exists=True))
+@click.argument("batch_file", type=click.Path(exists=True))
 @click.option(
-    '--playlist',
-    help='Add all found tracks to this playlist (optional). Names are matched against existing Music playlists.'
+    "--playlist",
+    help="Add all found tracks to this playlist (optional). Names are matched against existing Music playlists.",
 )
 @click.option(
-    '--continue-on-error',
+    "--continue-on-error",
     is_flag=True,
-    help='Continue processing other URLs in the file if one fails (useful for large batches)'
+    help="Continue processing other URLs in the file if one fails (useful for large batches)",
 )
 @click.option(
-    '--dry-run',
+    "--dry-run",
     is_flag=True,
-    help='Preview actions without making changes to files or Apple Music (no downloads or imports)'
+    help="Preview actions without making changes to files or Apple Music (no downloads or imports)",
 )
 @click.pass_context
-def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue_on_error: bool, dry_run: bool = False):
+def batch(
+    ctx: click.Context,
+    batch_file: str,
+    playlist: Optional[str],
+    continue_on_error: bool,
+    dry_run: bool = False,
+):
     """Process multiple SoundCloud URLs from a text file (one URL per line).
 
     Lines starting with `#` are treated as comments and ignored. URLs will be trimmed
@@ -379,10 +410,10 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
     will either abort or be skipped.
     """
     state = _context_state(ctx)
-    cfg = state['config']
-    logger = state['logger']
+    cfg = state["config"]
+    logger = state["logger"]
 
-    effective_continue = continue_on_error or getattr(cfg, 'continue_on_error', False)
+    effective_continue = continue_on_error or getattr(cfg, "continue_on_error", False)
 
     logger.info(f"Processing batch file: {batch_file}")
 
@@ -391,7 +422,7 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
 
     if errors:
         for line_num, error in errors:
-            click.secho(f"ERROR: Line {line_num}: {error}", fg='red')
+            click.secho(f"ERROR: Line {line_num}: {error}", fg="red")
             logger.error(f"Line {line_num}: {error}")
 
     if not urls:
@@ -401,7 +432,7 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
             exit_code=int(ExitCode.USAGE),
         )
 
-    click.secho(f"OK: Found {len(urls)} valid URL(s)", fg='green')
+    click.secho(f"OK: Found {len(urls)} valid URL(s)", fg="green")
     logger.info(f"Found {len(urls)} valid URLs")
 
     # Process each URL
@@ -421,14 +452,23 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
 
             # Download
             if dry_run:
-                _track_status(logger, track_label, "DRY-RUN: Would download track", fg='yellow')
+                _track_status(logger, track_label, "DRY-RUN: Would download track", fg="yellow")
                 if cfg.open_music_app:
-                    _track_status(logger, track_label, "DRY-RUN: Would open with Apple Music", fg='yellow')
+                    _track_status(
+                        logger, track_label, "DRY-RUN: Would open with Apple Music", fg="yellow"
+                    )
                 playlist_name = _resolve_playlist_name(cfg, playlist)
                 if playlist_name:
-                    _track_status(logger, track_label, f"DRY-RUN: Would add to playlist '{playlist_name}'", fg='yellow')
+                    _track_status(
+                        logger,
+                        track_label,
+                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
+                        fg="yellow",
+                    )
                 successful += 1
-                click.secho(f"{track_label}: DRY-RUN complete (no changes made)", fg='yellow', bold=True)
+                click.secho(
+                    f"{track_label}: DRY-RUN complete (no changes made)", fg="yellow", bold=True
+                )
                 continue
 
             _track_status(logger, track_label, "Downloading track...")
@@ -436,7 +476,7 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
             if not success:
                 error_msg = message
                 failed_items.append((url, error_msg))
-                _track_status(logger, track_label, f"ERROR: {message}", fg='red', level='error')
+                _track_status(logger, track_label, f"ERROR: {message}", fg="red", level="error")
                 failed += 1
                 if not effective_continue:
                     break
@@ -444,7 +484,7 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
 
             file_path = _require_downloaded_file(file_path, logger)
 
-            _track_status(logger, track_label, "OK: Downloaded", fg='green')
+            _track_status(logger, track_label, "OK: Downloaded", fg="green")
             successful += 1
 
             # Open with Apple Music
@@ -452,9 +492,11 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
                 _track_status(logger, track_label, "Opening with Apple Music...")
                 success, msg = music_manager.open_file_with_music(file_path)
                 if success:
-                    _track_status(logger, track_label, "OK: Opened with Apple Music", fg='green')
+                    _track_status(logger, track_label, "OK: Opened with Apple Music", fg="green")
                 else:
-                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+                    _track_status(
+                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
+                    )
 
             playlist_name = _resolve_playlist_name(cfg, playlist)
 
@@ -463,11 +505,13 @@ def batch(ctx: click.Context, batch_file: str, playlist: Optional[str], continue
                 _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
                 success, msg = music_manager.add_to_playlist(file_path, playlist_name)
                 if success:
-                    _track_status(logger, track_label, "OK: Added to playlist", fg='green')
+                    _track_status(logger, track_label, "OK: Added to playlist", fg="green")
                 else:
-                    _track_status(logger, track_label, f"WARNING: {msg}", fg='yellow', level='warning')
+                    _track_status(
+                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
+                    )
 
-            click.secho(f"{track_label}: Done!", fg='green', bold=True)
+            click.secho(f"{track_label}: Done!", fg="green", bold=True)
     finally:
         _print_run_summary(logger, successful, failed, failed_items)
 
@@ -481,15 +525,15 @@ def config():
     pass
 
 
-@config.command('init')
-@click.option('--force', is_flag=True, help='Overwrite existing config')
+@config.command("init")
+@click.option("--force", is_flag=True, help="Overwrite existing config")
 @click.pass_context
 def config_init(ctx: click.Context, force: bool):
     """Create a default configuration file at `~/.sc2am/config.yaml`.
 
     Use `--force` to overwrite an existing config file.
     """
-    logger = _context_state(ctx)['logger']
+    logger = _context_state(ctx)["logger"]
 
     click.echo("Initializing SC2AM configuration...")
     try:
@@ -501,18 +545,18 @@ def config_init(ctx: click.Context, force: bool):
             str(exc),
         )
 
-    click.secho(f"OK: Configuration file created at: {config_path}", fg='green')
+    click.secho(f"OK: Configuration file created at: {config_path}", fg="green")
     logger.info(f"Config initialized at {config_path}")
 
 
-@config.command('show')
+@config.command("show")
 @click.pass_context
 def config_show(ctx: click.Context):
     """Display the current effective configuration and workflow settings.
 
     Values may come from the config file or be overridden by environment variables.
     """
-    cfg = _context_state(ctx)['config']
+    cfg = _context_state(ctx)["config"]
 
     click.echo("\nCurrent Configuration:")
     click.echo("=" * 50)
@@ -537,10 +581,10 @@ def main():
         logging.getLogger("sc2am").exception("Unhandled CLI error")
         click.secho(
             "ERROR: An unexpected error occurred. Please check the log file for details.",
-            fg='red',
+            fg="red",
         )
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
