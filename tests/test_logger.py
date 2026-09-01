@@ -30,7 +30,9 @@ class LoggerSetupTests(unittest.TestCase):
             logger = setup_logging("DEBUG", log_path)
 
         self.assertEqual(len(logger.handlers), 2)
-        file_handlers = [handler for handler in logger.handlers if isinstance(handler, logging.FileHandler)]
+        file_handlers = [
+            handler for handler in logger.handlers if isinstance(handler, logging.FileHandler)
+        ]
         self.assertEqual(len(file_handlers), 1)
         self.assertEqual(file_handlers[0].level, logging.DEBUG)
 

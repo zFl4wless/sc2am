@@ -14,12 +14,11 @@ from sc2am.metadata import MetadataWriter
 from sc2am.validator import URLValidator
 
 __all__ = [
-    'ConfigManager',
-    'AppConfig',
-    'setup_logging',
-    'Downloader',
-    'AppleMusicManager',
-    'MetadataWriter',
-    'URLValidator',
+    "ConfigManager",
+    "AppConfig",
+    "setup_logging",
+    "Downloader",
+    "AppleMusicManager",
+    "MetadataWriter",
+    "URLValidator",
 ]
-

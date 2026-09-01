@@ -60,7 +60,7 @@ class Downloader:
     def __init__(self, download_dir: Path):
         """
         Initialize downloader.
-        
+
         Args:
             download_dir: Directory where files will be downloaded
         """
@@ -71,7 +71,7 @@ class Downloader:
     @staticmethod
     def _check_dependencies() -> None:
         """Check if yt-dlp is installed."""
-        yt_dlp_path = shutil.which('yt-dlp')
+        yt_dlp_path = shutil.which("yt-dlp")
         if not yt_dlp_path:
             raise RuntimeError(
                 "yt-dlp is not installed. Install it with 'pip install yt-dlp' and try again."
@@ -90,10 +90,10 @@ class Downloader:
     def download(self, url: str) -> Tuple[bool, Optional[Path], str]:
         """
         Download audio from URL.
-        
+
         Args:
             url: URL to download from
-            
+
         Returns:
             Tuple of (success, file_path, message)
         """
@@ -106,30 +106,32 @@ class Downloader:
             track_info = info
         else:
             logger.warning(f"Could not fetch track metadata before download: {info_msg}")
-        
+
         # yt-dlp command
         output_template = str(self.download_dir / "%(title)s.%(ext)s")
-        
+
         cmd = [
-            'yt-dlp',
-            '--format', 'bestaudio/best',
-            '--extract-audio',
-            '--audio-format', 'mp3',
-            '--audio-quality', '192',
-            '--output', output_template,
-            '--print', 'after_move:filepath',
-            '--quiet',
-            url
+            "yt-dlp",
+            "--format",
+            "bestaudio/best",
+            "--extract-audio",
+            "--audio-format",
+            "mp3",
+            "--audio-quality",
+            "192",
+            "--output",
+            output_template,
+            "--print",
+            "after_move:filepath",
+            "--quiet",
+            url,
         ]
-        
+
         for attempt in range(1, self._MAX_RETRIES + 1):
             try:
                 logger.debug(f"Running command: {' '.join(cmd)}")
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=300  # 5 minutes timeout
+                    cmd, capture_output=True, text=True, timeout=300  # 5 minutes timeout
                 )
 
                 if result.returncode != 0:
@@ -156,7 +158,9 @@ class Downloader:
 
                 metadata_message = ""
                 if track_info:
-                    meta_ok, meta_msg = self.metadata_writer.write_to_file(downloaded_file, track_info)
+                    meta_ok, meta_msg = self.metadata_writer.write_to_file(
+                        downloaded_file, track_info
+                    )
                     if meta_ok:
                         metadata_message = " (metadata embedded)"
                     else:
@@ -164,7 +168,11 @@ class Downloader:
                         logger.warning(f"Metadata tagging issue: {meta_msg}")
 
                 logger.info(f"Successfully downloaded: {downloaded_file.name}")
-                return True, downloaded_file, f"Downloaded: {downloaded_file.name}{metadata_message}"
+                return (
+                    True,
+                    downloaded_file,
+                    f"Downloaded: {downloaded_file.name}{metadata_message}",
+                )
 
             except subprocess.TimeoutExpired:
                 if attempt < self._MAX_RETRIES:
@@ -198,7 +206,9 @@ class Downloader:
             return "The track is private or unavailable. Please use a public SoundCloud track URL."
 
         if any(pattern in lowered for pattern in cls._NOT_FOUND_PATTERNS):
-            return "The track could not be found. It may have been removed or the link may be wrong."
+            return (
+                "The track could not be found. It may have been removed or the link may be wrong."
+            )
 
         if any(pattern in lowered for pattern in cls._TEMPORARY_NETWORK_PATTERNS):
             return "A temporary network error occurred. Please try again."
@@ -210,44 +220,36 @@ class Downloader:
         output_lines = [line.strip() for line in stdout.splitlines() if line.strip()]
         for line in reversed(output_lines):
             candidate = Path(line)
-            if candidate.suffix.lower() == '.mp3' and candidate.exists():
+            if candidate.suffix.lower() == ".mp3" and candidate.exists():
                 return candidate
 
         mp3_files = list(self.download_dir.glob("*.mp3"))
         if not mp3_files:
             return None
         return max(mp3_files, key=lambda p: p.stat().st_mtime)
-    
+
     @staticmethod
     def get_track_info(url: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:
         """
         Get track information without downloading.
-        
+
         Args:
             url: URL to get info from
-            
+
         Returns:
             Tuple of (success, info_dict, message)
         """
-        cmd = [
-            'yt-dlp',
-            '--dump-json',
-            '--no-warnings',
-            url
-        ]
-        
+        cmd = ["yt-dlp", "--dump-json", "--no-warnings", url]
+
         for attempt in range(1, Downloader._MAX_RETRIES + 1):
             try:
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
                 if result.returncode != 0:
                     error_msg = Downloader._classify_download_error(result.stderr)
-                    if attempt < Downloader._MAX_RETRIES and Downloader._is_retryable_error(result.stderr):
+                    if attempt < Downloader._MAX_RETRIES and Downloader._is_retryable_error(
+                        result.stderr
+                    ):
                         logger.warning(
                             f"Temporary track-info failure on attempt {attempt}/{Downloader._MAX_RETRIES}: {error_msg}"
                         )
@@ -268,5 +270,8 @@ class Downloader:
                 return False, None, "Could not read track information from yt-dlp."
             except Exception:
                 logger.exception("Error fetching track info")
-                return False, None, "Could not fetch track information. Please check the log file for details."
-
+                return (
+                    False,
+                    None,
+                    "Could not fetch track information. Please check the log file for details.",
+                )

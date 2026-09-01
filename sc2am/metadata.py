@@ -132,7 +132,9 @@ class MetadataWriter:
         id3.delall("TSSE")
         id3.add(TSSE(encoding=3, text=["sc2am"]))
 
-        source_url = self._first_available(track_info.get("webpage_url"), track_info.get("original_url"))
+        source_url = self._first_available(
+            track_info.get("webpage_url"), track_info.get("original_url")
+        )
         if source_url:
             id3.delall("TXXX:SOURCE_URL")
             id3.add(TXXX(encoding=3, desc="SOURCE_URL", text=[source_url]))
@@ -144,7 +146,9 @@ class MetadataWriter:
             if image_bytes and self._save_cover_art(file_path, image_bytes, mime):
                 return True
             if image_bytes:
-                logger.warning("Artwork candidate downloaded successfully, but could not be verified after saving.")
+                logger.warning(
+                    "Artwork candidate downloaded successfully, but could not be verified after saving."
+                )
 
         fallback_bytes, fallback_mime = self._fallback_cover_art()
         if self._save_cover_art(file_path, fallback_bytes, fallback_mime):
@@ -156,7 +160,11 @@ class MetadataWriter:
     def _extract_tags(self, track_info: Dict[str, Any]) -> Dict[str, str]:
         track_value = track_info.get("track")
         title = self._first_available(
-            self._first_available(track_value) if not self._looks_like_track_number(track_value) else "",
+            (
+                self._first_available(track_value)
+                if not self._looks_like_track_number(track_value)
+                else ""
+            ),
             track_info.get("title"),
             "Unknown Title",
         )
@@ -194,7 +202,11 @@ class MetadataWriter:
         )
         track_number = self._first_available(
             self._stringify(track_info.get("track_number")),
-            self._stringify(track_info.get("track")) if isinstance(track_info.get("track"), int) else "",
+            (
+                self._stringify(track_info.get("track"))
+                if isinstance(track_info.get("track"), int)
+                else ""
+            ),
             "",
         )
 
@@ -219,7 +231,19 @@ class MetadataWriter:
         if key == "track_number":
             return cls._normalize_track_number_value(value)
 
-        if key in {"thumbnail", "artwork_url", "cover_art", "cover_art_url", "cover_url", "image", "thumbnail_url", "album_art", "album_art_url", "webpage_url", "original_url"}:
+        if key in {
+            "thumbnail",
+            "artwork_url",
+            "cover_art",
+            "cover_art_url",
+            "cover_url",
+            "image",
+            "thumbnail_url",
+            "album_art",
+            "album_art_url",
+            "webpage_url",
+            "original_url",
+        }:
             return cls._normalize_text_value(
                 value,
                 preferred_keys=("url", "secure_url", "source", "src", "href", "link"),
@@ -228,11 +252,34 @@ class MetadataWriter:
         if key in {"genre", "genre_name", "categories", "category"}:
             return cls._normalize_text_value(
                 value,
-                preferred_keys=("genre", "genre_name", "category", "categories", "name", "title", "value", "text", "label"),
+                preferred_keys=(
+                    "genre",
+                    "genre_name",
+                    "category",
+                    "categories",
+                    "name",
+                    "title",
+                    "value",
+                    "text",
+                    "label",
+                ),
                 join_values=True,
             )
 
-        if key in {"track", "title", "artist", "creator", "uploader", "channel_name", "channel", "album", "album_name", "release_title", "collection", "album_artist"}:
+        if key in {
+            "track",
+            "title",
+            "artist",
+            "creator",
+            "uploader",
+            "channel_name",
+            "channel",
+            "album",
+            "album_name",
+            "release_title",
+            "collection",
+            "album_artist",
+        }:
             return cls._normalize_text_value(
                 value,
                 preferred_keys=(
@@ -294,7 +341,9 @@ class MetadataWriter:
 
         if isinstance(value, (list, tuple, set)):
             items = [
-                cls._normalize_text_value(item, preferred_keys=preferred_keys, join_values=join_values)
+                cls._normalize_text_value(
+                    item, preferred_keys=preferred_keys, join_values=join_values
+                )
                 for item in value
             ]
             items = [item for item in items if item]
@@ -371,7 +420,9 @@ class MetadataWriter:
             )
             response.raise_for_status()
             image_bytes = response.content
-            mime = MetadataWriter._detect_image_mime(image_bytes, response.headers.get("Content-Type", ""))
+            mime = MetadataWriter._detect_image_mime(
+                image_bytes, response.headers.get("Content-Type", "")
+            )
             if not image_bytes or not mime:
                 return None, "image/jpeg"
             return image_bytes, mime
@@ -416,7 +467,7 @@ class MetadataWriter:
         for separator in separators:
             prefix = f"{cleaned_artist}{separator}"
             if normalized_title.startswith(prefix.lower()):
-                stripped_title = cleaned_title[len(prefix):].strip()
+                stripped_title = cleaned_title[len(prefix) :].strip()
                 if stripped_title:
                     return stripped_title
 
@@ -526,7 +577,11 @@ class MetadataWriter:
             return "image/jpeg"
         if image_bytes.startswith((b"GIF87a", b"GIF89a")):
             return "image/gif"
-        if len(image_bytes) >= 12 and image_bytes.startswith(b"RIFF") and image_bytes[8:12] == b"WEBP":
+        if (
+            len(image_bytes) >= 12
+            and image_bytes.startswith(b"RIFF")
+            and image_bytes[8:12] == b"WEBP"
+        ):
             return "image/webp"
 
         lowered = (content_type or "").lower()
@@ -587,6 +642,3 @@ class MetadataWriter:
         if value is None:
             return ""
         return str(value)
-
-
-

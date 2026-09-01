@@ -211,8 +211,12 @@ class MetadataMappingTests(unittest.TestCase):
                     return b"large-image-bytes", "image/jpeg"
                 self.fail(f"Unexpected thumbnail URL: {url}")
 
-            with mock.patch.object(self.writer, "_download_image", side_effect=download_side_effect):
-                with mock.patch.object(self.writer, "_save_cover_art", wraps=self.writer._save_cover_art) as save_mock:
+            with mock.patch.object(
+                self.writer, "_download_image", side_effect=download_side_effect
+            ):
+                with mock.patch.object(
+                    self.writer, "_save_cover_art", wraps=self.writer._save_cover_art
+                ) as save_mock:
                     self.writer._write_cover_art(file_path, track_info)
 
             self.assertEqual(save_mock.call_count, 1)
@@ -252,7 +256,10 @@ class MetadataMappingTests(unittest.TestCase):
             with mock.patch.object(
                 self.writer,
                 "_download_image",
-                side_effect=[(b"broken-image-bytes", "image/jpeg"), (b"large-image-bytes", "image/jpeg")],
+                side_effect=[
+                    (b"broken-image-bytes", "image/jpeg"),
+                    (b"large-image-bytes", "image/jpeg"),
+                ],
             ):
                 with mock.patch.object(
                     MetadataWriter,
@@ -273,4 +280,3 @@ class MetadataMappingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
