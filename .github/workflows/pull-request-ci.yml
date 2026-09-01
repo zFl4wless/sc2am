@@ -37,7 +37,7 @@ jobs:
         run: python -m pytest
 
       - name: Run flake8
-        run: python -m flake8 --max-line-length=100 sc2am tests
+        run: python -m flake8 sc2am tests
 
       - name: Run black check
         run: python -m black --check .
