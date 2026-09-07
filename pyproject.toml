@@ -54,6 +54,7 @@ sc2am = "main:main"
 
 [tool.setuptools]
 packages = ["sc2am"]
+py-modules = ["main"]
 
 [tool.black]
 line-length = 100

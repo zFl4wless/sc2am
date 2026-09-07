@@ -8,10 +8,14 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 import yaml
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationError
 
 logger = logging.getLogger(__name__)
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+class ConfigurationError(ValueError):
+    """Invalid or unreadable user configuration."""
 
 
 def default_download_dir() -> Path:
@@ -22,7 +26,7 @@ def default_download_dir() -> Path:
 class AppConfig(BaseModel):
     """Application configuration model with validation."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     # Paths
     download_dir: Path = Field(
@@ -31,14 +35,16 @@ class AppConfig(BaseModel):
 
     # Apple Music
     music_library_path: Optional[Path] = Field(
-        default=None, description="Path to Apple Music library (auto-detected if not set)"
+        default=None, description="Compatibility setting; currently inactive"
     )
     default_playlist: Optional[str] = Field(
         default=None, description="Default playlist to add imported tracks to"
     )
 
     # Behavior
-    keep_downloads: bool = Field(default=True, description="Keep downloaded MP3 files after import")
+    keep_downloads: bool = Field(
+        default=True, description="Compatibility setting; downloads are currently always retained"
+    )
     open_music_app: bool = Field(
         default=True, description="Automatically open Apple Music after import"
     )
@@ -49,37 +55,68 @@ class AppConfig(BaseModel):
 
     # Workflow defaults
     normalize_metadata: bool = Field(
-        default=True, description="Automatically normalize and tag track metadata"
+        default=True,
+        description="Compatibility setting; metadata tagging is currently always attempted",
     )
     skip_existing_tracks: bool = Field(
-        default=False, description="Skip tracks that already exist in Apple Music library"
+        default=False,
+        description="Compatibility setting; Music-library duplicate detection is not implemented",
     )
 
     # Logging
     log_level: str = Field(
-        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
+        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
     )
     log_file: Optional[Path] = Field(
         default=None, description="Path to log file (if None, only console logging)"
     )
 
-    @field_validator("download_dir", "log_file", mode="before")
+    @field_validator("download_dir", "music_library_path", "log_file", mode="before")
     @classmethod
     def expand_paths(cls, v):
         """Expand home directory and environment variables in paths."""
         if v is None:
             return v
         if isinstance(v, str):
+            if not v.strip():
+                raise ValueError("Path must not be empty")
             v = os.path.expandvars(os.path.expanduser(v))
         return Path(v) if isinstance(v, str) else v
+
+    @field_validator("music_library_path", "log_file", "default_playlist", mode="before")
+    @classmethod
+    def normalize_optional_values(cls, value):
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+    @field_validator(
+        "keep_downloads",
+        "open_music_app",
+        "continue_on_error",
+        "normalize_metadata",
+        "skip_existing_tracks",
+        mode="before",
+    )
+    @classmethod
+    def normalize_booleans(cls, value):
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "1", "yes", "on"}:
+                return True
+            if normalized in {"false", "0", "no", "off"}:
+                return False
+            raise ValueError("Use true/false, yes/no, on/off, or 1/0")
+        return value
 
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v):
         """Ensure log level is valid."""
-        if v.upper() not in LOG_LEVELS:
+        v = v.strip().upper()
+        if v not in LOG_LEVELS:
             raise ValueError(f"Log level must be one of {list(LOG_LEVELS)}")
-        return v.upper()
+        return v
 
 
 class ConfigManager:
@@ -104,14 +141,16 @@ class ConfigManager:
         }
 
     @staticmethod
-    def get_config(config_path: Optional[Path] = None) -> AppConfig:
+    def get_config(
+        config_path: Optional[Path] = None, overrides: Optional[Dict[str, Any]] = None
+    ) -> AppConfig:
         """
         Load configuration from file and environment variables.
 
         Priority (highest to lowest):
-        1. Environment variables (SC2AM_*)
-        2. Custom config file (if provided)
-        3. Default config file (~/.sc2am/config.yaml)
+        1. Explicit CLI overrides
+        2. Environment variables (SC2AM_*)
+        3. Selected config file (custom replaces ~/.sc2am/config.yaml)
         4. Built-in defaults
 
         Args:
@@ -123,23 +162,43 @@ class ConfigManager:
         config_dict = {}
 
         # Load from YAML file
-        yaml_path = config_path or ConfigManager.CONFIG_FILE
-        if yaml_path.exists():
-            logger.debug(f"Loading config from {yaml_path}")
-            try:
-                with open(yaml_path, "r") as f:
-                    file_config = yaml.safe_load(f)
-                    if file_config:
-                        config_dict.update(file_config)
-            except Exception as e:
-                logger.warning(f"Failed to load config file {yaml_path}: {e}")
+        yaml_path = Path(config_path).expanduser() if config_path else ConfigManager.CONFIG_FILE
+        try:
+            with yaml_path.open("r", encoding="utf-8") as f:
+                file_config = yaml.safe_load(f)
+        except FileNotFoundError as exc:
+            if config_path is not None:
+                raise ConfigurationError(f"Configuration file not found: {yaml_path}") from exc
+            file_config = None
+        except (OSError, UnicodeError) as exc:
+            raise ConfigurationError(f"Could not read configuration file: {yaml_path}") from exc
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None)
+            location = f" at line {mark.line + 1}" if mark is not None else ""
+            raise ConfigurationError(f"Invalid YAML in {yaml_path}{location}.") from exc
+        if file_config is not None:
+            if not isinstance(file_config, dict) or any(
+                not isinstance(key, str) for key in file_config
+            ):
+                raise ConfigurationError(
+                    f"Configuration in {yaml_path} must be a mapping of setting names to values."
+                )
+            config_dict.update(file_config)
 
         # Override with environment variables
         env_config = ConfigManager._get_env_config()
         config_dict.update(env_config)
+        config_dict.update(overrides or {})
 
         # Create and return validated config
-        return AppConfig(**config_dict)
+        try:
+            return AppConfig(**config_dict)
+        except ValidationError as exc:
+            details = "; ".join(
+                f"{'.'.join(map(str, error['loc']))}: {error['msg']}"
+                for error in exc.errors(include_input=False, include_url=False)
+            )
+            raise ConfigurationError(f"Invalid configuration: {details}") from exc
 
     @staticmethod
     def _get_env_config() -> Dict[str, Any]:
@@ -163,22 +222,12 @@ class ConfigManager:
         for env_var, config_key in mapping.items():
             value = os.getenv(env_var)
             if value is not None:
-                # Handle boolean values
-                if config_key in [
-                    "keep_downloads",
-                    "open_music_app",
-                    "continue_on_error",
-                    "normalize_metadata",
-                    "skip_existing_tracks",
-                ]:
-                    env_config[config_key] = value.lower() in ["true", "1", "yes"]
-                else:
-                    env_config[config_key] = value
+                env_config[config_key] = value
 
         return env_config
 
     @staticmethod
-    def create_default_config(force: bool = False) -> Path:
+    def create_default_config(force: bool = False, config_path: Optional[Path] = None) -> Path:
         """
         Create default configuration file.
 
@@ -188,13 +237,14 @@ class ConfigManager:
         Returns:
             Path to created config file
         """
-        ConfigManager.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        target = Path(config_path).expanduser() if config_path else ConfigManager.CONFIG_FILE
+        target.parent.mkdir(parents=True, exist_ok=True)
 
-        if ConfigManager.CONFIG_FILE.exists() and not force:
-            logger.info(f"Config file already exists at {ConfigManager.CONFIG_FILE}")
-            return ConfigManager.CONFIG_FILE
+        if target.exists() and not force:
+            logger.info(f"Config file already exists at {target}")
+            return target
 
-        with open(ConfigManager.CONFIG_FILE, "w") as f:
+        with target.open("w" if force else "x", encoding="utf-8") as f:
             yaml.safe_dump(
                 ConfigManager.default_config_data(),
                 f,
@@ -202,5 +252,5 @@ class ConfigManager:
                 sort_keys=False,
             )
 
-        logger.info(f"Created default config at {ConfigManager.CONFIG_FILE}")
-        return ConfigManager.CONFIG_FILE
+        logger.info(f"Created default config at {target}")
+        return target

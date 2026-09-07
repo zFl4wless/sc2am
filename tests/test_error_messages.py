@@ -366,7 +366,7 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(main, "_create_downloader", return_value=downloader),
                 mock.patch.object(click, "secho") as secho_mock,
             ):
-                download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+                download_cmd.callback.__wrapped__(ctx, urls, None, True, None)
 
         self.assertEqual(downloader.download.call_count, 2)
         secho_mock.assert_any_call(
@@ -409,9 +409,9 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(main, "_create_downloader", return_value=downloader),
                 mock.patch.object(click, "secho") as secho_mock,
             ):
-                # CLI flag is False, but config.continue_on_error is True -> should continue
+                # Omitted CLI flag inherits config.continue_on_error=True
                 with self.assertRaises(SystemExit) as exit_ctx:
-                    download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+                    download_cmd.callback.__wrapped__(ctx, urls, None, True, None)
 
         self.assertEqual(downloader.download.call_count, 2)
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
@@ -462,9 +462,9 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(apple_music, "AppleMusicManager"),
                 mock.patch.object(click, "secho") as secho_mock,
             ):
-                # CLI flag False, config True
+                # Omitted CLI flag, config True
                 with self.assertRaises(SystemExit) as exit_ctx:
-                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
+                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, None)
 
         self.assertEqual(downloader.download.call_count, 2)
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
@@ -594,7 +594,7 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(click, "secho") as secho_mock,
             ):
                 with self.assertRaises(SystemExit) as exit_ctx:
-                    download_cmd.callback.__wrapped__(ctx, urls, None, True, False)
+                    download_cmd.callback.__wrapped__(ctx, urls, None, True, None)
 
         # Verify summary shows correct counts
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
@@ -646,7 +646,7 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(click, "secho") as secho_mock,
             ):
                 with self.assertRaises(SystemExit) as exit_ctx:
-                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, False)
+                    batch_cmd.callback.__wrapped__(ctx, str(batch_file), None, None)
 
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call(

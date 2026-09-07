@@ -2,6 +2,9 @@
 
 This file lists the most useful commands for developing, testing, and releasing SC2AM.
 
+For the public commands, settings, precedence, validation rules, and exit codes,
+see the [CLI and configuration contract](cli-and-config-contract.md).
+
 ## Environment Setup
 Create and activate a virtual environment, then install development dependencies.
 
