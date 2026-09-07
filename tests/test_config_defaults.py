@@ -97,8 +97,11 @@ class ConfigDefaultTests(unittest.TestCase):
             home = Path(temp_home)
             config_file = Path(temp_config) / "config.yaml"
 
-            with patch.object(config_manager.Path, "home", return_value=home):
-                cfg = ConfigManager.get_config(config_file)
+            with (
+                patch.object(config_manager.Path, "home", return_value=home),
+                patch.object(ConfigManager, "CONFIG_FILE", config_file),
+            ):
+                cfg = ConfigManager.get_config()
 
         self.assertEqual(cfg.download_dir, home / "Downloads" / "sc2am")
         self.assertIsNone(cfg.music_library_path)

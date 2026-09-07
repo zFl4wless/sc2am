@@ -23,6 +23,11 @@ SC2AM is a small command-line application that downloads a SoundCloud track, enr
 | `sc2am/config_manager.py` | Configuration defaults, loading, and persistence                               |
 | `sc2am/logger.py`         | Logging setup                                                                  |
 
+The [CLI and configuration contract](cli-and-config-contract.md) defines source
+precedence, supported settings, and command behavior. Single-URL, multi-URL, and
+batch commands share one processing loop; configuration loads only when needed so
+help and initialization remain available even with broken configuration.
+
 ## Important Design Rules
 - Metadata should be normalized before tagging so downstream code receives predictable values.
 - Artwork handling should always prefer a valid embedded image and fall back safely when no usable artwork exists.

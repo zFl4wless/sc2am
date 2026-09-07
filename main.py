@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional, NoReturn, Tuple, cast
 
 import click
 
-from sc2am.config_manager import ConfigManager, LOG_LEVELS
+from sc2am.config_manager import ConfigManager, ConfigurationError, LOG_LEVELS
 from sc2am.logger import setup_logging
 from sc2am.validator import URLValidator
 from sc2am.downloader import Downloader
@@ -43,17 +43,28 @@ def _create_downloader(cfg, logger) -> Downloader:
         _exit_with_error(logger, "Unable to prepare downloads.", str(exc))
 
 
-def _require_downloaded_file(file_path: Optional[Path], logger) -> Path:
-    if file_path is None:
-        _exit_with_error(
-            logger,
-            "Download finished, but the MP3 file could not be located.",
-        )
-    return file_path
-
-
-def _context_state(ctx: Any) -> Dict[str, Any]:
-    return cast(Dict[str, Any], ctx.obj)
+def _context_state(
+    ctx: Any, log_to_file: bool = True, overrides: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    state = cast(Dict[str, Any], ctx.obj)
+    if "config" not in state:
+        try:
+            state["config"] = ConfigManager.get_config(
+                state.get("config_path"),
+                overrides={**state.get("overrides", {}), **(overrides or {})},
+            )
+        except ConfigurationError as exc:
+            error = click.ClickException(str(exc))
+            error.exit_code = int(ExitCode.USAGE)
+            raise error from exc
+        cfg = state["config"]
+        try:
+            state["logger"] = setup_logging(cfg.log_level, cfg.log_file if log_to_file else None)
+        except OSError as exc:
+            raise click.ClickException(
+                f"Could not open log file: {cfg.log_file}. Check the path and permissions."
+            ) from exc
+    return state
 
 
 def _track_label(index: Optional[int] = None, total: Optional[int] = None) -> str:
@@ -75,9 +86,8 @@ def _track_status(
 
 
 def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
-    candidate = (playlist or "").strip()
-    if candidate:
-        return candidate
+    if playlist is not None:
+        return playlist.strip() or None
 
     default_playlist = getattr(cfg, "default_playlist", None)
     if default_playlist:
@@ -109,455 +119,294 @@ def _print_run_summary(
 @click.group()
 @click.option(
     "--config",
-    type=click.Path(exists=True),
+    type=click.Path(dir_okay=False, path_type=Path),
     help="Path to custom YAML config file (overrides default ~/.sc2am/config.yaml)",
 )
 @click.option(
     "--log-level",
-    type=click.Choice(LOG_LEVELS),
-    default=ConfigManager.default_config_data()["log_level"],
-    help="Logging level (overrides value in config file)",
+    type=click.Choice(LOG_LEVELS, case_sensitive=False),
+    default=None,
+    help="Logging level (overrides environment and config file)",
 )
 @click.pass_context
-def cli(ctx: click.Context, config: Optional[str], log_level: str):
+def cli(ctx: click.Context, config: Optional[Path], log_level: Optional[str]):
     """SC2AM - Automate downloading SoundCloud tracks and importing them to Apple Music.
 
     Use `sc2am --help` and `sc2am <command> --help` for command-specific options.
 
+    \b
     Examples:
-      # Download and open a single track
       sc2am download "https://soundcloud.com/artist/track"
-
-      # Download and add to playlist
-      sc2am download "https://soundcloud.com/artist/track" --playlist "My Playlist"
-
-      # Download multiple tracks in one run
-      sc2am download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2"
-
-      # Batch process multiple URLs from file (one URL per line, '#' comments allowed)
-      sc2am batch urls.txt
-
-      # Initialize default config (creates ~/.sc2am/config.yaml)
+      sc2am download URL --playlist "My Playlist"
+      sc2am batch urls.txt --continue-on-error
       sc2am config init
     """
-    # Load configuration
-    config_path = Path(config) if config else None
+    # Load only when a command needs configuration, so help and init can recover
+    # from an invalid file or environment without triggering logging side effects.
+    ctx.ensure_object(dict)
+    ctx.obj["config_path"] = config
+    ctx.obj["overrides"] = {"log_level": log_level} if log_level is not None else {}
+
+
+def _run_tracks(
+    cfg,
+    logger,
+    urls: Tuple[str, ...],
+    playlist: Optional[str],
+    no_open: Optional[bool],
+    continue_on_error: Optional[bool],
+    dry_run: bool,
+    input_errors: Optional[list] = None,
+    numbered: bool = False,
+) -> None:
+    """Apply one workflow to single URLs, multiple URLs, and batch files."""
+    effective_continue = (
+        getattr(cfg, "continue_on_error", False) if continue_on_error is None else continue_on_error
+    )
+    open_music = cfg.open_music_app if no_open is None else not no_open
+    playlist_name = _resolve_playlist_name(cfg, playlist)
+    failed_items = list(input_errors or [])
+    succeeded = 0
+    downloader = None
+    music_manager = None
+    exit_code = ExitCode.ERROR if failed_items else ExitCode.SUCCESS
+
     try:
-        cfg = ConfigManager.get_config(config_path)
-    except Exception as exc:
-        click_exc = click.ClickException(
-            "Failed to load configuration. Please check your config file and environment variables."
-        )
-        click_exc.exit_code = int(ExitCode.USAGE)
-        raise click_exc from exc
+        for index, url in enumerate(urls, 1):
+            label = _track_label(index, len(urls)) if numbered or len(urls) > 1 else _track_label()
+            if numbered or len(urls) > 1:
+                click.echo(f"\n{'─' * 50}")
+                click.echo(f"{label}: Processing {url}")
+            logger.info(f"Processing URL: {url}")
+            _track_status(logger, label, "Validating SoundCloud URL...")
+            valid, message = URLValidator.validate_url(url)
+            if not valid:
+                failed_items.append((url, message))
+                _track_status(logger, label, f"ERROR: {message}", fg="red", level="error")
+                if not effective_continue:
+                    # A validation abort is a usage error, unless processing already failed.
+                    if exit_code == ExitCode.SUCCESS:
+                        exit_code = ExitCode.USAGE
+                    break
+                exit_code = ExitCode.ERROR
+                continue
 
-    # Override log level if specified
-    if log_level:
-        cfg.log_level = log_level
+            _track_status(logger, label, f"OK: Valid {message} URL", fg="green")
+            if dry_run:
+                _track_status(logger, label, "DRY-RUN: Would download track", fg="yellow")
+                if open_music:
+                    _track_status(
+                        logger, label, "DRY-RUN: Would open with Apple Music", fg="yellow"
+                    )
+                if playlist_name:
+                    _track_status(
+                        logger,
+                        label,
+                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
+                        fg="yellow",
+                    )
+                succeeded += 1
+                click.secho(f"{label}: DRY-RUN complete (no changes made)", fg="yellow", bold=True)
+                continue
 
-    # Set up logging
-    logger = setup_logging(cfg.log_level, cfg.log_file)
+            if downloader is None:
+                try:
+                    downloader = _create_downloader(cfg, logger)
+                except click.ClickException as exc:
+                    failed_items.append((url, exc.message))
+                    raise
+            _track_status(logger, label, "Downloading track...")
+            success, file_path, message = downloader.download(url)
+            if not success or file_path is None:
+                if success:
+                    message = "Download finished, but the MP3 file could not be located."
+                failed_items.append((url, message))
+                exit_code = ExitCode.ERROR
+                _track_status(logger, label, f"ERROR: {message}", fg="red", level="error")
+                if not effective_continue:
+                    break
+                continue
 
-    # Store config in context for subcommands
-    state = _context_state(ctx)
-    state["config"] = cfg
-    state["logger"] = logger
+            _track_status(logger, label, f"OK: {message}", fg="green")
+            if open_music or playlist_name:
+                if music_manager is None:
+                    music_manager = AppleMusicManager()
+                if open_music:
+                    _track_status(logger, label, "Opening with Apple Music...")
+                    success, message = music_manager.open_file_with_music(file_path)
+                    _track_status(
+                        logger,
+                        label,
+                        f"{'OK' if success else 'WARNING'}: {message}",
+                        fg="green" if success else "yellow",
+                        level="info" if success else "warning",
+                    )
+                if playlist_name:
+                    _track_status(logger, label, f"Adding to playlist '{playlist_name}'...")
+                    success, message = music_manager.add_to_playlist(file_path, playlist_name)
+                    _track_status(
+                        logger,
+                        label,
+                        f"{'OK' if success else 'WARNING'}: {message}",
+                        fg="green" if success else "yellow",
+                        level="info" if success else "warning",
+                    )
+            succeeded += 1
+            click.secho(f"{label}: Done!", fg="green", bold=True)
+    finally:
+        _print_run_summary(logger, succeeded, len(failed_items), failed_items)
+
+    if exit_code != ExitCode.SUCCESS:
+        sys.exit(int(exit_code))
+
+
+def _track_options(command):
+    """Keep download and batch option names and defaults identical."""
+    for option in reversed(
+        [
+            click.option(
+                "--playlist",
+                help="Playlist name; defaults to config. Pass an empty string to disable.",
+            ),
+            click.option(
+                "--no-open/--open",
+                default=None,
+                help="Disable/enable automatic opening in Music. Defaults to config; playlist actions are independent.",
+            ),
+            click.option(
+                "--continue-on-error/--stop-on-error",
+                default=None,
+                help="Continue/stop after an error. Defaults to config (stop).",
+            ),
+            click.option(
+                "--dry-run",
+                is_flag=True,
+                help="Validate and preview without downloads, file writes, or Music actions.",
+            ),
+        ]
+    ):
+        command = option(command)
+    return command
+
+
+def _track_context(ctx, dry_run, playlist, no_open, continue_on_error):
+    overrides = {}
+    if playlist is not None:
+        overrides["default_playlist"] = playlist
+    if no_open is not None:
+        overrides["open_music_app"] = not no_open
+    if continue_on_error is not None:
+        overrides["continue_on_error"] = continue_on_error
+    return _context_state(ctx, log_to_file=not dry_run, overrides=overrides)
 
 
 @cli.command()
 @click.argument("urls", nargs=-1, required=True)
-@click.option(
-    "--playlist",
-    help="Add to this playlist (optional). If omitted, the configured `default_playlist` is used when present.",
-)
-@click.option(
-    "--no-open",
-    is_flag=True,
-    help="Do not automatically open the tagged MP3 in Apple Music after download/import",
-)
-@click.option(
-    "--continue-on-error",
-    is_flag=True,
-    help="Continue processing remaining URLs if one fails (useful for batch or multi-URL runs)",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Preview actions without making changes to files or Apple Music (no downloads or imports)",
-)
+@_track_options
 @click.pass_context
 def download(
     ctx: click.Context,
     urls: Tuple[str, ...],
     playlist: Optional[str],
-    no_open: bool,
-    continue_on_error: bool,
+    no_open: Optional[bool],
+    continue_on_error: Optional[bool],
     dry_run: bool = False,
 ):
-    """Download one or more SoundCloud track URLs and import them into Apple Music.
-
-    Provide one or more SoundCloud track URLs as arguments. For single-URL runs the
-    command will fail fast on validation or download errors (preserving the original
-    strict behavior). For multiple URLs or batch runs you can use `--continue-on-error`
-    or set `continue_on_error` in your config to keep processing remaining items.
-    """
-    state = _context_state(ctx)
-    cfg = state["config"]
-    logger = state["logger"]
-    succeeded = 0
-    failed = 0
-    total = len(urls)
-
-    # Determine effective continue-on-error: CLI flag OR config default
-    effective_continue = continue_on_error or getattr(cfg, "continue_on_error", False)
-
-    # Preserve the existing single-link behavior and messaging.
-    if total == 1:
-        url = urls[0]
-        track_label = _track_label()
-
-        try:
-            logger.info(f"Processing URL: {url}")
-
-            # Validate URL
-            _track_status(logger, track_label, "Validating SoundCloud URL...")
-            is_valid, platform = URLValidator.validate_url(url)
-            if not is_valid:
-                failed = 1
-                _exit_with_error(logger, platform, exit_code=int(ExitCode.USAGE))
-
-            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg="green")
-            logger.debug(f"URL validated as {platform}")
-
-            # Download track
-            _track_status(logger, track_label, "Downloading track...")
-            downloader = _create_downloader(cfg, logger)
-            success, file_path, message = downloader.download(url)
-
-            if not success:
-                failed = 1
-                _exit_with_error(logger, message)
-
-            file_path = _require_downloaded_file(file_path, logger)
-
-            _track_status(logger, track_label, f"OK: {message}", fg="green")
-            logger.info(f"Successfully downloaded to {file_path}")
-
-            # Open with Apple Music
-            if dry_run:
-                _track_status(
-                    logger,
-                    track_label,
-                    "DRY-RUN: Skipping open/import steps (preview mode).",
-                    fg="yellow",
-                )
-            else:
-                if not no_open and cfg.open_music_app:
-                    _track_status(logger, track_label, "Opening with Apple Music...")
-                    music_manager = AppleMusicManager()
-                    success, msg = music_manager.open_file_with_music(file_path)
-                    if success:
-                        _track_status(logger, track_label, f"OK: {msg}", fg="green")
-                        logger.info(msg)
-                    else:
-                        _track_status(logger, track_label, f"WARNING: {msg}", fg="yellow")
-                        logger.warning(msg)
-
-            playlist_name = _resolve_playlist_name(cfg, playlist)
-
-            # Add to playlist (or dry-run preview)
-            if playlist_name:
-                if dry_run:
-                    _track_status(
-                        logger,
-                        track_label,
-                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
-                        fg="yellow",
-                    )
-                else:
-                    _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
-                    music_manager = AppleMusicManager()
-                    success, msg = music_manager.add_to_playlist(file_path, playlist_name)
-                    if success:
-                        _track_status(logger, track_label, f"OK: {msg}", fg="green")
-                        logger.info(msg)
-                    else:
-                        _track_status(logger, track_label, f"WARNING: {msg}", fg="yellow")
-                        logger.warning(msg)
-
-            succeeded = 1
-            click.secho(f"\n{track_label}: Done!", fg="green", bold=True)
-        finally:
-            _print_run_summary(logger, succeeded, failed, None)
-        return
-
-    logger.info(f"Processing {total} URLs in one download run")
-    downloader = _create_downloader(cfg, logger)
-    music_manager = AppleMusicManager()
-    playlist_name = _resolve_playlist_name(cfg, playlist)
-    failed_items = []
-
-    try:
-        for i, url in enumerate(urls, 1):
-            track_label = _track_label(i, total)
-            click.echo(f"\n{'─' * 50}")
-            click.echo(f"{track_label}: Processing {url}")
-            logger.info(f"Processing URL {i}/{total}: {url}")
-
-            _track_status(logger, track_label, "Validating SoundCloud URL...")
-            is_valid, platform = URLValidator.validate_url(url)
-            if not is_valid:
-                failed += 1
-                error_msg = platform
-                failed_items.append((url, error_msg))
-                _track_status(logger, track_label, f"ERROR: {platform}", fg="red", level="error")
-                if not effective_continue:
-                    break
-                continue
-
-            _track_status(logger, track_label, f"OK: Valid {platform} URL", fg="green")
-            # If dry-run, skip download and music operations but show intended actions
-            if dry_run:
-                _track_status(logger, track_label, "DRY-RUN: Would download track", fg="yellow")
-                if not no_open and cfg.open_music_app:
-                    _track_status(
-                        logger, track_label, "DRY-RUN: Would open with Apple Music", fg="yellow"
-                    )
-                if playlist_name:
-                    _track_status(
-                        logger,
-                        track_label,
-                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
-                        fg="yellow",
-                    )
-                succeeded += 1
-                click.secho(
-                    f"{track_label}: DRY-RUN complete (no changes made)", fg="yellow", bold=True
-                )
-                continue
-
-            _track_status(logger, track_label, "Downloading track...")
-            success, file_path, message = downloader.download(url)
-
-            if not success:
-                failed += 1
-                failed_items.append((url, message))
-                _track_status(logger, track_label, f"ERROR: {message}", fg="red", level="error")
-                if not effective_continue:
-                    break
-                continue
-
-            file_path = _require_downloaded_file(file_path, logger)
-            _track_status(logger, track_label, f"OK: {message}", fg="green")
-
-            if not no_open and cfg.open_music_app:
-                _track_status(logger, track_label, "Opening with Apple Music...")
-                success, msg = music_manager.open_file_with_music(file_path)
-                if success:
-                    _track_status(logger, track_label, f"OK: {msg}", fg="green")
-                else:
-                    _track_status(
-                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
-                    )
-
-            if playlist_name:
-                _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
-                success, msg = music_manager.add_to_playlist(file_path, playlist_name)
-                if success:
-                    _track_status(logger, track_label, "OK: Added to playlist", fg="green")
-                else:
-                    _track_status(
-                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
-                    )
-
-            succeeded += 1
-            click.secho(f"{track_label}: Done!", fg="green", bold=True)
-    finally:
-        _print_run_summary(logger, succeeded, failed, failed_items)
-
-    if failed > 0:
-        sys.exit(int(ExitCode.ERROR))
+    """Download one or more SoundCloud track URLs and import them into Apple Music."""
+    state = _track_context(ctx, dry_run, playlist, no_open, continue_on_error)
+    _run_tracks(
+        state["config"], state["logger"], urls, playlist, no_open, continue_on_error, dry_run
+    )
 
 
 @cli.command()
-@click.argument("batch_file", type=click.Path(exists=True))
-@click.option(
-    "--playlist",
-    help="Add all found tracks to this playlist (optional). Names are matched against existing Music playlists.",
-)
-@click.option(
-    "--continue-on-error",
-    is_flag=True,
-    help="Continue processing other URLs in the file if one fails (useful for large batches)",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Preview actions without making changes to files or Apple Music (no downloads or imports)",
-)
+@click.argument("batch_file", type=click.Path(exists=True, dir_okay=False, readable=True))
+@_track_options
 @click.pass_context
 def batch(
     ctx: click.Context,
     batch_file: str,
     playlist: Optional[str],
-    continue_on_error: bool,
+    continue_on_error: Optional[bool],
     dry_run: bool = False,
+    no_open: Optional[bool] = None,
 ):
-    """Process multiple SoundCloud URLs from a text file (one URL per line).
+    """Process a UTF-8 file of URLs, one per line. Blank lines and # comments are ignored.
 
-    Lines starting with `#` are treated as comments and ignored. URLs will be trimmed
-    and validated; invalid lines are reported and (depending on `--continue-on-error`)
-    will either abort or be skipped.
+    Invalid lines abort before downloading unless --continue-on-error is enabled.
     """
-    state = _context_state(ctx)
-    cfg = state["config"]
-    logger = state["logger"]
-
-    effective_continue = continue_on_error or getattr(cfg, "continue_on_error", False)
-
-    logger.info(f"Processing batch file: {batch_file}")
-
-    # Validate batch file
-    all_valid, urls, errors = URLValidator.validate_batch_file(batch_file)
-
-    if errors:
-        for line_num, error in errors:
-            click.secho(f"ERROR: Line {line_num}: {error}", fg="red")
-            logger.error(f"Line {line_num}: {error}")
-
-    if not urls:
+    state = _track_context(ctx, dry_run, playlist, no_open, continue_on_error)
+    cfg, logger = state["config"], state["logger"]
+    effective_continue = cfg.continue_on_error if continue_on_error is None else continue_on_error
+    _, urls, errors = URLValidator.validate_batch_file(batch_file)
+    for line_num, error in errors:
+        click.secho(f"ERROR: Line {line_num}: {error}", fg="red", err=True)
+        logger.error(f"Line {line_num}: {error}")
+    if any(line == 0 for line, _ in errors):
         _exit_with_error(
             logger,
-            "No valid URLs found in batch file.",
+            "Batch file could not be read. Check the path, permissions, and UTF-8 encoding.",
             exit_code=int(ExitCode.USAGE),
         )
-
+    if not urls:
+        _exit_with_error(
+            logger, "No valid URLs found in batch file.", exit_code=int(ExitCode.USAGE)
+        )
+    if errors and not effective_continue:
+        _exit_with_error(
+            logger,
+            "Batch file validation failed. Fix the reported lines or use --continue-on-error to skip invalid URLs.",
+            exit_code=int(ExitCode.USAGE),
+        )
     click.secho(f"OK: Found {len(urls)} valid URL(s)", fg="green")
-    logger.info(f"Found {len(urls)} valid URLs")
-
-    # Process each URL
-    downloader = _create_downloader(cfg, logger)
-
-    music_manager = AppleMusicManager()
-    successful = 0
-    failed = len(errors)
-    failed_items = [(f"line {line_num}", error) for line_num, error in errors]
-
-    try:
-        for i, url in enumerate(urls, 1):
-            track_label = _track_label(i, len(urls))
-            click.echo(f"\n{'─' * 50}")
-            click.echo(f"{track_label}: Processing {url}")
-            logger.debug(f"Processing URL {i}/{len(urls)}")
-
-            # Download
-            if dry_run:
-                _track_status(logger, track_label, "DRY-RUN: Would download track", fg="yellow")
-                if cfg.open_music_app:
-                    _track_status(
-                        logger, track_label, "DRY-RUN: Would open with Apple Music", fg="yellow"
-                    )
-                playlist_name = _resolve_playlist_name(cfg, playlist)
-                if playlist_name:
-                    _track_status(
-                        logger,
-                        track_label,
-                        f"DRY-RUN: Would add to playlist '{playlist_name}'",
-                        fg="yellow",
-                    )
-                successful += 1
-                click.secho(
-                    f"{track_label}: DRY-RUN complete (no changes made)", fg="yellow", bold=True
-                )
-                continue
-
-            _track_status(logger, track_label, "Downloading track...")
-            success, file_path, message = downloader.download(url)
-            if not success:
-                error_msg = message
-                failed_items.append((url, error_msg))
-                _track_status(logger, track_label, f"ERROR: {message}", fg="red", level="error")
-                failed += 1
-                if not effective_continue:
-                    break
-                continue
-
-            file_path = _require_downloaded_file(file_path, logger)
-
-            _track_status(logger, track_label, "OK: Downloaded", fg="green")
-            successful += 1
-
-            # Open with Apple Music
-            if cfg.open_music_app:
-                _track_status(logger, track_label, "Opening with Apple Music...")
-                success, msg = music_manager.open_file_with_music(file_path)
-                if success:
-                    _track_status(logger, track_label, "OK: Opened with Apple Music", fg="green")
-                else:
-                    _track_status(
-                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
-                    )
-
-            playlist_name = _resolve_playlist_name(cfg, playlist)
-
-            # Add to playlist
-            if playlist_name:
-                _track_status(logger, track_label, f"Adding to playlist '{playlist_name}'...")
-                success, msg = music_manager.add_to_playlist(file_path, playlist_name)
-                if success:
-                    _track_status(logger, track_label, "OK: Added to playlist", fg="green")
-                else:
-                    _track_status(
-                        logger, track_label, f"WARNING: {msg}", fg="yellow", level="warning"
-                    )
-
-            click.secho(f"{track_label}: Done!", fg="green", bold=True)
-    finally:
-        _print_run_summary(logger, successful, failed, failed_items)
-
-    if failed > 0:
-        sys.exit(int(ExitCode.ERROR))
+    _run_tracks(
+        cfg,
+        logger,
+        tuple(urls),
+        playlist,
+        no_open,
+        continue_on_error,
+        dry_run,
+        input_errors=[(f"line {line}", error) for line, error in errors],
+        numbered=True,
+    )
 
 
 @cli.group()
 def config():
     """Manage SC2AM configuration."""
-    pass
 
 
 @config.command("init")
 @click.option("--force", is_flag=True, help="Overwrite existing config")
 @click.pass_context
 def config_init(ctx: click.Context, force: bool):
-    """Create a default configuration file at `~/.sc2am/config.yaml`.
+    """Create defaults at --config PATH or ~/.sc2am/config.yaml.
 
-    Use `--force` to overwrite an existing config file.
+    Existing files are preserved unless --force is specified. Does not load config
+    or environment overrides, so it can repair an invalid configuration.
     """
-    logger = _context_state(ctx)["logger"]
-
-    click.echo("Initializing SC2AM configuration...")
+    target = (ctx.obj.get("config_path") or ConfigManager.CONFIG_FILE).expanduser()
+    existed = target.exists()
     try:
-        config_path = ConfigManager.create_default_config(force=force)
-    except Exception as exc:
-        _exit_with_error(
-            logger,
-            "Could not create the configuration file.",
-            str(exc),
+        config_path = ConfigManager.create_default_config(force=force, config_path=target)
+    except OSError as exc:
+        raise click.ClickException(
+            f"Could not create configuration file: {target}. Check the path and permissions."
+        ) from exc
+    if existed and not force:
+        click.echo(
+            f"Configuration file already exists at: {config_path}. Use --force to overwrite."
         )
-
-    click.secho(f"OK: Configuration file created at: {config_path}", fg="green")
-    logger.info(f"Config initialized at {config_path}")
+    else:
+        click.secho(f"OK: Configuration file created at: {config_path}", fg="green")
 
 
 @config.command("show")
 @click.pass_context
 def config_show(ctx: click.Context):
-    """Display the current effective configuration and workflow settings.
-
-    Values may come from the config file or be overridden by environment variables.
-    """
-    cfg = _context_state(ctx)["config"]
-
+    """Display effective settings after file, environment, and global CLI overrides."""
+    cfg = _context_state(ctx, log_to_file=False)["config"]
     click.echo("\nCurrent Configuration:")
     click.echo("=" * 50)
     click.echo(f"Download Directory:  {cfg.download_dir}")
@@ -565,12 +414,16 @@ def config_show(ctx: click.Context):
     click.echo(f"Default Playlist:    {cfg.default_playlist or '(none)'}")
     click.echo(f"Keep Downloads:      {cfg.keep_downloads}")
     click.echo(f"Open Music App:      {cfg.open_music_app}")
+    click.echo(f"Continue on Error:   {cfg.continue_on_error}")
     click.echo("\nWorkflow Settings:")
     click.echo(f"Normalize Metadata:  {cfg.normalize_metadata}")
     click.echo(f"Skip Existing:       {cfg.skip_existing_tracks}")
     click.echo(f"Log Level:           {cfg.log_level}")
     click.echo(f"Log File:            {cfg.log_file or '(console only)'}")
     click.echo("=" * 50)
+    click.echo(
+        "Compatibility settings (currently inactive): music_library_path, keep_downloads, normalize_metadata, skip_existing_tracks."
+    )
 
 
 def main():
@@ -582,6 +435,7 @@ def main():
         click.secho(
             "ERROR: An unexpected error occurred. Please check the log file for details.",
             fg="red",
+            err=True,
         )
         sys.exit(1)
 
