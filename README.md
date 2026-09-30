@@ -53,15 +53,15 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Install from source (optional)**
+4. **Install from source (recommended for the `sc2am` command):**
 If you want to work on the project or install it in editable mode:
 ```bash
 pip install -e .
 ```
 
-4. **Initialize configuration (optional):**
+5. **Initialize configuration (optional):**
 ```bash
-python main.py config init
+sc2am config init
 ```
 
 This creates a default config at `~/.sc2am/config.yaml`.
@@ -76,19 +76,19 @@ or `https://www.soundcloud.com/artist/track`.
 
 **Download a single track:**
 ```bash
-python main.py download "https://soundcloud.com/artist/track"
+sc2am download "https://soundcloud.com/artist/track"
 ```
 
 **Download multiple tracks in one run:**
 ```bash
-python main.py download \
+sc2am download \
   "https://soundcloud.com/artist/track1" \
   "https://soundcloud.com/artist/track2"
 ```
 
 If you want to keep processing after one URL fails, use:
 ```bash
-python main.py download \
+sc2am download \
   "https://soundcloud.com/artist/track1" \
   "https://soundcloud.com/artist/track2" \
   --continue-on-error
@@ -96,15 +96,19 @@ python main.py download \
 
 **Download and add to playlist:**
 ```bash
-python main.py download "https://soundcloud.com/artist/track" --playlist "My Playlist"
+sc2am download "https://soundcloud.com/artist/track" --playlist "My Playlist"
 ```
 
 If you do not pass `--playlist`, SC2AM uses the configured `default_playlist` when one is set. Playlist names are matched against the playlists currently available in Apple Music, and the app will tell you clearly if the playlist is missing or if the name is duplicated.
 
 **Don't automatically open Music app:**
 ```bash
-python main.py download "https://soundcloud.com/artist/track" --no-open
+sc2am download "https://soundcloud.com/artist/track" --no-open
 ```
+
+For a preview that validates the input and shows the planned actions without
+downloading files or accessing Music.app, add `--dry-run`. Use
+`--no-open --playlist ""` when you want to disable both Music actions.
 
 ### Batch Processing
 
@@ -118,16 +122,16 @@ https://soundcloud.com/artist/track3
 
 Then process all URLs:
 ```bash
-python main.py batch urls.txt
+sc2am batch urls.txt
 ```
 
 **Batch options:**
 ```bash
 # Add all tracks to a playlist
-python main.py batch urls.txt --playlist "My Playlist"
+sc2am batch urls.txt --playlist "My Playlist"
 
 # Continue processing even if a URL fails
-python main.py batch urls.txt --continue-on-error
+sc2am batch urls.txt --continue-on-error
 ```
 
 ### Configuration
@@ -139,7 +143,7 @@ unknown keys, and invalid values are reported instead of silently ignored.
 
 **View current configuration:**
 ```bash
-python main.py config show
+sc2am config show
 ```
 
 **Configuration File** (`~/.sc2am/config.yaml`):
@@ -162,7 +166,7 @@ loaded automatically.
 
 ```bash
 SC2AM_DOWNLOAD_DIR=~/Music/Downloads SC2AM_PLAYLIST="My Playlist" SC2AM_LOG_LEVEL=DEBUG \
-  python main.py download "https://soundcloud.com/artist/track"
+  sc2am download "https://soundcloud.com/artist/track"
 ```
 
 **Active settings:**
@@ -193,22 +197,22 @@ Music actions.
 
 ```bash
 # Use custom config file
-python main.py --config /path/to/config.yaml download "..."
+sc2am --config /path/to/config.yaml download "..."
 
 # Set log level
-python main.py --log-level DEBUG download "..."
+sc2am --log-level DEBUG download "..."
 ```
 
 ### Advanced Examples
 
 **Batch download with logging:**
 ```bash
-python main.py --log-level DEBUG batch urls.txt --continue-on-error
+sc2am --log-level DEBUG batch urls.txt --continue-on-error
 ```
 
 **Download to custom directory:**
 ```bash
-SC2AM_DOWNLOAD_DIR=~/Music python main.py download "..."
+SC2AM_DOWNLOAD_DIR=~/Music sc2am download "..."
 ```
 
 ## How It Works

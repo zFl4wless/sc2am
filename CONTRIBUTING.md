@@ -27,13 +27,15 @@ Be respectful, inclusive, and considerate of others.
 
 ### Code Contributions
 
-1. **Fork the repository**
+1. **Fork the repository** (or create a branch if you have repository access)
 2. **Create a feature branch**: `git checkout -b feature/my-feature`
 3. **Make changes** following the code style
 4. **Update documentation** as needed
-5. **Commit with clear messages**: `git commit -m "Add feature: description"`
-6. **Push to your fork**: `git push origin feature/my-feature`
-7. **Open a Pull Request** with detailed description
+5. **Run the focused tests and checks** described below
+6. **Commit with a conventional message**, for example:
+   `git commit -m "docs: adds setup guidance"`
+7. **Push to your fork**: `git push origin feature/my-feature`
+8. **Open a Pull Request** with a detailed description
 
 ## Development Setup
 
@@ -50,6 +52,9 @@ source venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
+The repository supports Python 3.10 and newer. The commands below assume the
+virtual environment is active.
+
 Dependency policy:
 - `pyproject.toml` is the single source of truth for runtime and development dependencies.
 - `requirements.txt` and `requirements-dev.txt` are compatibility wrappers for tooling and local workflows.
@@ -60,6 +65,21 @@ Dependency policy:
 - **Naming**: Clear, descriptive names
 - **Documentation**: Add docstrings for modules/classes and non-trivial functions
 - **Comments**: Explain "why", not "what"
+
+## Verification
+
+Run the full test suite and the same formatting/lint checks used by CI before
+opening a pull request:
+
+```bash
+PYTHONPATH=. pytest -q
+black --check .
+flake8 sc2am tests
+```
+
+When changing CLI behavior, also run `sc2am --help` and the relevant command
+with `--dry-run` so no files or Music.app actions are triggered during a
+manual check.
 
 ### Example function:
 ```python
@@ -105,7 +125,9 @@ Examples:
 
 1. Update documentation
 2. Keep commits clean and organized
-3. Provide clear description of changes using `.github/pull_request_template.md`
+3. Run the verification commands above
+4. Provide a clear description using `.github/pull_request_template.md`
+5. Link the related issue and explain any behavior or compatibility impact
 
 ## Areas for Contribution
 
