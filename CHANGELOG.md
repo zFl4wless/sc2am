@@ -10,6 +10,27 @@ and releases use [Semantic Versioning](https://semver.org/).
 Changes merged after the latest release will be collected here until the next
 release is prepared.
 
+## [2.0.0] - 2026-10-01
+
+### Added
+
+- Added a repeatable release checklist and changelog workflow.
+- Added dry-run, batch-processing, retry, logging, and configuration guidance
+  across the CLI documentation.
+
+### Changed
+
+- Improved CLI configuration precedence, validation, error reporting, and
+  Apple Music automation guidance.
+- Expanded regression coverage for downloader and Apple Music workflows.
+
+### Removed
+
+- Removed the inactive `music_library_path`, `keep_downloads`,
+  `normalize_metadata`, and `skip_existing_tracks` configuration settings and
+  their environment variables. Existing configuration files using these keys
+  must be updated before upgrading.
+
 ## [1.4.1] - 2026-08-03
 
 ### Changed
@@ -32,5 +53,6 @@ Keep entries concise and describe the impact for users, not internal
 implementation details. Move the relevant entries from `Unreleased` into a
 dated version section when releasing.
 
-[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.0
 [1.4.1]: https://github.com/zfl4wless/sc2am/releases/tag/v1.4.1
