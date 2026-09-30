@@ -48,6 +48,29 @@ python main.py download "https://soundcloud.com/artist/track1" "https://soundclo
 python main.py download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2" --continue-on-error
 ```
 
+The installed `sc2am` command is equivalent to `python main.py` and is used in
+the examples in the README. Both `download` and `batch` also support
+`--playlist NAME`, `--open` / `--no-open`, `--continue-on-error` /
+`--stop-on-error`, and `--dry-run`.
+
+Use `--dry-run` to validate URLs and preview the workflow without downloading,
+writing files, creating log files, or accessing Music.app. To disable all Music
+actions during a normal run, combine `--no-open --playlist ""`.
+
+## Exit Codes
+
+SC2AM uses stable exit codes for scripts and automation:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Help, configuration, or processing completed without input/download failures |
+| `1` | Runtime/setup or download failure, including a continued partial failure |
+| `2` | Invalid CLI/configuration input or URL-validation abort |
+
+Music.app open and playlist failures are reported as warnings and do not change
+the exit code. See the [CLI and configuration contract](cli-and-config-contract.md)
+for the complete precedence and validation rules.
+
 ## Build a Release Check
 If packaging changes or a release is being prepared, verify the package metadata and build artifacts.
 
