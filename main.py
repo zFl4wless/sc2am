@@ -410,20 +410,12 @@ def config_show(ctx: click.Context):
     click.echo("\nCurrent Configuration:")
     click.echo("=" * 50)
     click.echo(f"Download Directory:  {cfg.download_dir}")
-    click.echo(f"Music Library:       {cfg.music_library_path or '(auto-detect)'}")
     click.echo(f"Default Playlist:    {cfg.default_playlist or '(none)'}")
-    click.echo(f"Keep Downloads:      {cfg.keep_downloads}")
     click.echo(f"Open Music App:      {cfg.open_music_app}")
     click.echo(f"Continue on Error:   {cfg.continue_on_error}")
-    click.echo("\nWorkflow Settings:")
-    click.echo(f"Normalize Metadata:  {cfg.normalize_metadata}")
-    click.echo(f"Skip Existing:       {cfg.skip_existing_tracks}")
     click.echo(f"Log Level:           {cfg.log_level}")
     click.echo(f"Log File:            {cfg.log_file or '(console only)'}")
     click.echo("=" * 50)
-    click.echo(
-        "Compatibility settings (currently inactive): music_library_path, keep_downloads, normalize_metadata, skip_existing_tracks."
-    )
 
 
 def main():

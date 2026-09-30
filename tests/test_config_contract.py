@@ -18,6 +18,10 @@ from sc2am.config_manager import AppConfig, ConfigurationError, ConfigManager
         "1: value",
         "log_level: [",
         "typo_setting: true",
+        "music_library_path: /tmp/music",
+        "keep_downloads: false",
+        "normalize_metadata: false",
+        "skip_existing_tracks: true",
     ],
 )
 def test_invalid_config_is_never_silently_ignored(tmp_path, contents):
@@ -86,7 +90,6 @@ def test_invalid_env_boolean_is_rejected(monkeypatch, token):
     "field,env",
     [
         ("download_dir", "SC2AM_DOWNLOAD_DIR"),
-        ("music_library_path", "SC2AM_MUSIC_LIBRARY"),
         ("log_file", "SC2AM_LOG_FILE"),
     ],
 )
@@ -102,7 +105,6 @@ def test_paths_expand_home_and_environment(tmp_path, monkeypatch, field, env):
     [
         ("SC2AM_PLAYLIST", "default_playlist"),
         ("SC2AM_LOG_FILE", "log_file"),
-        ("SC2AM_MUSIC_LIBRARY", "music_library_path"),
     ],
 )
 def test_empty_optional_values_clear_setting(monkeypatch, env, field):

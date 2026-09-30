@@ -19,13 +19,3 @@ log_level: INFO
 
 # null disables file logging. Dry runs and config show never write logs.
 log_file: null
-
-# Compatibility settings: accepted and displayed, but currently inactive.
-# Music uses its active library; this value does not select a library.
-music_library_path: null
-# Downloaded MP3 files are always retained.
-keep_downloads: true
-# Metadata tagging is always attempted.
-normalize_metadata: true
-# Music-library duplicate detection is not implemented.
-skip_existing_tracks: false

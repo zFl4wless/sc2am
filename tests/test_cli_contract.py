@@ -214,7 +214,7 @@ def test_init_preserves_and_repairs_invalid_config(runner, tmp_path, monkeypatch
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("invalid: [")
     prefix = ["--config", str(target)] if custom else []
-    monkeypatch.setenv("SC2AM_KEEP_DOWNLOADS", "typo")
+    monkeypatch.setenv("SC2AM_OPEN_MUSIC", "typo")
     result = runner.invoke(main.cli, [*prefix, "config", "init"])
     assert result.exit_code == 0, result.output
     assert "already exists" in result.output
@@ -233,10 +233,10 @@ def test_init_can_create_custom_path(runner, tmp_path):
 
 
 def test_config_errors_are_actionable(runner, monkeypatch):
-    monkeypatch.setenv("SC2AM_KEEP_DOWNLOADS", "typo")
+    monkeypatch.setenv("SC2AM_OPEN_MUSIC", "typo")
     result = runner.invoke(main.cli, ["config", "show"])
     assert result.exit_code == 2, result.output
-    assert "keep_downloads" in result.output
+    assert "open_music_app" in result.output
     assert "true/false" in result.output
     assert "Traceback" not in result.output
 

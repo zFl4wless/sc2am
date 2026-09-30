@@ -18,12 +18,8 @@ class ConfigDefaultTests(unittest.TestCase):
 
         expected_download_dir = str(home / "Downloads" / "sc2am")
         self.assertEqual(default_config["download_dir"], expected_download_dir)
-        self.assertIsNone(default_config["music_library_path"])
         self.assertIsNone(default_config["default_playlist"])
-        self.assertTrue(default_config["keep_downloads"])
         self.assertTrue(default_config["open_music_app"])
-        self.assertTrue(default_config["normalize_metadata"])
-        self.assertFalse(default_config["skip_existing_tracks"])
         self.assertEqual(default_config["log_level"], "INFO")
         self.assertIsNone(default_config["log_file"])
 
@@ -57,13 +53,9 @@ class ConfigDefaultTests(unittest.TestCase):
             written_config = yaml.safe_load(config_file.read_text())
             expected_config = {
                 "download_dir": str(home / "Downloads" / "sc2am"),
-                "music_library_path": None,
                 "default_playlist": None,
                 "continue_on_error": False,
-                "keep_downloads": True,
                 "open_music_app": True,
-                "normalize_metadata": True,
-                "skip_existing_tracks": False,
                 "log_level": "INFO",
                 "log_file": None,
             }
@@ -76,17 +68,14 @@ class ConfigDefaultTests(unittest.TestCase):
         ):
             home = Path(temp_home)
             config_file = Path(temp_config) / "config.yaml"
-            config_file.write_text("default_playlist: Roadtrip\nkeep_downloads: false\n")
+            config_file.write_text("default_playlist: Roadtrip\n")
 
             with patch.object(config_manager.Path, "home", return_value=home):
                 cfg = ConfigManager.get_config(config_file)
 
         self.assertEqual(cfg.download_dir, home / "Downloads" / "sc2am")
         self.assertEqual(cfg.default_playlist, "Roadtrip")
-        self.assertFalse(cfg.keep_downloads)
         self.assertTrue(cfg.open_music_app)
-        self.assertTrue(cfg.normalize_metadata)
-        self.assertFalse(cfg.skip_existing_tracks)
         self.assertEqual(cfg.log_level, "INFO")
 
     def test_missing_config_file_still_returns_default_configuration(self):
@@ -104,12 +93,8 @@ class ConfigDefaultTests(unittest.TestCase):
                 cfg = ConfigManager.get_config()
 
         self.assertEqual(cfg.download_dir, home / "Downloads" / "sc2am")
-        self.assertIsNone(cfg.music_library_path)
         self.assertIsNone(cfg.default_playlist)
-        self.assertTrue(cfg.keep_downloads)
         self.assertTrue(cfg.open_music_app)
-        self.assertTrue(cfg.normalize_metadata)
-        self.assertFalse(cfg.skip_existing_tracks)
         self.assertEqual(cfg.log_level, "INFO")
         self.assertIsNone(cfg.log_file)
 
@@ -123,10 +108,7 @@ class ConfigDefaultTests(unittest.TestCase):
             config_file.write_text(
                 "download_dir: /tmp/from-yaml\n"
                 "default_playlist: YAML Playlist\n"
-                "keep_downloads: true\n"
                 "open_music_app: true\n"
-                "normalize_metadata: false\n"
-                "skip_existing_tracks: false\n"
                 "log_level: warning\n"
             )
 
@@ -137,10 +119,7 @@ class ConfigDefaultTests(unittest.TestCase):
                     {
                         "SC2AM_DOWNLOAD_DIR": "/tmp/from-env",
                         "SC2AM_PLAYLIST": "Env Playlist",
-                        "SC2AM_KEEP_DOWNLOADS": "false",
                         "SC2AM_OPEN_MUSIC": "false",
-                        "SC2AM_NORMALIZE_METADATA": "true",
-                        "SC2AM_SKIP_EXISTING": "true",
                         "SC2AM_LOG_LEVEL": "debug",
                         "SC2AM_LOG_FILE": "/tmp/sc2am.log",
                     },
@@ -151,36 +130,9 @@ class ConfigDefaultTests(unittest.TestCase):
 
         self.assertEqual(cfg.download_dir, Path("/tmp/from-env"))
         self.assertEqual(cfg.default_playlist, "Env Playlist")
-        self.assertFalse(cfg.keep_downloads)
         self.assertFalse(cfg.open_music_app)
-        self.assertTrue(cfg.normalize_metadata)
-        self.assertTrue(cfg.skip_existing_tracks)
         self.assertEqual(cfg.log_level, "DEBUG")
         self.assertEqual(cfg.log_file, Path("/tmp/sc2am.log"))
-
-    def test_workflow_settings_configuration_and_overrides(self):
-        """Test that workflow defaults (normalize_metadata, skip_existing_tracks) work correctly."""
-        with (
-            tempfile.TemporaryDirectory() as temp_home,
-            tempfile.TemporaryDirectory() as temp_config,
-        ):
-            home = Path(temp_home)
-            config_file = Path(temp_config) / "config.yaml"
-            config_file.write_text(
-                "default_playlist: ImportPlaylist\n"
-                "normalize_metadata: false\n"
-                "skip_existing_tracks: true\n"
-                "log_level: debug\n"
-            )
-
-            with patch.object(config_manager.Path, "home", return_value=home):
-                cfg = ConfigManager.get_config(config_file)
-
-        # Verify workflow defaults from file
-        self.assertEqual(cfg.default_playlist, "ImportPlaylist")
-        self.assertFalse(cfg.normalize_metadata)
-        self.assertTrue(cfg.skip_existing_tracks)
-        self.assertEqual(cfg.log_level, "DEBUG")
 
 
 if __name__ == "__main__":
