@@ -106,6 +106,8 @@ def download(self, url: str):
 
 - `AGENTS.md` for agent-friendly working rules and project-specific context
 - `docs/commands.md` for setup, test, lint, and release commands
+- `docs/releasing.md` for the release checklist
+- `CHANGELOG.md` for user-facing release history and entry format
 - `docs/architecture.md` for module responsibilities and data flow
 - `.github/pull_request_template.md` for a consistent PR format
 

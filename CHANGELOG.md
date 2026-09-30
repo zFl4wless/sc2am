@@ -1,0 +1,36 @@
+# Changelog
+
+All notable user-facing changes to SC2AM are documented here.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and releases use [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+Changes merged after the latest release will be collected here until the next
+release is prepared.
+
+## [1.4.1] - 2026-08-03
+
+### Changed
+
+- Improved CLI configuration, validation, logging, dry-run, and batch workflows.
+- Added clearer Apple Music automation guidance and actionable error messages.
+- Hardened metadata handling and retry behavior for transient failures.
+- Updated dependencies to address security advisories.
+
+## Release entry format
+
+Use the following headings when adding user-facing changes:
+
+- **Added** for new capabilities.
+- **Changed** for changes to existing behavior.
+- **Fixed** for bug fixes.
+- **Removed** for removed or deprecated behavior.
+
+Keep entries concise and describe the impact for users, not internal
+implementation details. Move the relevant entries from `Unreleased` into a
+dated version section when releasing.
+
+[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/zfl4wless/sc2am/releases/tag/v1.4.1
