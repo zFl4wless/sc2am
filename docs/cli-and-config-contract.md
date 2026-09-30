@@ -77,16 +77,11 @@ not automatically load `.env` files.
 | `continue_on_error` | `SC2AM_CONTINUE_ON_ERROR` | `false` | Continues after invalid entries or download failures |
 | `log_level` | `SC2AM_LOG_LEVEL` | `INFO` | Logging threshold |
 | `log_file` | `SC2AM_LOG_FILE` | `null` | Optional detailed log file |
-| `music_library_path` | `SC2AM_MUSIC_LIBRARY` | `null` | Compatibility setting; currently inactive |
-| `keep_downloads` | `SC2AM_KEEP_DOWNLOADS` | `true` | Compatibility setting; currently inactive |
-| `normalize_metadata` | `SC2AM_NORMALIZE_METADATA` | `true` | Compatibility setting; currently inactive |
-| `skip_existing_tracks` | `SC2AM_SKIP_EXISTING` | `false` | Compatibility setting; currently inactive |
 
-The four compatibility settings remain accepted, validated, and displayed. They
-do not currently change processing: Music uses its active library, downloaded
-MP3s are retained, metadata tagging is always attempted, and SC2AM does not check
-the Music library for existing tracks. Their presence does not promise these
-features are implemented.
+The former `music_library_path`, `keep_downloads`, `normalize_metadata`, and
+`skip_existing_tracks` settings were removed because they never changed the
+workflow. Remove these keys from existing YAML files before upgrading; keeping
+them now produces an unknown-setting configuration error.
 
 ### Accepted values
 
@@ -98,18 +93,18 @@ features are implemented.
   are also accepted. Other strings, including empty strings, are errors.
 - Log levels accept `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL` without
   case sensitivity. Configuration values also allow surrounding whitespace.
-- Path values expand `~` and environment variables for all three path settings.
+- Path values expand `~` and environment variables for both path settings.
   Relative paths are relative to the process working directory, including paths
   read from a custom config file. `download_dir` must not be empty or null.
-- `music_library_path`, `log_file`, and `default_playlist` accept YAML `null`.
+- `log_file` and `default_playlist` accept YAML `null`.
   Empty or whitespace-only strings also clear these optional settings, including
   environment overrides. Playlist names have surrounding whitespace removed.
 
 ### Inspecting and initializing
 
-`config show` displays every effective setting after global overrides. It also
-labels inactive compatibility settings. It does not create the configured log
-file. Its human-readable display is not a machine-readable serialization format.
+`config show` displays every effective setting after global overrides. It does not
+create the configured log file. Its human-readable display is not a
+machine-readable serialization format.
 
 `config init` writes canonical defaults to the selected path and creates missing
 parent directories. It reports an existing file without changing it. `--force`

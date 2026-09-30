@@ -34,33 +34,17 @@ class AppConfig(BaseModel):
     )
 
     # Apple Music
-    music_library_path: Optional[Path] = Field(
-        default=None, description="Compatibility setting; currently inactive"
-    )
     default_playlist: Optional[str] = Field(
         default=None, description="Default playlist to add imported tracks to"
     )
 
     # Behavior
-    keep_downloads: bool = Field(
-        default=True, description="Compatibility setting; downloads are currently always retained"
-    )
     open_music_app: bool = Field(
         default=True, description="Automatically open Apple Music after import"
     )
     # Batch behavior
     continue_on_error: bool = Field(
         default=False, description="When True, continue processing remaining URLs if one fails"
-    )
-
-    # Workflow defaults
-    normalize_metadata: bool = Field(
-        default=True,
-        description="Compatibility setting; metadata tagging is currently always attempted",
-    )
-    skip_existing_tracks: bool = Field(
-        default=False,
-        description="Compatibility setting; Music-library duplicate detection is not implemented",
     )
 
     # Logging
@@ -71,7 +55,7 @@ class AppConfig(BaseModel):
         default=None, description="Path to log file (if None, only console logging)"
     )
 
-    @field_validator("download_dir", "music_library_path", "log_file", mode="before")
+    @field_validator("download_dir", "log_file", mode="before")
     @classmethod
     def expand_paths(cls, v):
         """Expand home directory and environment variables in paths."""
@@ -83,7 +67,7 @@ class AppConfig(BaseModel):
             v = os.path.expandvars(os.path.expanduser(v))
         return Path(v) if isinstance(v, str) else v
 
-    @field_validator("music_library_path", "log_file", "default_playlist", mode="before")
+    @field_validator("log_file", "default_playlist", mode="before")
     @classmethod
     def normalize_optional_values(cls, value):
         if isinstance(value, str):
@@ -91,11 +75,8 @@ class AppConfig(BaseModel):
         return value
 
     @field_validator(
-        "keep_downloads",
         "open_music_app",
         "continue_on_error",
-        "normalize_metadata",
-        "skip_existing_tracks",
         mode="before",
     )
     @classmethod
@@ -208,13 +189,9 @@ class ConfigManager:
 
         mapping = {
             f"{env_prefix}DOWNLOAD_DIR": "download_dir",
-            f"{env_prefix}MUSIC_LIBRARY": "music_library_path",
             f"{env_prefix}PLAYLIST": "default_playlist",
-            f"{env_prefix}KEEP_DOWNLOADS": "keep_downloads",
             f"{env_prefix}OPEN_MUSIC": "open_music_app",
             f"{env_prefix}CONTINUE_ON_ERROR": "continue_on_error",
-            f"{env_prefix}NORMALIZE_METADATA": "normalize_metadata",
-            f"{env_prefix}SKIP_EXISTING": "skip_existing_tracks",
             f"{env_prefix}LOG_LEVEL": "log_level",
             f"{env_prefix}LOG_FILE": "log_file",
         }

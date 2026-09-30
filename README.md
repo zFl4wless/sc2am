@@ -149,13 +149,9 @@ sc2am config show
 **Configuration File** (`~/.sc2am/config.yaml`):
 ```yaml
 download_dir: ~/Downloads/sc2am
-music_library_path: null
 default_playlist: null
-keep_downloads: true
 open_music_app: true
 continue_on_error: false
-normalize_metadata: true
-skip_existing_tracks: false
 log_level: INFO
 log_file: null
 ```
@@ -179,12 +175,6 @@ SC2AM_DOWNLOAD_DIR=~/Music/Downloads SC2AM_PLAYLIST="My Playlist" SC2AM_LOG_LEVE
 | `continue_on_error` | Bool | `false` | Continues after an input/download failure |
 | `log_level` | String | `INFO` | DEBUG, INFO, WARNING, ERROR, or CRITICAL |
 | `log_file` | Path or null | `null` | Optional detailed log file |
-
-`music_library_path`, `keep_downloads`, `normalize_metadata`, and
-`skip_existing_tracks` are accepted compatibility settings and currently have no
-workflow effect. Music uses its active library, MP3s are retained, metadata tagging
-is always attempted, and Music-library duplicate detection is not implemented.
-See the contract for all environment variable names and accepted values.
 
 Both `download` and `batch` support `--no-open` / `--open`,
 `--continue-on-error` / `--stop-on-error`, `--playlist NAME`, and `--dry-run`.
