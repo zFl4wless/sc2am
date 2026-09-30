@@ -141,6 +141,49 @@ def test_downloader_retries_timeout_then_returns_actionable_error(downloader, mo
     assert sleep_mock.call_count == Downloader._MAX_RETRIES - 1
 
 
+def test_downloader_retries_temporary_failure_then_succeeds(downloader, tmp_path, monkeypatch):
+    track_path = tmp_path / "downloads" / "retry.mp3"
+    track_path.parent.mkdir()
+    track_path.touch()
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (False, None, "Unavailable"))
+    run_mock = Mock(
+        side_effect=[
+            Mock(returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable"),
+            Mock(returncode=0, stdout=f"{track_path}\n", stderr=""),
+        ]
+    )
+    sleep_mock = Mock()
+    monkeypatch.setattr(downloader_module.subprocess, "run", run_mock)
+    monkeypatch.setattr(downloader_module.time, "sleep", sleep_mock)
+
+    success, result_path, message = downloader.download("https://soundcloud.com/artist/retry")
+
+    assert (success, result_path, message) == (
+        True,
+        track_path,
+        "Downloaded: retry.mp3",
+    )
+    assert run_mock.call_count == 2
+    sleep_mock.assert_called_once_with(Downloader._RETRY_DELAY_SECONDS)
+
+
+def test_downloader_surfaces_unexpected_process_failure(downloader, monkeypatch):
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (False, None, "Unavailable"))
+    monkeypatch.setattr(
+        downloader_module.subprocess,
+        "run",
+        Mock(side_effect=OSError("yt-dlp unavailable")),
+    )
+
+    success, result_path, message = downloader.download("https://soundcloud.com/artist/unexpected")
+
+    assert (success, result_path, message) == (
+        False,
+        None,
+        "The download failed unexpectedly. Please check the log file for details.",
+    )
+
+
 def test_downloader_uses_newest_mp3_when_yt_dlp_does_not_print_a_path(downloader):
     downloader.download_dir.mkdir()
     older = downloader.download_dir / "older.mp3"
@@ -198,6 +241,16 @@ def test_opening_non_mp3_never_invokes_music(monkeypatch, tmp_path):
     run_mock.assert_not_called()
 
 
+def test_opening_missing_file_never_invokes_music(monkeypatch, tmp_path):
+    run_mock = Mock()
+    monkeypatch.setattr(AppleMusicManager, "_run_command_with_retry", run_mock)
+
+    success, message = AppleMusicManager.open_file_with_music(tmp_path / "missing.mp3")
+
+    assert (success, message) == (False, "The downloaded file was not found.")
+    run_mock.assert_not_called()
+
+
 def test_music_command_does_not_retry_permanent_error(monkeypatch):
     result = Mock(returncode=1, stdout="", stderr="Application not found")
     run_mock = Mock(return_value=result)
@@ -212,6 +265,25 @@ def test_music_command_does_not_retry_permanent_error(monkeypatch):
     assert (success, returned_result, error) == (False, result, "Application not found")
     run_mock.assert_called_once()
     sleep_mock.assert_not_called()
+
+
+def test_music_command_retries_temporary_error_then_succeeds(monkeypatch):
+    results = [
+        Mock(returncode=1, stdout="", stderr="Application isn't responding"),
+        Mock(returncode=0, stdout="", stderr=""),
+    ]
+    run_mock = Mock(side_effect=results)
+    sleep_mock = Mock()
+    monkeypatch.setattr(apple_music.subprocess, "run", run_mock)
+    monkeypatch.setattr(apple_music.time, "sleep", sleep_mock)
+
+    success, returned_result, error = AppleMusicManager._run_command_with_retry(
+        ["open", "-a", "Music", "track.mp3"], "Opening file with Music"
+    )
+
+    assert (success, returned_result, error) == (True, results[1], "")
+    assert run_mock.call_count == 2
+    sleep_mock.assert_called_once_with(AppleMusicManager._RETRY_DELAY_SECONDS)
 
 
 def test_get_playlists_parses_osascript_output(monkeypatch):
@@ -251,3 +323,41 @@ def test_add_to_playlist_stops_when_playlist_name_is_blank(monkeypatch, tmp_path
 
     assert (success, message) == (False, "Please provide a playlist name.")
     playlists_mock.assert_not_called()
+
+
+def test_add_to_playlist_resolves_name_case_insensitively_and_runs_script(monkeypatch, tmp_path):
+    file_path = tmp_path / "track.mp3"
+    file_path.touch()
+    monkeypatch.setattr(
+        AppleMusicManager,
+        "get_playlists",
+        lambda: (True, ["Roadtrip"], "Playlists retrieved"),
+    )
+    osascript_mock = Mock(return_value=(True, Mock(), ""))
+    monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
+
+    success, message = AppleMusicManager.add_to_playlist(file_path, " roadTRIP ")
+
+    assert (success, message) == (True, "Added to playlist 'Roadtrip'")
+    script = osascript_mock.call_args.args[0]
+    assert 'add sourcePath to playlist "Roadtrip"' in script
+
+
+def test_add_to_playlist_reports_unknown_playlist_without_running_script(monkeypatch, tmp_path):
+    file_path = tmp_path / "track.mp3"
+    file_path.touch()
+    monkeypatch.setattr(
+        AppleMusicManager,
+        "get_playlists",
+        lambda: (True, ["Roadtrip"], "Playlists retrieved"),
+    )
+    osascript_mock = Mock()
+    monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
+
+    success, message = AppleMusicManager.add_to_playlist(file_path, "Unknown")
+
+    assert (success, message) == (
+        False,
+        'Playlist "Unknown" was not found in Apple Music. Please check the name and try again.',
+    )
+    osascript_mock.assert_not_called()
