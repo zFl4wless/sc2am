@@ -33,6 +33,8 @@ Apple Music automation relies on macOS permissions and Music.app being available
 - **The Music library is accessible** on the current macOS account you are using.
 
 For a step-by-step checklist, see [`docs/macos-setup.md`](docs/macos-setup.md).
+Release preparation is documented in [`docs/releasing.md`](docs/releasing.md),
+and user-facing changes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Setup
 

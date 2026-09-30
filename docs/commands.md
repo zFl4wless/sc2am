@@ -78,9 +78,14 @@ If packaging changes or a release is being prepared, verify the package metadata
 python -m build
 ```
 
+See [`releasing.md`](releasing.md) for the complete release checklist and
+[`../CHANGELOG.md`](../CHANGELOG.md) for the changelog format and current
+release history.
+
 ## Release Workflow Summary
-1. Merge the milestone work into `main`.
-2. Bump version numbers in `pyproject.toml` and `sc2am/__init__.py`.
-3. Run the test suite.
-4. Create a Git tag such as `v1.2.0`.
-5. Publish the GitHub release with release notes.
+1. Review the release scope and update `CHANGELOG.md`.
+2. Bump the version in `pyproject.toml` and `sc2am/__init__.py`.
+3. Run the tests, lint, formatting, and package build checks.
+4. Commit and push the release from `main`.
+5. Create a matching tag such as `v1.5.0`.
+6. Publish the GitHub release using the matching changelog section.
