@@ -346,11 +346,19 @@ Contributions are welcome! Please:
 pip install -r requirements-dev.txt
 
 # Code formatting
-black sc2am/
+black --check .
 
 # Linting
-flake8 sc2am/
+flake8 main.py sc2am tests scripts
+
+# Tests
+PYTHONPATH=. pytest -q
 ```
+
+CI runs these checks for pull requests, `main`, and `v*` release tags. It also
+builds sdist/wheel artifacts and checks the installed CLI in fresh environments
+on Ubuntu and macOS, without a personal Apple account. See
+[release validation](docs/releasing.md#automated-checks) for scope and limitations.
 
 Dependency source of truth:
 - `pyproject.toml` is the canonical dependency definition.
