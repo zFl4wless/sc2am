@@ -376,6 +376,11 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-For issues, feature requests, or questions:
-- Open an issue on GitHub
-- Check existing issues first
+The current stable release line is 2.x. Older release lines are unsupported;
+upgrade to the latest 2.x release before requesting help.
+
+For general issues, feature requests, or questions:
+- Check existing issues first, then open an issue on GitHub
+
+For suspected security vulnerabilities, do not open a public issue. Report them
+privately through [GitHub Security Advisories](SECURITY.md#reporting-a-vulnerability).

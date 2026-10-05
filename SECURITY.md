@@ -2,16 +2,21 @@
 
 ## Supported Versions
 
-We only provide security fixes for the latest stable release line.
+We provide security fixes for the current stable release line, 2.x. Older
+release lines are unsupported and do not receive security fixes. Upgrade to the
+latest 2.x release to receive security updates.
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.x     | :white_check_mark: |
+| 2.x     | :white_check_mark: |
+| 1.x     | :x:                |
 | < 1.x   | :x:                |
 
 ## Reporting a Vulnerability
 
-If you believe you have found a security vulnerability in `sc2am`, please do not open a public issue.
+If you believe you have found a security vulnerability in `sc2am`, please do not
+open a public issue or discuss it in a public support channel. Use the private
+GitHub Security Advisory reporting flow below.
 
 Please report it privately through GitHub Security Advisories:
 - Go to the repository on GitHub
