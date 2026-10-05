@@ -35,6 +35,10 @@ entry or downloading audio. Results containing `entries` or a non-track `_type`
 are rejected, including empty and single-entry collections. Failed extraction
 also stops the workflow. `--no-playlist` is an additional download precaution.
 
+Both yt-dlp commands include `--ignore-config`, so external yt-dlp configuration
+files cannot add archives, filters, or skip-download settings. SC2AM's CLI,
+environment, YAML, and default precedence remains unchanged.
+
 The downloader accepts only the single final path reported by its own yt-dlp
 process after post-processing. The path must identify a regular MP3 file directly
 inside the configured download directory; symlinks and ambiguous output are

@@ -146,6 +146,11 @@ complete interface. Precedence is explicit CLI options > environment > selected
 YAML file > defaults. A custom YAML file replaces the default file. Invalid YAML,
 unknown keys, and invalid values are reported instead of silently ignored.
 
+SC2AM ignores external yt-dlp configuration files for both track information and
+audio downloads (`--ignore-config`). Personal yt-dlp settings such as
+`--skip-download`, download archives, and match filters do not affect SC2AM.
+The SC2AM configuration precedence above remains unchanged.
+
 **View current configuration:**
 ```bash
 sc2am config show

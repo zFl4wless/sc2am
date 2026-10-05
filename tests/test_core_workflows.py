@@ -75,7 +75,7 @@ def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
     assert message == "Downloaded: night-drive.mp3 (metadata embedded)"
     downloader.metadata_writer.write_to_file.assert_called_once_with(track_path, track_info)
     command = run_mock.call_args.args[0]
-    assert command[:2] == ["yt-dlp", "--no-playlist"]
+    assert command[:3] == ["yt-dlp", "--ignore-config", "--no-playlist"]
     assert "after_move:%(filepath)j" in command
     assert "--no-overwrites" in command
     assert command[-1] == "https://soundcloud.com/artist/night-drive"

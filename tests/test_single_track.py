@@ -151,7 +151,7 @@ def test_real_yt_dlp_preflight_preserves_collection_without_extracting_entries(
     downloader = Downloader(tmp_path / "downloads")
 
     def run(command, **kwargs):
-        options = yt_dlp.parse_options(["--ignore-config", *command[1:]]).ydl_opts
+        options = yt_dlp.parse_options(command[1:]).ydl_opts
         output = io.StringIO()
         with contextlib.redirect_stdout(output), yt_dlp.YoutubeDL(options, auto_init=False) as ydl:
             ydl.add_info_extractor(CollectionIE())

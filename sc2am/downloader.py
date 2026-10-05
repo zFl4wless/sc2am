@@ -115,6 +115,7 @@ class Downloader:
 
         cmd = [
             "yt-dlp",
+            "--ignore-config",
             "--no-playlist",
             "--format",
             "bestaudio/best",
@@ -263,6 +264,7 @@ class Downloader:
 
         cmd = [
             "yt-dlp",
+            "--ignore-config",
             "--dump-single-json",
             "--flat-playlist",
             "--playlist-end",

@@ -36,7 +36,7 @@ def local_downloads(tmp_path, monkeypatch):
     monkeypatch.setattr(downloader, "get_track_info", lambda url: (True, tracks[url], "OK"))
 
     def run(command, **kwargs):
-        options = yt_dlp.parse_options(["--ignore-config", *command[1:]]).ydl_opts
+        options = yt_dlp.parse_options(command[1:]).ydl_opts
         # Exercise real file downloads/reuse and after_move output, without FFmpeg
         # or network access. Audio conversion and SoundCloud extraction are out of scope.
         options.update(enable_file_urls=True, postprocessors=[], noupdate=True)
