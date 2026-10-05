@@ -28,6 +28,13 @@ precedence, supported settings, and command behavior. Single-URL, multi-URL, and
 batch commands share one processing loop; configuration loads only when needed so
 help and initialization remain available even with broken configuration.
 
+Before downloading, the downloader validates the URL and requires a successful
+single-track extraction. Metadata uses `--dump-single-json --flat-playlist
+--playlist-end 1` to preserve the collection envelope without extracting every
+entry or downloading audio. Results containing `entries` or a non-track `_type`
+are rejected, including empty and single-entry collections. Failed extraction
+also stops the workflow. `--no-playlist` is an additional download precaution.
+
 The downloader accepts only the single final path reported by its own yt-dlp
 process after post-processing. The path must identify a regular MP3 file directly
 inside the configured download directory; symlinks and ambiguous output are

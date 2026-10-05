@@ -75,6 +75,9 @@ This creates a default config at `~/.sc2am/config.yaml`.
 SoundCloud-Links must point to a single track, for example:
 `https://soundcloud.com/artist/track`
 or `https://www.soundcloud.com/artist/track`.
+Profiles, profile tabs (such as `/likes` or `/tracks`), albums, and sets are
+rejected. SC2AM also checks the extracted result before downloading audio;
+if it is a collection or cannot be verified as a single track, the download stops.
 
 **Download a single track:**
 ```bash
