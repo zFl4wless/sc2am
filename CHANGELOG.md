@@ -10,6 +10,21 @@ and releases use [Semantic Versioning](https://semver.org/).
 Changes merged after the latest release will be collected here until the next
 release is prepared.
 
+## [2.0.1] - 2026-10-05
+
+### Fixed
+
+- Prevented downloads from tagging or reusing unrelated files and rejected
+  SoundCloud collections in the single-track workflow.
+- Reported download-directory and missing FFmpeg/ffprobe setup failures with
+  actionable guidance.
+
+### Changed
+
+- Isolated SC2AM downloads from personal yt-dlp configuration.
+- Added cross-platform build, install, and CLI smoke checks for release artifacts.
+- Clarified the supported release line and private vulnerability reporting path.
+
 ## [2.0.0] - 2026-10-01
 
 ### Added
@@ -53,6 +68,7 @@ Keep entries concise and describe the impact for users, not internal
 implementation details. Move the relevant entries from `Unreleased` into a
 dated version section when releasing.
 
-[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.1
 [2.0.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.0
 [1.4.1]: https://github.com/zfl4wless/sc2am/releases/tag/v1.4.1
