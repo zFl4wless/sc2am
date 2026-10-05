@@ -21,6 +21,7 @@ The downloaded MP3 files are automatically enriched with SoundCloud metadata (ti
 - **macOS** (Apple Music integration requires macOS)
 - **Python 3.10+**
 - **yt-dlp** (will be installed as dependency)
+- **FFmpeg and ffprobe** (required by yt-dlp to extract and convert MP3 audio)
 
 ### macOS Prerequisites
 
@@ -37,6 +38,16 @@ Release preparation is documented in [`docs/releasing.md`](docs/releasing.md),
 and user-facing changes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Setup
+
+Install FFmpeg and ffprobe before downloading tracks. On macOS, install both with
+Homebrew:
+
+```bash
+brew install ffmpeg
+```
+
+SC2AM checks for `yt-dlp`, `ffmpeg`, and `ffprobe` when a real download starts.
+Help and `--dry-run` do not require these download tools.
 
 1. **Clone or download the project:**
 ```bash

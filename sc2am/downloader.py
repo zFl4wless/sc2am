@@ -71,13 +71,18 @@ class Downloader:
 
     @staticmethod
     def _check_dependencies() -> None:
-        """Check if yt-dlp is installed."""
-        yt_dlp_path = shutil.which("yt-dlp")
-        if not yt_dlp_path:
-            raise RuntimeError(
-                "yt-dlp is not installed. Install it with 'pip install yt-dlp' and try again."
-            )
-        logger.debug(f"yt-dlp found at: {yt_dlp_path}")
+        """Check that yt-dlp and the FFmpeg tools required for MP3 extraction exist."""
+        for executable, install_command in (
+            ("yt-dlp", "pip install yt-dlp"),
+            ("ffmpeg", "brew install ffmpeg"),
+            ("ffprobe", "brew install ffmpeg"),
+        ):
+            executable_path = shutil.which(executable)
+            if not executable_path:
+                raise RuntimeError(
+                    f"{executable} is not installed. Install it with '{install_command}' and try again."
+                )
+            logger.debug(f"{executable} found at: {executable_path}")
 
     @classmethod
     def _is_retryable_error(cls, stderr: str) -> bool:
@@ -108,7 +113,15 @@ class Downloader:
         track_info = info
 
         # Download only after extraction has confirmed a single track.
-        self.download_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.download_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            message = (
+                f"Could not create download directory '{self.download_dir}'. "
+                "Check the path and permissions."
+            )
+            logger.exception("Could not prepare download directory: %s", self.download_dir)
+            return False, None, message
 
         # yt-dlp command
         output_template = str(self.download_dir.resolve() / "%(title)s [%(id)s].%(ext)s")

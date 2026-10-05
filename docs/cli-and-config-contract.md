@@ -34,7 +34,10 @@ Both processing commands accept exactly the same workflow options:
 `--no-open` controls the automatic open step only. A requested playlist action can
 still access Music.app. To disable both actions, use `--no-open --playlist ""`.
 Dry runs also suppress configured log-file writes and do not require yt-dlp or
-Music.app. Configuration and input validation still apply.
+FFmpeg/ffprobe or Music.app. Configuration and input validation still apply.
+Real downloads require `yt-dlp`, `ffmpeg`, and `ffprobe`; on macOS install the
+FFmpeg tools with `brew install ffmpeg`. Missing tools are reported before the
+download starts.
 
 Direct URL runs validate and process URLs in order. Without continuation, they
 stop at the first invalid URL or download failure; earlier downloads may already

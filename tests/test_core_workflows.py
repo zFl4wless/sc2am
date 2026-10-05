@@ -9,8 +9,10 @@ import pytest
 
 import sc2am.apple_music as apple_music
 import sc2am.downloader as downloader_module
+import main
 from sc2am.apple_music import AppleMusicManager
 from sc2am.downloader import Downloader
+from click.testing import CliRunner
 
 
 @pytest.fixture
@@ -49,6 +51,89 @@ def test_downloader_rejects_missing_yt_dlp(monkeypatch, tmp_path):
 
     with pytest.raises(RuntimeError, match="yt-dlp is not installed"):
         Downloader(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("missing", "install_command"),
+    [("ffmpeg", "brew install ffmpeg"), ("ffprobe", "brew install ffmpeg")],
+)
+def test_downloader_rejects_missing_ffmpeg_tools(monkeypatch, tmp_path, missing, install_command):
+    monkeypatch.setattr(
+        downloader_module.shutil,
+        "which",
+        lambda executable: None if executable == missing else f"/usr/bin/{executable}",
+    )
+
+    with pytest.raises(RuntimeError, match=f"{missing} is not installed") as error:
+        Downloader(tmp_path)
+
+    assert install_command in str(error.value)
+
+
+@pytest.mark.parametrize("failure", [FileExistsError, PermissionError])
+def test_downloader_reports_download_directory_setup_failure(downloader, monkeypatch, failure):
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (True, {"title": "Track"}, "OK"))
+    monkeypatch.setattr(
+        downloader_module.Path,
+        "mkdir",
+        Mock(side_effect=failure("cannot create directory")),
+    )
+
+    assert downloader.download("https://soundcloud.com/artist/track") == (
+        False,
+        None,
+        f"Could not create download directory '{downloader.download_dir}'. Check the path and permissions.",
+    )
+
+
+@pytest.mark.parametrize("command", ["download", "batch"])
+@pytest.mark.parametrize("failure", ["file", "permission"])
+def test_cli_reports_download_directory_failure_for_download_and_batch(
+    command, failure, tmp_path, monkeypatch
+):
+    download_dir = tmp_path / "not-a-directory"
+    if failure == "file":
+        download_dir.touch()
+    else:
+        original_mkdir = downloader_module.Path.mkdir
+
+        def deny_download_dir(path, *args, **kwargs):
+            if path == download_dir:
+                raise PermissionError("permission denied")
+            return original_mkdir(path, *args, **kwargs)
+
+        monkeypatch.setattr(downloader_module.Path, "mkdir", deny_download_dir)
+    cfg = type(
+        "Config",
+        (),
+        {
+            "download_dir": download_dir,
+            "open_music_app": False,
+            "default_playlist": None,
+            "continue_on_error": False,
+        },
+    )()
+    monkeypatch.setattr(main, "_track_context", lambda *args: {"config": cfg, "logger": Mock()})
+    monkeypatch.setattr(Downloader, "_check_dependencies", staticmethod(lambda: None))
+    monkeypatch.setattr(
+        Downloader,
+        "get_track_info",
+        staticmethod(lambda _: (True, {"title": "Track"}, "OK")),
+    )
+    runner = CliRunner()
+    url = "https://soundcloud.com/artist/track"
+    if command == "download":
+        args = ["download", url, "--no-open", "--playlist", ""]
+    else:
+        batch_file = tmp_path / "urls.txt"
+        batch_file.write_text(url + "\n")
+        args = ["batch", str(batch_file), "--no-open", "--playlist", ""]
+
+    result = runner.invoke(main.cli, args)
+
+    assert result.exit_code == 1
+    assert "Check the path and permissions." in result.output
+    assert "Summary: 0 succeeded, 1 failed" in result.output
 
 
 def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
