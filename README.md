@@ -217,6 +217,17 @@ SC2AM_DOWNLOAD_DIR=~/Music sc2am download "..."
 
 SC2AM automatically retries transient download and Apple Music import failures a few times before surfacing an error, so brief network hiccups or a busy Music.app are less likely to interrupt a run.
 
+MP3 filenames include the SoundCloud track ID: `Title [123456789].mp3`.
+Tracks with the same title and different IDs are saved separately. Repeating a
+download with the same ID and title reuses the existing audio without overwriting
+it; metadata is refreshed and the configured Music actions still run. A changed
+title produces a new filename. Older title-only files are left untouched and are
+not reused by the new naming scheme.
+
+SC2AM only tags and imports the verified MP3 path reported by that download.
+Missing or invalid output paths cause a download error, even when other MP3s
+already exist in the directory.
+
 ### Exit Codes and Logging Behavior
 
 SC2AM now returns stable exit codes for scripting:
@@ -246,7 +257,7 @@ Track 1/3: Processing https://soundcloud.com/artist/track1
 Track 1/3: Validating SoundCloud URL...
 Track 1/3: OK: Valid SoundCloud URL
 Track 1/3: Downloading track...
-Track 1/3: OK: Downloaded: track1.mp3
+Track 1/3: OK: Downloaded: track1 [123456789].mp3
 Track 1/3: Done!
 
 ──────────────────────────────────────────────
@@ -261,7 +272,7 @@ Track 3/3: Processing https://soundcloud.com/artist/track3
 Track 3/3: Validating SoundCloud URL...
 Track 3/3: OK: Valid SoundCloud URL
 Track 3/3: Downloading track...
-Track 3/3: OK: Downloaded: track3.mp3
+Track 3/3: OK: Downloaded: track3 [987654321].mp3
 Track 3/3: Done!
 
 Summary: 2 succeeded, 1 failed (67% success rate)

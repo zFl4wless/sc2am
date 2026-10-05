@@ -65,7 +65,7 @@ def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
         "get_track_info",
         lambda _: (True, track_info, "Info fetched successfully"),
     )
-    run_mock = Mock(return_value=Mock(returncode=0, stdout=f"{track_path}\n", stderr=""))
+    run_mock = Mock(return_value=Mock(returncode=0, stdout=json.dumps(str(track_path)), stderr=""))
     monkeypatch.setattr(downloader_module.subprocess, "run", run_mock)
 
     success, result_path, message = downloader.download("https://soundcloud.com/artist/night-drive")
@@ -76,7 +76,8 @@ def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
     downloader.metadata_writer.write_to_file.assert_called_once_with(track_path, track_info)
     command = run_mock.call_args.args[0]
     assert command[:2] == ["yt-dlp", "--format"]
-    assert "after_move:filepath" in command
+    assert "after_move:%(filepath)j" in command
+    assert "--no-overwrites" in command
     assert command[-1] == "https://soundcloud.com/artist/night-drive"
 
 
@@ -94,7 +95,7 @@ def test_downloader_keeps_download_when_metadata_tagging_fails(downloader, tmp_p
     monkeypatch.setattr(
         downloader_module.subprocess,
         "run",
-        lambda *args, **kwargs: Mock(returncode=0, stdout=f"{track_path}\n", stderr=""),
+        lambda *args, **kwargs: Mock(returncode=0, stdout=json.dumps(str(track_path)), stderr=""),
     )
 
     success, result_path, message = downloader.download("https://soundcloud.com/artist/untagged")
@@ -117,7 +118,7 @@ def test_downloader_retries_when_yt_dlp_reports_success_without_an_mp3(downloade
     assert (success, result_path, message) == (
         False,
         None,
-        "The download finished, but no MP3 file was created.",
+        "The downloaded MP3 file could not be verified. Please try again.",
     )
     assert run_mock.call_count == Downloader._MAX_RETRIES
     assert sleep_mock.call_count == Downloader._MAX_RETRIES - 1
@@ -149,7 +150,7 @@ def test_downloader_retries_temporary_failure_then_succeeds(downloader, tmp_path
     run_mock = Mock(
         side_effect=[
             Mock(returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable"),
-            Mock(returncode=0, stdout=f"{track_path}\n", stderr=""),
+            Mock(returncode=0, stdout=json.dumps(str(track_path)), stderr=""),
         ]
     )
     sleep_mock = Mock()
@@ -184,16 +185,124 @@ def test_downloader_surfaces_unexpected_process_failure(downloader, monkeypatch)
     )
 
 
-def test_downloader_uses_newest_mp3_when_yt_dlp_does_not_print_a_path(downloader):
-    downloader.download_dir.mkdir()
-    older = downloader.download_dir / "older.mp3"
-    newer = downloader.download_dir / "newer.mp3"
-    older.touch()
-    newer.touch()
-    os.utime(older, (1, 1))
-    os.utime(newer, (2, 2))
+@pytest.mark.parametrize(
+    "output_kind",
+    [
+        "empty",
+        "malformed",
+        "missing",
+        "directory",
+        "non-mp3",
+        "outside",
+        "symlink",
+        "relative",
+        "multiple",
+        "null",
+        "object",
+        "blank",
+    ],
+)
+def test_unverified_download_never_tags_or_imports_existing_files(
+    downloader, tmp_path, monkeypatch, output_kind
+):
+    from click.testing import CliRunner
+    import main
 
-    assert downloader._resolve_downloaded_file("non-path output") == newer
+    downloader.download_dir.mkdir()
+    stale = downloader.download_dir / "stale.mp3"
+    stale.write_bytes(b"existing recording")
+    directory = downloader.download_dir / "directory.mp3"
+    directory.mkdir()
+    non_mp3 = downloader.download_dir / "track.wav"
+    non_mp3.touch()
+    outside = tmp_path / "outside.mp3"
+    outside.write_bytes(b"other recording")
+    symlink = downloader.download_dir / "link.mp3"
+    symlink.symlink_to(stale)
+    outputs = {
+        "empty": "",
+        "malformed": "not a path",
+        "missing": json.dumps(str(downloader.download_dir / "missing.mp3")),
+        "directory": json.dumps(str(directory)),
+        "non-mp3": json.dumps(str(non_mp3)),
+        "outside": json.dumps(str(outside)),
+        "symlink": json.dumps(str(symlink)),
+        "relative": json.dumps("stale.mp3"),
+        "multiple": json.dumps(str(stale)) + "\n" + json.dumps(str(stale)),
+        "null": "null",
+        "object": "{}",
+        "blank": '""',
+    }
+    downloader.metadata_writer = Mock()
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (True, {"title": "New"}, "OK"))
+    monkeypatch.setattr(downloader_module.time, "sleep", lambda _: None)
+    monkeypatch.setattr(
+        downloader_module.subprocess,
+        "run",
+        Mock(return_value=Mock(returncode=0, stdout=outputs[output_kind], stderr="")),
+    )
+    monkeypatch.setattr(main, "_create_downloader", lambda *args: downloader)
+    music_factory = Mock()
+    monkeypatch.setattr(main, "AppleMusicManager", music_factory)
+
+    result = CliRunner().invoke(
+        main.cli, ["download", "https://soundcloud.com/artist/new", "--playlist", "Roadtrip"]
+    )
+
+    assert result.exit_code == 1, result.output
+    assert "The downloaded MP3 file could not be verified. Please try again." in result.output
+    assert "0 succeeded, 1 failed" in result.output
+    downloader.metadata_writer.write_to_file.assert_not_called()
+    music_factory.assert_not_called()
+    assert stale.read_bytes() == b"existing recording"
+    assert outside.read_bytes() == b"other recording"
+
+
+@pytest.mark.parametrize("has_output", [False, True])
+def test_overlapping_downloads_only_tag_their_own_reported_file(
+    downloader, monkeypatch, has_output
+):
+    downloader.download_dir.mkdir()
+    own_path = downloader.download_dir / "own.mp3"
+    own_path.write_bytes(b"own recording")
+    other_path = downloader.download_dir / "other.mp3"
+    other = Downloader(downloader.download_dir)
+    own_info, other_info = {"title": "Own"}, {"title": "Other"}
+    for instance, info in ((downloader, own_info), (other, other_info)):
+        instance.metadata_writer = Mock()
+        instance.metadata_writer.write_to_file.return_value = (True, "OK")
+        monkeypatch.setattr(instance, "get_track_info", lambda _, info=info: (True, info, "OK"))
+    monkeypatch.setattr(downloader, "_MAX_RETRIES", 1)
+
+    def run(command, **kwargs):
+        if command[-1].endswith("/own"):
+            # Complete the overlapping run while this download is still in progress.
+            assert other.download("https://soundcloud.com/artist/other")[0]
+            output = json.dumps(str(own_path)) if has_output else ""
+        else:
+            other_path.write_bytes(b"other recording")
+            os.utime(own_path, (1, 1))
+            output = json.dumps(str(other_path))
+        return Mock(returncode=0, stdout=output, stderr="")
+
+    monkeypatch.setattr(downloader_module.subprocess, "run", run)
+    success, path, _ = downloader.download("https://soundcloud.com/artist/own")
+
+    assert success is has_output
+    assert path == (own_path if has_output else None)
+    if has_output:
+        downloader.metadata_writer.write_to_file.assert_called_once_with(own_path, own_info)
+    else:
+        downloader.metadata_writer.write_to_file.assert_not_called()
+    other.metadata_writer.write_to_file.assert_called_once_with(other_path, other_info)
+    assert own_path.read_bytes() == b"own recording"
+
+
+def test_reported_path_preserves_whitespace_and_unicode(downloader):
+    downloader.download_dir.mkdir()
+    path = downloader.download_dir / '  Nacht "mix"\n音楽.mp3'
+    path.touch()
+    assert downloader._resolve_downloaded_file(json.dumps(str(path)) + "\n") == path
 
 
 def test_track_info_retries_invalid_json_and_returns_parsed_metadata(monkeypatch):

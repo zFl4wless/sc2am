@@ -108,7 +108,7 @@ class Downloader:
             logger.warning(f"Could not fetch track metadata before download: {info_msg}")
 
         # yt-dlp command
-        output_template = str(self.download_dir / "%(title)s.%(ext)s")
+        output_template = str(self.download_dir.resolve() / "%(title)s [%(id)s].%(ext)s")
 
         cmd = [
             "yt-dlp",
@@ -121,8 +121,9 @@ class Downloader:
             "192",
             "--output",
             output_template,
+            "--no-overwrites",
             "--print",
-            "after_move:filepath",
+            "after_move:%(filepath)j",
             "--quiet",
             url,
         ]
@@ -150,11 +151,15 @@ class Downloader:
                 if downloaded_file is None:
                     if attempt < self._MAX_RETRIES:
                         logger.warning(
-                            f"The download finished without an MP3 file on attempt {attempt}/{self._MAX_RETRIES}; retrying."
+                            f"The download finished without a verified MP3 file on attempt {attempt}/{self._MAX_RETRIES}; retrying."
                         )
                         self._sleep_before_retry(attempt)
                         continue
-                    return False, None, "The download finished, but no MP3 file was created."
+                    return (
+                        False,
+                        None,
+                        "The downloaded MP3 file could not be verified. Please try again.",
+                    )
 
                 metadata_message = ""
                 if track_info:
@@ -216,17 +221,26 @@ class Downloader:
         return "The download failed unexpectedly. Please check the log file for details."
 
     def _resolve_downloaded_file(self, stdout: str) -> Optional[Path]:
-        """Resolve the resulting MP3 path from yt-dlp output with a fallback scan."""
-        output_lines = [line.strip() for line in stdout.splitlines() if line.strip()]
-        for line in reversed(output_lines):
-            candidate = Path(line)
-            if candidate.suffix.lower() == ".mp3" and candidate.exists():
-                return candidate
-
-        mp3_files = list(self.download_dir.glob("*.mp3"))
-        if not mp3_files:
+        """Accept only the single final MP3 path reported by this yt-dlp process."""
+        try:
+            # JSON preserves whitespace/newlines in filenames and rejects ambiguous output.
+            filepath = json.loads(stdout)
+            if not isinstance(filepath, str) or not filepath:
+                return None
+            candidate = Path(filepath)
+            if (
+                not candidate.is_absolute()
+                or candidate.suffix.lower() != ".mp3"
+                or candidate.is_symlink()
+                or not candidate.is_file()
+            ):
+                return None
+            resolved = candidate.resolve()
+            if resolved.parent != self.download_dir.resolve():
+                return None
+            return candidate
+        except (ValueError, OSError, RuntimeError):
             return None
-        return max(mp3_files, key=lambda p: p.stat().st_mtime)
 
     @staticmethod
     def get_track_info(url: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:
