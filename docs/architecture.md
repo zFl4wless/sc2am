@@ -28,6 +28,13 @@ precedence, supported settings, and command behavior. Single-URL, multi-URL, and
 batch commands share one processing loop; configuration loads only when needed so
 help and initialization remain available even with broken configuration.
 
+The downloader accepts only the single final path reported by its own yt-dlp
+process after post-processing. The path must identify a regular MP3 file directly
+inside the configured download directory; symlinks and ambiguous output are
+rejected. Paths are JSON-encoded to preserve special characters. If verification
+fails after retries, the command reports a download failure without tagging or
+importing any file. It never selects another MP3 by scanning the directory.
+
 ## Important Design Rules
 - Metadata should be normalized before tagging so downstream code receives predictable values.
 - Artwork handling should always prefer a valid embedded image and fall back safely when no usable artwork exists.

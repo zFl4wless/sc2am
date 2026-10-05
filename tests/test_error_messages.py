@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -56,7 +57,7 @@ class ErrorMessageTests(unittest.TestCase):
             first_attempt = Mock(
                 returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable"
             )
-            second_attempt = Mock(returncode=0, stdout=f"{file_path}\n", stderr="")
+            second_attempt = Mock(returncode=0, stdout=json.dumps(str(file_path)), stderr="")
 
             with (
                 mock.patch.object(
