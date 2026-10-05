@@ -35,6 +35,12 @@ rejected. Paths are JSON-encoded to preserve special characters. If verification
 fails after retries, the command reports a download failure without tagging or
 importing any file. It never selects another MP3 by scanning the directory.
 
+The output template is `%(title)s [%(id)s].%(ext)s`, so different SoundCloud
+track IDs cannot collide merely because their titles match. yt-dlp is called with
+`--no-overwrites`: repeats with the same ID and title reuse existing audio, then
+SC2AM refreshes tags and applies the configured Music actions. A changed title
+creates a new path; legacy title-only files are not migrated or reused.
+
 ## Important Design Rules
 - Metadata should be normalized before tagging so downstream code receives predictable values.
 - Artwork handling should always prefer a valid embedded image and fall back safely when no usable artwork exists.

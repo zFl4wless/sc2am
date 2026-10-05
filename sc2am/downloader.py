@@ -108,7 +108,7 @@ class Downloader:
             logger.warning(f"Could not fetch track metadata before download: {info_msg}")
 
         # yt-dlp command
-        output_template = str(self.download_dir.resolve() / "%(title)s.%(ext)s")
+        output_template = str(self.download_dir.resolve() / "%(title)s [%(id)s].%(ext)s")
 
         cmd = [
             "yt-dlp",
@@ -121,6 +121,7 @@ class Downloader:
             "192",
             "--output",
             output_template,
+            "--no-overwrites",
             "--print",
             "after_move:%(filepath)j",
             "--quiet",

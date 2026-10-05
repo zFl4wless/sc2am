@@ -1,0 +1,94 @@
+"""Exercise yt-dlp's actual filename expansion and reuse with local audio payloads."""
+
+import contextlib
+import io
+from unittest.mock import Mock
+
+import pytest
+import yt_dlp
+
+import sc2am.downloader as downloader_module
+from sc2am.downloader import Downloader
+
+
+@pytest.fixture
+def local_downloads(tmp_path, monkeypatch):
+    monkeypatch.setattr(Downloader, "_check_dependencies", staticmethod(lambda: None))
+    downloader = Downloader(tmp_path / "downloads")
+    downloader.metadata_writer = Mock()
+    downloader.metadata_writer.write_to_file.return_value = (True, "OK")
+    tracks = {}
+
+    def add_track(track_id, audio):
+        source = tmp_path / f"source-{track_id}.mp3"
+        source.write_bytes(audio)
+        url = f"https://soundcloud.com/artist/track-{track_id}"
+        tracks[url] = {
+            "id": track_id,
+            "title": "Intro",
+            "artist": f"Artist {track_id}",
+            "url": source.as_uri(),
+            "ext": "mp3",
+            "extractor": "soundcloud",
+        }
+        return url, source
+
+    monkeypatch.setattr(downloader, "get_track_info", lambda url: (True, tracks[url], "OK"))
+
+    def run(command, **kwargs):
+        options = yt_dlp.parse_options(["--ignore-config", *command[1:]]).ydl_opts
+        # Exercise real file downloads/reuse and after_move output, without FFmpeg
+        # or network access. Audio conversion and SoundCloud extraction are out of scope.
+        options.update(enable_file_urls=True, postprocessors=[], noupdate=True)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), yt_dlp.YoutubeDL(options) as ydl:
+            ydl.process_ie_result(dict(tracks[command[-1]]), download=True)
+        return Mock(returncode=0, stdout=output.getvalue(), stderr="")
+
+    monkeypatch.setattr(downloader_module.subprocess, "run", run)
+    return downloader, add_track, tracks
+
+
+def test_identical_titles_with_different_ids_keep_separate_audio_and_tags(local_downloads):
+    downloader, add_track, tracks = local_downloads
+    first_url, _ = add_track("101", b"first recording")
+    second_url, _ = add_track("202", b"second recording")
+    downloader.download_dir.mkdir()
+    legacy = downloader.download_dir / "Intro.mp3"
+    legacy.write_bytes(b"legacy recording")
+
+    first_ok, first_path, _ = downloader.download(first_url)
+    second_ok, second_path, _ = downloader.download(second_url)
+
+    assert first_ok and second_ok
+    assert first_path.name == "Intro [101].mp3"
+    assert second_path.name == "Intro [202].mp3"
+    assert first_path.read_bytes() == b"first recording"
+    assert second_path.read_bytes() == b"second recording"
+    assert legacy.read_bytes() == b"legacy recording"
+    assert [call.args for call in downloader.metadata_writer.write_to_file.call_args_list] == [
+        (first_path, tracks[first_url]),
+        (second_path, tracks[second_url]),
+    ]
+
+
+def test_repeat_download_reuses_audio_and_preserves_other_tracks(local_downloads):
+    downloader, add_track, tracks = local_downloads
+    url, source = add_track("101", b"original recording")
+    other_url, _ = add_track("202", b"other recording")
+    first_ok, first_path, _ = downloader.download(url)
+    other_ok, other_path, _ = downloader.download(other_url)
+    assert first_ok and other_ok
+    source.unlink()  # Reuse must succeed without fetching the source audio again.
+    tracks[url]["artist"] = "Updated artist"
+    downloader.metadata_writer.reset_mock()
+
+    success, path, message = downloader.download(url)
+
+    assert success
+    assert path == first_path
+    assert message == "Downloaded: Intro [101].mp3 (metadata embedded)"
+    assert path.read_bytes() == b"original recording"
+    assert other_path.read_bytes() == b"other recording"
+    assert len(list(downloader.download_dir.glob("*.mp3"))) == 2
+    downloader.metadata_writer.write_to_file.assert_called_once_with(path, tracks[url])
