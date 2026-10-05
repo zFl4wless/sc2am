@@ -4,7 +4,7 @@ URL validation utilities for sc2am.
 
 import logging
 from typing import List, Tuple
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,15 @@ class URLValidator:
         "Only SoundCloud track URLs are supported. Please use a URL like "
         "https://soundcloud.com/<artist>/<track>"
     )
+    SOUNDCLOUD_PROFILE_ROUTES = {
+        "tracks",
+        "albums",
+        "sets",
+        "reposts",
+        "likes",
+        "spotlight",
+        "comments",
+    }
 
     @staticmethod
     def validate_url(url: str) -> Tuple[bool, str]:
@@ -69,6 +78,9 @@ class URLValidator:
                     return False, URLValidator.SOUNDCLOUD_TRACK_HELP
 
                 if any(not segment.strip() for segment in path_segments):
+                    return False, URLValidator.SOUNDCLOUD_TRACK_HELP
+
+                if unquote(path_segments[1]).lower() in URLValidator.SOUNDCLOUD_PROFILE_ROUTES:
                     return False, URLValidator.SOUNDCLOUD_TRACK_HELP
 
                 return True, "SoundCloud"

@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any, Tuple
 import shutil
 
 from .metadata import MetadataWriter
+from .validator import URLValidator
 
 logger = logging.getLogger(__name__)
 
@@ -97,21 +98,25 @@ class Downloader:
         Returns:
             Tuple of (success, file_path, message)
         """
-        # Create download directory if needed
-        self.download_dir.mkdir(parents=True, exist_ok=True)
+        valid, message = URLValidator.validate_url(url)
+        if not valid:
+            return False, None, message
 
-        track_info: Optional[Dict[str, Any]] = None
         info_ok, info, info_msg = self.get_track_info(url)
-        if info_ok and info is not None:
-            track_info = info
-        else:
-            logger.warning(f"Could not fetch track metadata before download: {info_msg}")
+        if not info_ok or info is None:
+            return False, None, info_msg
+        track_info = info
+
+        # Download only after extraction has confirmed a single track.
+        self.download_dir.mkdir(parents=True, exist_ok=True)
 
         # yt-dlp command
         output_template = str(self.download_dir.resolve() / "%(title)s [%(id)s].%(ext)s")
 
         cmd = [
             "yt-dlp",
+            "--ignore-config",
+            "--no-playlist",
             "--format",
             "bestaudio/best",
             "--extract-audio",
@@ -253,7 +258,20 @@ class Downloader:
         Returns:
             Tuple of (success, info_dict, message)
         """
-        cmd = ["yt-dlp", "--dump-json", "--no-warnings", url]
+        valid, message = URLValidator.validate_url(url)
+        if not valid:
+            return False, None, message
+
+        cmd = [
+            "yt-dlp",
+            "--ignore-config",
+            "--dump-single-json",
+            "--flat-playlist",
+            "--playlist-end",
+            "1",
+            "--no-warnings",
+            url,
+        ]
 
         for attempt in range(1, Downloader._MAX_RETRIES + 1):
             try:
@@ -272,6 +290,12 @@ class Downloader:
                     return False, None, f"Could not fetch track info: {error_msg}"
 
                 info = json.loads(result.stdout)
+                if (
+                    not isinstance(info, dict)
+                    or info.get("_type", "video") != "video"
+                    or "entries" in info
+                ):
+                    return False, None, URLValidator.SOUNDCLOUD_TRACK_HELP
                 return True, info, "Info fetched successfully"
 
             except json.JSONDecodeError:

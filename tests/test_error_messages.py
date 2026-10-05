@@ -54,6 +54,9 @@ class ErrorMessageTests(unittest.TestCase):
             with mock.patch.object(Downloader, "_check_dependencies"):
                 downloader = Downloader(download_dir)
 
+            downloader.metadata_writer = Mock()
+            downloader.metadata_writer.write_to_file.return_value = (True, "OK")
+
             first_attempt = Mock(
                 returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable"
             )
@@ -63,7 +66,7 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(
                     downloader,
                     "get_track_info",
-                    return_value=(True, None, "Info fetched successfully"),
+                    return_value=(True, {"id": "123"}, "Info fetched successfully"),
                 ),
                 mock.patch.object(
                     downloader_module.subprocess, "run", side_effect=[first_attempt, second_attempt]
@@ -76,7 +79,7 @@ class ErrorMessageTests(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertEqual(result_path, file_path)
-        self.assertEqual(message, f"Downloaded: {file_path.name}")
+        self.assertEqual(message, f"Downloaded: {file_path.name} (metadata embedded)")
         self.assertEqual(run_mock.call_count, 2)
         sleep_mock.assert_called_once()
 
@@ -94,7 +97,7 @@ class ErrorMessageTests(unittest.TestCase):
                 mock.patch.object(
                     downloader,
                     "get_track_info",
-                    return_value=(True, None, "Info fetched successfully"),
+                    return_value=(True, {"id": "123"}, "Info fetched successfully"),
                 ),
                 mock.patch.object(
                     downloader_module.subprocess, "run", return_value=failure

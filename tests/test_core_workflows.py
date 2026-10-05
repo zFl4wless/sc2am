@@ -75,7 +75,7 @@ def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
     assert message == "Downloaded: night-drive.mp3 (metadata embedded)"
     downloader.metadata_writer.write_to_file.assert_called_once_with(track_path, track_info)
     command = run_mock.call_args.args[0]
-    assert command[:2] == ["yt-dlp", "--format"]
+    assert command[:3] == ["yt-dlp", "--ignore-config", "--no-playlist"]
     assert "after_move:%(filepath)j" in command
     assert "--no-overwrites" in command
     assert command[-1] == "https://soundcloud.com/artist/night-drive"
@@ -106,7 +106,7 @@ def test_downloader_keeps_download_when_metadata_tagging_fails(downloader, tmp_p
 
 
 def test_downloader_retries_when_yt_dlp_reports_success_without_an_mp3(downloader, monkeypatch):
-    monkeypatch.setattr(downloader, "get_track_info", lambda _: (False, None, "Unavailable"))
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (True, {"title": "Track"}, "OK"))
     monkeypatch.setattr(downloader, "_resolve_downloaded_file", lambda _: None)
     run_mock = Mock(return_value=Mock(returncode=0, stdout="", stderr=""))
     sleep_mock = Mock()
@@ -125,7 +125,7 @@ def test_downloader_retries_when_yt_dlp_reports_success_without_an_mp3(downloade
 
 
 def test_downloader_retries_timeout_then_returns_actionable_error(downloader, monkeypatch):
-    monkeypatch.setattr(downloader, "get_track_info", lambda _: (False, None, "Unavailable"))
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (True, {"title": "Track"}, "OK"))
     run_mock = Mock(side_effect=subprocess.TimeoutExpired("yt-dlp", 300))
     sleep_mock = Mock()
     monkeypatch.setattr(downloader_module.subprocess, "run", run_mock)
@@ -146,7 +146,9 @@ def test_downloader_retries_temporary_failure_then_succeeds(downloader, tmp_path
     track_path = tmp_path / "downloads" / "retry.mp3"
     track_path.parent.mkdir()
     track_path.touch()
-    monkeypatch.setattr(downloader, "get_track_info", lambda _: (False, None, "Unavailable"))
+    downloader.metadata_writer = Mock()
+    downloader.metadata_writer.write_to_file.return_value = (True, "OK")
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (True, {"title": "Track"}, "OK"))
     run_mock = Mock(
         side_effect=[
             Mock(returncode=1, stdout="", stderr="HTTP Error 503: Service Unavailable"),
@@ -162,14 +164,14 @@ def test_downloader_retries_temporary_failure_then_succeeds(downloader, tmp_path
     assert (success, result_path, message) == (
         True,
         track_path,
-        "Downloaded: retry.mp3",
+        "Downloaded: retry.mp3 (metadata embedded)",
     )
     assert run_mock.call_count == 2
     sleep_mock.assert_called_once_with(Downloader._RETRY_DELAY_SECONDS)
 
 
 def test_downloader_surfaces_unexpected_process_failure(downloader, monkeypatch):
-    monkeypatch.setattr(downloader, "get_track_info", lambda _: (False, None, "Unavailable"))
+    monkeypatch.setattr(downloader, "get_track_info", lambda _: (True, {"title": "Track"}, "OK"))
     monkeypatch.setattr(
         downloader_module.subprocess,
         "run",

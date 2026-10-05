@@ -75,6 +75,9 @@ This creates a default config at `~/.sc2am/config.yaml`.
 SoundCloud-Links must point to a single track, for example:
 `https://soundcloud.com/artist/track`
 or `https://www.soundcloud.com/artist/track`.
+Profiles, profile tabs (such as `/likes` or `/tracks`), albums, and sets are
+rejected. SC2AM also checks the extracted result before downloading audio;
+if it is a collection or cannot be verified as a single track, the download stops.
 
 **Download a single track:**
 ```bash
@@ -142,6 +145,11 @@ See the [CLI and configuration contract](docs/cli-and-config-contract.md) for th
 complete interface. Precedence is explicit CLI options > environment > selected
 YAML file > defaults. A custom YAML file replaces the default file. Invalid YAML,
 unknown keys, and invalid values are reported instead of silently ignored.
+
+SC2AM ignores external yt-dlp configuration files for both track information and
+audio downloads (`--ignore-config`). Personal yt-dlp settings such as
+`--skip-download`, download archives, and match filters do not affect SC2AM.
+The SC2AM configuration precedence above remains unchanged.
 
 **View current configuration:**
 ```bash
