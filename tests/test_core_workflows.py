@@ -483,17 +483,82 @@ def test_music_command_retries_temporary_error_then_succeeds(monkeypatch):
     sleep_mock.assert_called_once_with(AppleMusicManager._RETRY_DELAY_SECONDS)
 
 
-def test_get_playlists_parses_osascript_output(monkeypatch):
-    result = Mock(stdout="Library, Roadtrip,  Focus  ,\n")
+@pytest.mark.parametrize(
+    "names",
+    [
+        ["Library", "Road, Trip", '音楽, "été"\\mix', "  Focus  ", "Line\nbreak", "Tab\tname"],
+        ["Road, Trip", "Road, Trip"],
+        ["Only one"],
+        [],
+    ],
+)
+def test_get_playlists_parses_osascript_output(monkeypatch, names):
+    result = Mock(stdout=json.dumps(names, ensure_ascii=False) + "\n")
     monkeypatch.setattr(AppleMusicManager, "_run_osascript", lambda *args: (True, result, ""))
 
     success, playlists, message = AppleMusicManager.get_playlists()
 
     assert (success, playlists, message) == (
         True,
-        ["Library", "Roadtrip", "Focus"],
-        "Playlists retrieved",
+        names,
+        "Playlists retrieved" if names else "No playlists found",
     )
+
+
+@pytest.mark.parametrize("output", ["Road, Trip", "", '"Road, Trip"', "null", "{}", "[42]"])
+def test_get_playlists_rejects_invalid_output(monkeypatch, output):
+    monkeypatch.setattr(
+        AppleMusicManager, "_run_osascript", lambda *args: (True, Mock(stdout=output), "")
+    )
+
+    success, playlists, message = AppleMusicManager.get_playlists()
+
+    assert (success, playlists) == (False, [])
+    assert "Could not retrieve playlists" in message
+
+
+@pytest.mark.parametrize(
+    "names, requested, expected",
+    [
+        (["Road, Trip", "Road", "Trip"], "road, trip", "Road, Trip"),
+        (['音楽, "été"\\mix'], '音楽, "ÉTÉ"\\mix', '音楽, "été"\\mix'),
+        (["  Road, Trip  "], "Road, Trip", "  Road, Trip  "),
+        (["Line\nbreak, mix"], "Line\nbreak, mix", "Line\nbreak, mix"),
+    ],
+)
+def test_add_to_playlist_resolves_full_serialized_name(
+    monkeypatch, tmp_path, names, requested, expected
+):
+    file_path = tmp_path / "track.mp3"
+    file_path.touch()
+    run_mock = Mock(
+        side_effect=[
+            Mock(returncode=0, stdout=json.dumps(names), stderr=""),
+            Mock(returncode=0, stdout="", stderr=""),
+        ]
+    )
+    monkeypatch.setattr(apple_music.subprocess, "run", run_mock)
+
+    success, message = AppleMusicManager.add_to_playlist(file_path, requested)
+
+    assert (success, message) == (True, f"Added to playlist '{expected}'")
+    assert run_mock.call_count == 2
+    assert run_mock.call_args.args[0][-2:] == [str(file_path.resolve()), expected]
+
+
+@pytest.mark.parametrize("names", [["Road, Trip", "Road, Trip"], ["Road, Trip", "road, trip"]])
+def test_serialized_duplicate_names_stop_import(monkeypatch, tmp_path, names):
+    file_path = tmp_path / "track.mp3"
+    file_path.touch()
+    run_mock = Mock(return_value=Mock(returncode=0, stdout=json.dumps(names), stderr=""))
+    monkeypatch.setattr(apple_music.subprocess, "run", run_mock)
+
+    success, message = AppleMusicManager.add_to_playlist(file_path, "Road, Trip")
+
+    assert success is False
+    assert 'Multiple playlists named "Road, Trip"' in message
+    assert "rename one" in message
+    run_mock.assert_called_once()
 
 
 def test_get_playlists_surfaces_automation_failure(monkeypatch):
@@ -550,6 +615,60 @@ def test_add_to_playlist_passes_absolute_path_and_playlist_as_exact_arguments(
     assert f'"{file_path}"' not in script
     assert f'"{playlist_name}"' not in script
     assert arguments == [str(file_path.resolve()), playlist_name]
+
+
+def test_playlist_import_selects_one_writable_object(monkeypatch, tmp_path):
+    file_path = tmp_path / "track.mp3"
+    file_path.touch()
+    monkeypatch.setattr(AppleMusicManager, "get_playlists", lambda: (True, ["Road, Trip"], ""))
+    osascript_mock = Mock(return_value=(True, Mock(), ""))
+    monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
+
+    assert AppleMusicManager.add_to_playlist(file_path, "Road, Trip")[0]
+
+    script = osascript_mock.call_args.args[0]
+    assert "every playlist whose name is targetPlaylist" in script
+    assert "(count of matchingPlaylists) is 0" in script
+    assert "(count of matchingPlaylists) is greater than 1" in script
+    assert "class of destinationPlaylist is not user playlist" in script
+    assert "smart of destinationPlaylist" in script
+    assert "genius of destinationPlaylist" in script
+    assert "special kind of destinationPlaylist is not none" in script
+    assert "add sourcePath to destinationPlaylist" in script
+    assert script.index('error "Choose a regular user playlist;') < script.index(
+        "add sourcePath to destinationPlaylist"
+    )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        "The playlist no longer exists. Please check the playlist name.",
+        "Multiple playlists have this name. Please rename one or choose a unique playlist name.",
+        "Choose a regular user playlist that can receive tracks.",
+        "Choose a regular user playlist; Smart, Genius, folder and system playlists cannot receive tracks.",
+    ],
+)
+def test_playlist_target_validation_errors_are_actionable(monkeypatch, tmp_path, error):
+    file_path = tmp_path / "track.mp3"
+    file_path.touch()
+    run_mock = Mock(
+        side_effect=[
+            Mock(returncode=0, stdout='["Road, Trip"]', stderr=""),
+            Mock(returncode=1, stdout="", stderr=error),
+        ]
+    )
+    monkeypatch.setattr(apple_music.subprocess, "run", run_mock)
+    sleep_mock = Mock()
+    monkeypatch.setattr(apple_music.time, "sleep", sleep_mock)
+
+    success, message = AppleMusicManager.add_to_playlist(file_path, "Road, Trip")
+
+    assert success is False
+    assert "Failed to add the track to playlist 'Road, Trip'" in message
+    assert error in message
+    assert run_mock.call_count == 2
+    sleep_mock.assert_not_called()
 
 
 def test_run_osascript_appends_arguments_after_fixed_script(monkeypatch):

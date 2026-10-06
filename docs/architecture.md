@@ -31,6 +31,11 @@ help and initialization remain available even with broken configuration.
 Playlist imports use fixed AppleScript logic and pass the resolved absolute
 track path and playlist name as separate `osascript` arguments. User-provided
 names and paths are not interpolated into script source.
+Playlist names are serialized as a JSON array using macOS Foundation so commas,
+Unicode, quotes and embedded whitespace survive listing and resolution. The import
+script rechecks that exactly one playlist matches and that it is a regular user
+playlist, then adds the file to that object. Smart, Genius, folder and system
+playlists are rejected with an actionable error.
 
 Before downloading, the downloader validates the URL and requires a successful
 single-track extraction. Metadata uses `--dump-single-json --flat-playlist
