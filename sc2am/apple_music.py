@@ -3,6 +3,7 @@ Apple Music integration for sc2am.
 Handles opening MP3s with Apple Music and playlist management.
 """
 
+import json
 import logging
 import subprocess
 import platform
@@ -159,7 +160,21 @@ class AppleMusicManager:
             tell application "Music"
                 activate
                 set sourcePath to POSIX file trackPath
-                add sourcePath to playlist targetPlaylist
+                set matchingPlaylists to every playlist whose name is targetPlaylist
+                if (count of matchingPlaylists) is 0 then
+                    error "The playlist no longer exists. Please check the playlist name."
+                end if
+                if (count of matchingPlaylists) is greater than 1 then
+                    error "Multiple playlists have this name. Please rename one or choose a unique playlist name."
+                end if
+                set destinationPlaylist to item 1 of matchingPlaylists
+                if class of destinationPlaylist is not user playlist then
+                    error "Choose a regular user playlist that can receive tracks."
+                end if
+                if smart of destinationPlaylist or genius of destinationPlaylist or special kind of destinationPlaylist is not none then
+                    error "Choose a regular user playlist; Smart, Genius, folder and system playlists cannot receive tracks."
+                end if
+                add sourcePath to destinationPlaylist
             end tell
         end run
         """
@@ -199,9 +214,14 @@ class AppleMusicManager:
             Tuple of (success, playlist_names, message)
         """
         applescript = """
+        use framework "Foundation"
+        use scripting additions
         tell application "Music"
-            return name of playlists
+            set playlistNames to name of playlists
         end tell
+        set namesArray to current application's NSArray's arrayWithArray:playlistNames
+        set jsonData to current application's NSJSONSerialization's dataWithJSONObject:namesArray options:0 |error|:(missing value)
+        return (current application's NSString's alloc()'s initWithData:jsonData encoding:(current application's NSUTF8StringEncoding)) as text
         """
 
         try:
@@ -218,12 +238,15 @@ class AppleMusicManager:
                     f"Could not retrieve playlists from Apple Music: {error}. Ensure Music.app is installed and that Automation permissions are granted.",
                 )
 
-            # Parse output - AppleScript returns comma-separated names
-            output = result.stdout.strip()
-            if not output:
+            # JSON preserves punctuation, Unicode, whitespace and duplicate names.
+            playlists = json.loads(result.stdout)
+            if not isinstance(playlists, list) or not all(
+                isinstance(name, str) for name in playlists
+            ):
+                raise ValueError("Expected a JSON array of playlist names")
+            if not playlists:
                 return True, [], "No playlists found"
 
-            playlists = [p.strip() for p in output.split(",") if p.strip()]
             logger.debug(f"Found {len(playlists)} playlists")
             return True, playlists, "Playlists retrieved"
 
@@ -247,7 +270,9 @@ class AppleMusicManager:
             return None, message
 
         matches = [
-            playlist for playlist in playlists if playlist.lower() == normalized_name.lower()
+            playlist
+            for playlist in playlists
+            if playlist.strip().lower() == normalized_name.lower()
         ]
         if not matches:
             return (

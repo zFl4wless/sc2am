@@ -117,6 +117,12 @@ sc2am download "https://soundcloud.com/artist/track" --playlist "My Playlist"
 
 If you do not pass `--playlist`, SC2AM uses the configured `default_playlist` when one is set. Playlist names are matched against the playlists currently available in Apple Music, and the app will tell you clearly if the playlist is missing or if the name is duplicated.
 
+Names containing commas, quotes or Unicode characters are supported, for example
+`--playlist "Road, Trip"`. Matching ignores case and surrounding whitespace;
+the original name is preserved for the import. Choose a regular user playlist:
+Smart, Genius, folder and system playlists cannot receive tracks. Duplicate
+names must be renamed before importing, even when they occur in different folders.
+
 **Don't automatically open Music app:**
 ```bash
 sc2am download "https://soundcloud.com/artist/track" --no-open
@@ -320,7 +326,8 @@ pip install yt-dlp --upgrade
 - See [`docs/macos-setup.md`](docs/macos-setup.md) for the full checklist
 
 ### Adding to playlists fails
-- Playlist name must exactly match your Music.app playlists
+- Check the playlist name (matching ignores case and surrounding whitespace)
+- Rename duplicate playlists and choose a regular user playlist rather than a Smart, Genius, folder or system playlist
 - Ensure the Music.app is not currently playing (can interfere with AppleScript)
 
 ### Permission denied on download
