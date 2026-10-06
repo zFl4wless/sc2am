@@ -456,7 +456,7 @@ def test_music_command_does_not_retry_permanent_error(monkeypatch):
     monkeypatch.setattr(apple_music.time, "sleep", sleep_mock)
 
     success, returned_result, error = AppleMusicManager._run_command_with_retry(
-        ["open", "-a", "Music", "track.mp3"], "Opening file with Music"
+        ["osascript", "-e", "test"], "Fetching playlists", read_only=True
     )
 
     assert (success, returned_result, error) == (False, result, "Application not found")
@@ -475,7 +475,7 @@ def test_music_command_retries_temporary_error_then_succeeds(monkeypatch):
     monkeypatch.setattr(apple_music.time, "sleep", sleep_mock)
 
     success, returned_result, error = AppleMusicManager._run_command_with_retry(
-        ["open", "-a", "Music", "track.mp3"], "Opening file with Music"
+        ["osascript", "-e", "test"], "Fetching playlists", read_only=True
     )
 
     assert (success, returned_result, error) == (True, results[1], "")
@@ -494,7 +494,9 @@ def test_music_command_retries_temporary_error_then_succeeds(monkeypatch):
 )
 def test_get_playlists_parses_osascript_output(monkeypatch, names):
     result = Mock(stdout=json.dumps(names, ensure_ascii=False) + "\n")
-    monkeypatch.setattr(AppleMusicManager, "_run_osascript", lambda *args: (True, result, ""))
+    monkeypatch.setattr(
+        AppleMusicManager, "_run_osascript", lambda *args, **kwargs: (True, result, "")
+    )
 
     success, playlists, message = AppleMusicManager.get_playlists()
 
@@ -508,7 +510,9 @@ def test_get_playlists_parses_osascript_output(monkeypatch, names):
 @pytest.mark.parametrize("output", ["Road, Trip", "", '"Road, Trip"', "null", "{}", "[42]"])
 def test_get_playlists_rejects_invalid_output(monkeypatch, output):
     monkeypatch.setattr(
-        AppleMusicManager, "_run_osascript", lambda *args: (True, Mock(stdout=output), "")
+        AppleMusicManager,
+        "_run_osascript",
+        lambda *args, **kwargs: (True, Mock(stdout=output), ""),
     )
 
     success, playlists, message = AppleMusicManager.get_playlists()
@@ -565,7 +569,7 @@ def test_get_playlists_surfaces_automation_failure(monkeypatch):
     monkeypatch.setattr(
         AppleMusicManager,
         "_run_osascript",
-        lambda *args: (False, Mock(), "Not authorised"),
+        lambda *args, **kwargs: (False, Mock(), "Not authorised"),
     )
 
     success, playlists, message = AppleMusicManager.get_playlists()
@@ -683,6 +687,7 @@ def test_run_osascript_appends_arguments_after_fixed_script(monkeypatch):
     run_mock.assert_called_once_with(
         ["osascript", "-e", script, *arguments],
         "test operation",
+        read_only=False,
     )
 
 

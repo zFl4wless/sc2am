@@ -330,6 +330,12 @@ pip install yt-dlp --upgrade
 - Rename duplicate playlists and choose a regular user playlist rather than a Smart, Genius, folder or system playlist
 - Ensure the Music.app is not currently playing (can interfere with AppleScript)
 
+### Apple Music commands time out
+- Each `open` or `osascript` attempt is limited to 30 seconds. Playlist lookups retry temporary failures and timeouts up to three attempts, with 1- and 2-second delays (at most about 93 seconds).
+- Open Music.app and check for permission prompts or an unresponsive app.
+- Failed file-opening and playlist-import commands are not automatically retried: Music may have received the import before the error or timeout. Check the Music library and target playlist before repeating the import to avoid duplicates. Stopping the command does not undo an import already received by Music.
+- Music failures remain CLI warnings; the downloaded MP3 is retained. Successful `open` dispatch still does not confirm a library import, and SC2AM does not yet reconcile uncertain imports or prevent duplicates across separate runs.
+
 ### Permission denied on download
 - Check that download directory exists and is writable:
 ```bash

@@ -123,7 +123,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertFalse(success)
         self.assertEqual(message, "The downloaded file was not found.")
 
-    def test_open_file_with_music_retries_temporary_failure_before_succeeding(self):
+    def test_open_file_with_music_does_not_replay_appleevent_timeout(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "track.mp3"
             file_path.touch()
@@ -139,10 +139,11 @@ class ErrorMessageTests(unittest.TestCase):
             ):
                 success, message = AppleMusicManager.open_file_with_music(file_path)
 
-        self.assertTrue(success)
-        self.assertEqual(message, "Opened with Apple Music")
-        self.assertEqual(run_mock.call_count, 2)
-        sleep_mock.assert_called_once()
+        self.assertFalse(success)
+        self.assertIn("AppleEvent timed out", message)
+        self.assertIn("Check the Music library and target playlist", message)
+        self.assertEqual(run_mock.call_count, 1)
+        sleep_mock.assert_not_called()
 
     def test_missing_playlist_file_returns_clear_error(self):
         success, message = AppleMusicManager.add_to_playlist(
@@ -227,7 +228,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(message, "Added to playlist 'Roadtrip'")
         self.assertTrue(run_mock.called)
 
-    def test_add_to_playlist_retries_temporary_failure_before_succeeding(self):
+    def test_add_to_playlist_does_not_replay_appleevent_timeout(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "track.mp3"
             file_path.touch()
@@ -248,10 +249,11 @@ class ErrorMessageTests(unittest.TestCase):
             ):
                 success, message = AppleMusicManager.add_to_playlist(file_path, "Roadtrip")
 
-        self.assertTrue(success)
-        self.assertEqual(message, "Added to playlist 'Roadtrip'")
-        self.assertEqual(run_mock.call_count, 2)
-        sleep_mock.assert_called_once()
+        self.assertFalse(success)
+        self.assertIn("AppleEvent timed out", message)
+        self.assertIn("Check the Music library and target playlist", message)
+        self.assertEqual(run_mock.call_count, 1)
+        sleep_mock.assert_not_called()
 
     def test_exit_helper_raises_click_exception(self):
         logger = Mock()

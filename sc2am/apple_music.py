@@ -19,6 +19,7 @@ class AppleMusicManager:
 
     _MAX_RETRIES = 3
     _RETRY_DELAY_SECONDS = 1.0
+    _COMMAND_TIMEOUT_SECONDS = 30
     _RETRYABLE_PATTERNS = (
         "appleevent timed out",
         "application isn't responding",
@@ -61,15 +62,39 @@ class AppleMusicManager:
         cls,
         cmd: list[str],
         operation: str,
+        *,
+        read_only: bool = False,
     ) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
+        """Bound each attempt; retry only operations that cannot import tracks."""
         for attempt in range(1, cls._MAX_RETRIES + 1):
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            try:
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=cls._COMMAND_TIMEOUT_SECONDS
+                )
+            except subprocess.TimeoutExpired:
+                result = None
+                error = (
+                    f"{operation} timed out after {cls._COMMAND_TIMEOUT_SECONDS} seconds. "
+                    "Open Music.app and check for permission prompts or an unresponsive app"
+                )
+            else:
+                if result.returncode == 0:
+                    return True, result, ""
 
-            if result.returncode == 0:
-                return True, result, ""
+                error = (result.stderr or result.stdout or "Unknown error").strip()
 
-            error = (result.stderr or result.stdout or "Unknown error").strip()
-            if attempt < cls._MAX_RETRIES and cls._is_retryable_error(error):
+            # Killing open/osascript cannot undo an event already delivered to Music.
+            # Even a nonzero exit can follow a partial import, so do not replay it.
+            if not read_only:
+                return (
+                    False,
+                    result,
+                    f"{error}. This command was not retried because Music may already have "
+                    "imported the track. Check the Music library and target playlist before "
+                    "repeating the import to avoid duplicates",
+                )
+
+            if attempt < cls._MAX_RETRIES and (result is None or cls._is_retryable_error(error)):
                 logger.warning(
                     f"{operation} failed temporarily on attempt {attempt}/{cls._MAX_RETRIES}: {error}"
                 )
@@ -82,10 +107,15 @@ class AppleMusicManager:
 
     @classmethod
     def _run_osascript(
-        cls, applescript: str, operation: str, arguments: Optional[List[str]] = None
+        cls,
+        applescript: str,
+        operation: str,
+        arguments: Optional[List[str]] = None,
+        *,
+        read_only: bool = False,
     ) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
         command = ["osascript", "-e", applescript, *(arguments or [])]
-        return cls._run_command_with_retry(command, operation)
+        return cls._run_command_with_retry(command, operation, read_only=read_only)
 
     @staticmethod
     def open_file_with_music(file_path: Path) -> Tuple[bool, str]:
@@ -228,6 +258,7 @@ class AppleMusicManager:
             success, result, error = AppleMusicManager._run_osascript(
                 applescript,
                 "Fetching playlists",
+                read_only=True,
             )
 
             if not success:
