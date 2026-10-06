@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -521,22 +522,49 @@ def test_add_to_playlist_stops_when_playlist_name_is_blank(monkeypatch, tmp_path
     playlists_mock.assert_not_called()
 
 
-def test_add_to_playlist_resolves_name_case_insensitively_and_runs_script(monkeypatch, tmp_path):
-    file_path = tmp_path / "track.mp3"
+def test_add_to_playlist_passes_absolute_path_and_playlist_as_exact_arguments(
+    monkeypatch, tmp_path
+):
+    monkeypatch.chdir(tmp_path)
+    relative_directory = Path('folder "with quotes"\\東京')
+    relative_directory.mkdir()
+    file_path = relative_directory / 'mix "one"\\été.mp3'
     file_path.touch()
+    playlist_name = 'Road "trip"\\音楽'
     monkeypatch.setattr(
         AppleMusicManager,
         "get_playlists",
-        lambda: (True, ["Roadtrip"], "Playlists retrieved"),
+        lambda: (True, [playlist_name], "Playlists retrieved"),
     )
     osascript_mock = Mock(return_value=(True, Mock(), ""))
     monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
 
-    success, message = AppleMusicManager.add_to_playlist(file_path, " roadTRIP ")
+    success, message = AppleMusicManager.add_to_playlist(file_path, f" {playlist_name} ")
 
-    assert (success, message) == (True, "Added to playlist 'Roadtrip'")
-    script = osascript_mock.call_args.args[0]
-    assert 'add sourcePath to playlist "Roadtrip"' in script
+    assert (success, message) == (True, f"Added to playlist '{playlist_name}'")
+    script, operation, arguments = osascript_mock.call_args.args
+    assert operation == "Adding track to playlist"
+    assert "on run argv" in script
+    assert "set trackPath to item 1 of argv" in script
+    assert "set targetPlaylist to item 2 of argv" in script
+    assert f'"{file_path}"' not in script
+    assert f'"{playlist_name}"' not in script
+    assert arguments == [str(file_path.resolve()), playlist_name]
+
+
+def test_run_osascript_appends_arguments_after_fixed_script(monkeypatch):
+    run_mock = Mock(return_value=(True, Mock(), ""))
+    monkeypatch.setattr(AppleMusicManager, "_run_command_with_retry", run_mock)
+    script = "on run argv\nreturn item 1 of argv\nend run"
+    arguments = ['path "quoted"\\音楽', 'playlist "quoted"\\été']
+
+    result = AppleMusicManager._run_osascript(script, "test operation", arguments)
+
+    assert result[0] is True
+    run_mock.assert_called_once_with(
+        ["osascript", "-e", script, *arguments],
+        "test operation",
+    )
 
 
 def test_add_to_playlist_reports_unknown_playlist_without_running_script(monkeypatch, tmp_path):

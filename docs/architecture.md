@@ -28,6 +28,10 @@ precedence, supported settings, and command behavior. Single-URL, multi-URL, and
 batch commands share one processing loop; configuration loads only when needed so
 help and initialization remain available even with broken configuration.
 
+Playlist imports use fixed AppleScript logic and pass the resolved absolute
+track path and playlist name as separate `osascript` arguments. User-provided
+names and paths are not interpolated into script source.
+
 Before downloading, the downloader validates the URL and requires a successful
 single-track extraction. Metadata uses `--dump-single-json --flat-playlist
 --playlist-end 1` to preserve the collection envelope without extracting every
