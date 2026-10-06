@@ -37,6 +37,16 @@ script rechecks that exactly one playlist matches and that it is a regular user
 playlist, then adds the file to that object. Smart, Genius, folder and system
 playlists are rejected with an actionable error.
 
+All Music subprocess attempts (`open` and `osascript`) use a 30-second timeout.
+Only read-only playlist lookups opt into retries: at most three attempts with
+1- and 2-second backoff delays. Importing commands are never automatically
+replayed after a failure, including AppleEvent timeout errors and subprocess
+timeouts, because Music may already have applied the mutation. Their warning
+asks users to inspect the library and playlist before repeating the import.
+Subprocess termination does not undo a delivered Music event. Confirmed library
+references, import reconciliation and safe repeat/resume across runs remain
+separate work in #80; the existing success and CLI warning contracts are preserved.
+
 Before downloading, the downloader validates the URL and requires a successful
 single-track extraction. Metadata uses `--dump-single-json --flat-playlist
 --playlist-end 1` to preserve the collection envelope without extracting every
