@@ -12,6 +12,7 @@ from typing import Optional, Dict, Any, Tuple
 import shutil
 
 from .metadata import MetadataWriter
+from .logger import DIAGNOSTIC_HINT
 from .validator import URLValidator
 
 logger = logging.getLogger(__name__)
@@ -154,6 +155,9 @@ class Downloader:
                 )
 
                 if result.returncode != 0:
+                    logger.error(
+                        "yt-dlp download exited with %s: %s", result.returncode, result.stderr
+                    )
                     error_msg = self._classify_download_error(result.stderr)
                     if attempt < self._MAX_RETRIES and self._is_retryable_error(result.stderr):
                         logger.warning(
@@ -209,7 +213,7 @@ class Downloader:
                 logger.error(message)
                 return False, None, message
             except Exception:
-                message = "The download failed unexpectedly. Please check the log file for details."
+                message = f"The download failed unexpectedly. {DIAGNOSTIC_HINT}"
                 logger.exception("Unexpected download error")
                 return False, None, message
 
@@ -236,7 +240,7 @@ class Downloader:
         if any(pattern in lowered for pattern in cls._TEMPORARY_NETWORK_PATTERNS):
             return "A temporary network error occurred. Please try again."
 
-        return "The download failed unexpectedly. Please check the log file for details."
+        return f"The download failed unexpectedly. {DIAGNOSTIC_HINT}"
 
     def _resolve_downloaded_file(self, stdout: str) -> Optional[Path]:
         """Accept only the single final MP3 path reported by this yt-dlp process."""
@@ -288,9 +292,13 @@ class Downloader:
 
         for attempt in range(1, Downloader._MAX_RETRIES + 1):
             try:
+                logger.debug("Running track-info command: %s", " ".join(cmd))
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
                 if result.returncode != 0:
+                    logger.error(
+                        "yt-dlp track-info exited with %s: %s", result.returncode, result.stderr
+                    )
                     error_msg = Downloader._classify_download_error(result.stderr)
                     if attempt < Downloader._MAX_RETRIES and Downloader._is_retryable_error(
                         result.stderr
@@ -318,11 +326,16 @@ class Downloader:
                     )
                     Downloader._sleep_before_retry(attempt)
                     continue
-                return False, None, "Could not read track information from yt-dlp."
+                logger.exception("Could not parse track information from yt-dlp")
+                return (
+                    False,
+                    None,
+                    f"Could not read track information from yt-dlp. {DIAGNOSTIC_HINT}",
+                )
             except Exception:
                 logger.exception("Error fetching track info")
                 return (
                     False,
                     None,
-                    "Could not fetch track information. Please check the log file for details.",
+                    f"Could not fetch track information. {DIAGNOSTIC_HINT}",
                 )

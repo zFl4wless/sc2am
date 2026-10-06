@@ -13,6 +13,7 @@ from yt_dlp.extractor.common import InfoExtractor
 import main
 import sc2am.downloader as downloader_module
 from sc2am.downloader import Downloader
+from sc2am.logger import DIAGNOSTIC_HINT
 from sc2am.validator import URLValidator
 
 COLLECTION_PATHS = [
@@ -128,7 +129,7 @@ def test_unreadable_preflight_aborts_without_downloading(tmp_path, monkeypatch, 
     assert downloader.download("https://soundcloud.com/artist/track") == (
         False,
         None,
-        "Could not read track information from yt-dlp.",
+        f"Could not read track information from yt-dlp. {DIAGNOSTIC_HINT}",
     )
     assert run_mock.call_count == Downloader._MAX_RETRIES
     assert all("--dump-single-json" in call.args[0] for call in run_mock.call_args_list)

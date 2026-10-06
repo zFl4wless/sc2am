@@ -264,7 +264,7 @@ SC2AM now returns stable exit codes for scripting:
 Music open/playlist failures remain warnings and do not change exit status.
 Summary success counts describe downloads or dry-run previews, not confirmed imports.
 
-CLI progress output is written as clean status lines. Python logger output on the console is limited to warnings and errors so informational log lines do not duplicate the CLI status messages. To retain detailed logs, configure `log_file`.
+CLI progress output is written as clean status lines. By default, Python logger output on stderr is limited to warnings and errors so informational log lines do not duplicate the CLI status messages. Explicit `--log-level DEBUG` (or `log_level: DEBUG` / `SC2AM_LOG_LEVEL=DEBUG`) includes diagnostic and informational logs on stderr. To retain logs in a file, configure `log_file` or `SC2AM_LOG_FILE`.
 
 ### Batch Processing Output
 
@@ -308,6 +308,38 @@ Failed tracks:
 ```
 
 ## Troubleshooting
+
+### Diagnose an unexpected failure
+
+No log file is created by default (`log_file: null`). Generic errors show how to
+enable diagnostics; dependency, path, URL and Music permission errors include
+remedies. To see debug output on stderr, replace the example link with the failing
+track URL and keep the options from the original command:
+
+```bash
+sc2am --log-level DEBUG download "https://soundcloud.com/artist/track"
+sc2am --log-level DEBUG batch urls.txt --continue-on-error
+```
+
+To save command details, underlying yt-dlp errors and exception tracebacks in a
+diagnostic log, set a writable log path:
+
+```bash
+SC2AM_LOG_FILE="$PWD/sc2am-debug.log" sc2am --log-level DEBUG download "https://soundcloud.com/artist/track"
+SC2AM_LOG_FILE="$PWD/sc2am-debug.log" sc2am --log-level DEBUG batch urls.txt --continue-on-error
+```
+
+Put global options before `download` or `batch`. If using a custom configuration,
+keep `--config PATH` before the subcommand as well. When running from the source
+checkout, replace `sc2am` with `python main.py`. A configured log file retains
+underlying errors and exception tracebacks at the default INFO level too; DEBUG
+adds command and progress context. These commands repeat the workflow, so check
+the Music library and target playlist before retrying a failed or uncertain
+import. Review logs for private URLs and local paths before sharing them.
+
+`--dry-run` validates and previews only: it suppresses log-file writes and does
+not reproduce download or Music failures. `config show` also does not write a
+log file.
 
 ### yt-dlp not found
 ```bash

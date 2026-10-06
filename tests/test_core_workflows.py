@@ -13,6 +13,7 @@ import sc2am.downloader as downloader_module
 import main
 from sc2am.apple_music import AppleMusicManager
 from sc2am.downloader import Downloader
+from sc2am.logger import DIAGNOSTIC_HINT
 from click.testing import CliRunner
 
 
@@ -39,7 +40,7 @@ def downloader(tmp_path, monkeypatch):
         ),
         (
             "an unrecognised failure",
-            "The download failed unexpectedly. Please check the log file for details.",
+            f"The download failed unexpectedly. {DIAGNOSTIC_HINT}",
         ),
     ],
 )
@@ -269,7 +270,7 @@ def test_downloader_surfaces_unexpected_process_failure(downloader, monkeypatch)
     assert (success, result_path, message) == (
         False,
         None,
-        "The download failed unexpectedly. Please check the log file for details.",
+        f"The download failed unexpectedly. {DIAGNOSTIC_HINT}",
     )
 
 

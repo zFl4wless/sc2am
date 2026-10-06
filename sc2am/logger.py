@@ -7,6 +7,11 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+DIAGNOSTIC_HINT = (
+    "For diagnostics, rerun with 'sc2am --log-level DEBUG download URL' or "
+    "'sc2am --log-level DEBUG batch FILE', using the same URL/file and options."
+)
+
 
 def setup_logging(log_level: str = "INFO", log_file: Optional[Path] = None) -> logging.Logger:
     """
@@ -27,9 +32,11 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[Path] = None) -> l
     # Remove existing handlers
     logger.handlers.clear()
 
-    # Console handler: keep CLI output clean by only surfacing warnings/errors.
+    # Keep normal progress clean, but make explicitly requested DEBUG output usable.
     console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setLevel(max(requested_level, logging.WARNING))
+    console_handler.setLevel(
+        logging.DEBUG if requested_level == logging.DEBUG else max(requested_level, logging.WARNING)
+    )
     console_formatter = logging.Formatter("%(levelname)s: %(message)s")
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)

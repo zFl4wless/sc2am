@@ -24,6 +24,11 @@ class LoggerSetupTests(unittest.TestCase):
         self.assertEqual(len(logger.handlers), 1)
         self.assertEqual(logger.handlers[0].level, logging.ERROR)
 
+    def test_console_handler_enables_explicit_debug_logging(self):
+        logger = setup_logging("DEBUG", None)
+
+        self.assertEqual(logger.handlers[0].level, logging.DEBUG)
+
     def test_file_handler_uses_requested_level(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             log_path = Path(tmpdir) / "sc2am.log"
