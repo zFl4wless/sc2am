@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, NoReturn, Tuple, cast
 import click
 
 from sc2am.config_manager import ConfigManager, ConfigurationError, LOG_LEVELS
-from sc2am.logger import setup_logging
+from sc2am.logger import DIAGNOSTIC_HINT, setup_logging
 from sc2am.validator import URLValidator
 from sc2am.downloader import Downloader
 from sc2am.apple_music import AppleMusicManager
@@ -40,7 +40,7 @@ def _create_downloader(cfg, logger) -> Downloader:
     try:
         return Downloader(cfg.download_dir)
     except RuntimeError as exc:
-        _exit_with_error(logger, "Unable to prepare downloads.", str(exc))
+        _exit_with_error(logger, f"Unable to prepare downloads. {exc}", str(exc))
 
 
 def _context_state(
@@ -425,7 +425,7 @@ def main():
     except Exception:
         logging.getLogger("sc2am").exception("Unhandled CLI error")
         click.secho(
-            "ERROR: An unexpected error occurred. Please check the log file for details.",
+            f"ERROR: An unexpected error occurred. {DIAGNOSTIC_HINT}",
             fg="red",
             err=True,
         )

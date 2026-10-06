@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from .logger import DIAGNOSTIC_HINT
+
 logger = logging.getLogger(__name__)
 
 
@@ -160,7 +162,7 @@ class AppleMusicManager:
             return (
                 False,
                 "Could not open the file in Apple Music due to an unexpected error. "
-                "Please check the log file for details and ensure Music.app is installed and accessible.",
+                f"Ensure Music.app is installed and accessible. {DIAGNOSTIC_HINT}",
             )
 
     @staticmethod
@@ -232,7 +234,7 @@ class AppleMusicManager:
             return (
                 False,
                 "Could not add the track to the playlist due to an unexpected error. "
-                "Please check the log file for details and confirm Music.app can be automated by this process.",
+                f"Confirm Music.app can be automated by this process. {DIAGNOSTIC_HINT}",
             )
 
     @staticmethod
@@ -287,7 +289,7 @@ class AppleMusicManager:
                 False,
                 [],
                 "Could not retrieve playlists from Apple Music due to an unexpected error. "
-                "Please check the log file and confirm Music.app is installed and accessible.",
+                f"Confirm Music.app is installed and accessible. {DIAGNOSTIC_HINT}",
             )
 
     @staticmethod

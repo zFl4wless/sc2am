@@ -137,9 +137,13 @@ previews in a dry run), not confirmed Music imports. Failed or missing download
 results count as failures. Items not attempted after stopping are not counted.
 
 Progress and summaries are human-readable console output. Logger warnings and
-errors, Click errors, and batch-line diagnostics go to stderr. Detailed logging
-can be enabled through `log_file`; console logging suppresses informational
-messages to avoid duplicating progress. Exact progress wording, colors, and
+errors, Click errors, and batch-line diagnostics go to stderr. By default,
+console logging suppresses informational messages to avoid duplicating progress.
+Explicit DEBUG logging includes debug and informational messages on stderr.
+Set `log_file` or `SC2AM_LOG_FILE` to retain logs; underlying process errors and
+exception tracebacks are retained at INFO too. See the
+[diagnostic commands](../README.md#diagnose-an-unexpected-failure) for examples.
+Exact progress wording, colors, and
 layout are not a machine-readable API; scripts should rely on exit status.
 
 ## Corrections from earlier behavior
