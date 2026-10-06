@@ -81,9 +81,10 @@ class AppleMusicManager:
 
     @classmethod
     def _run_osascript(
-        cls, applescript: str, operation: str
+        cls, applescript: str, operation: str, arguments: Optional[List[str]] = None
     ) -> Tuple[bool, Optional[subprocess.CompletedProcess], str]:
-        return cls._run_command_with_retry(["osascript", "-e", applescript], operation)
+        command = ["osascript", "-e", applescript, *(arguments or [])]
+        return cls._run_command_with_retry(command, operation)
 
     @staticmethod
     def open_file_with_music(file_path: Path) -> Tuple[bool, str]:
@@ -150,19 +151,24 @@ class AppleMusicManager:
         if resolved_playlist is None:
             return False, error_message
 
-        # AppleScript to add track to playlist
-        applescript = f"""
-        tell application "Music"
-            activate
-            set sourcePath to POSIX file "{str(file_path)}"
-            add sourcePath to playlist "{resolved_playlist}"
-        end tell
+        resolved_file_path = file_path.resolve()
+        applescript = """
+        on run argv
+            set trackPath to item 1 of argv
+            set targetPlaylist to item 2 of argv
+            tell application "Music"
+                activate
+                set sourcePath to POSIX file trackPath
+                add sourcePath to playlist targetPlaylist
+            end tell
+        end run
         """
 
         try:
             success, result, error = AppleMusicManager._run_osascript(
                 applescript,
                 "Adding track to playlist",
+                [str(resolved_file_path), resolved_playlist],
             )
 
             if not success:
