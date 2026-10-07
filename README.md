@@ -13,7 +13,7 @@ SC2AM provides a small, repeatable workflow for importing SoundCloud tracks into
 - Open Music.app and import the tagged MP3
 - Optionally add the track to a specified playlist
 
-The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, with improved title and artist mapping so Apple Music shows the correct track information after import.
+The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, with improved title and artist mapping so Apple Music shows the correct track information after import. Artwork is checked as image data and normalized to JPEG; the download result reports when a fallback image is used.
 
 ## Installation
 

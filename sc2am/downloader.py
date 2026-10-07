@@ -190,6 +190,10 @@ class Downloader:
                     )
                     if meta_ok:
                         metadata_message = " (metadata embedded)"
+                        if "fallback artwork" in meta_msg.lower():
+                            metadata_message = " (metadata embedded; fallback artwork used)"
+                        elif "no artwork could be saved" in meta_msg.lower():
+                            metadata_message = " (metadata embedded; artwork unavailable)"
                     else:
                         metadata_message = " (metadata could not be added)"
                         logger.warning(f"Metadata tagging issue: {meta_msg}")
