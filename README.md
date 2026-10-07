@@ -79,6 +79,14 @@ sc2am config init
 
 This creates a default config at `~/.sc2am/config.yaml`.
 
+To update an existing installation and its runtime dependencies, activate the
+same environment and run `python -m pip install --upgrade sc2am` (or
+`python -m pip install --upgrade -e .` from a source checkout), then verify it
+with `python -m pip check`. Reinstalling without `--upgrade` may keep older
+transitive dependencies already present in the environment. See the
+[runtime dependency maintenance guide](docs/dependency-maintenance.md) for the
+audit command and the assessment of the October 2026 scanner findings.
+
 ## Usage
 
 ### Quick Start
@@ -408,6 +416,7 @@ on Ubuntu and macOS, without a personal Apple account. See
 Dependency source of truth:
 - `pyproject.toml` is the canonical dependency definition.
 - `requirements.txt` and `requirements-dev.txt` are thin compatibility wrappers that install from project metadata.
+- CI audits the resolved runtime dependencies declared in `pyproject.toml` with `pip-audit`; development tools are not included.
 
 ## License
 

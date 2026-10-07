@@ -37,6 +37,19 @@ Run Flake8 on the application and tests.
 flake8 sc2am main.py tests
 ```
 
+## Audit Runtime Dependencies
+Resolve and scan the runtime dependencies declared by `pyproject.toml`:
+
+```bash
+python -m pip install pip-audit
+python -m pip_audit --strict .
+```
+
+This project-path audit excludes development extras. It checks the versions a
+fresh installation resolves; use the upgrade instructions in the README for an
+existing environment, where installed transitive versions may otherwise remain
+unchanged.
+
 ## Run the CLI Locally
 Use the CLI entry point directly during development.
 
