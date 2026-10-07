@@ -1,0 +1,44 @@
+{
+  "macos": "27.0",
+  "library": "0EFDCF7D075BAF42",
+  "playlist": "SC2AM, \"Test\" été",
+  "cases": [
+    {
+      "case": "repeat",
+      "track_id": "FD11D00CC56530E4",
+      "library_location": "<test-root>/copy-off/repeat \"été\".mp3",
+      "copied": false,
+      "mutations": [
+        "import",
+        "playlist"
+      ],
+      "source_matches": 1,
+      "playlist_memberships": 1
+    },
+    {
+      "case": "lost_reply",
+      "track_id": "75B7CC388536AA98",
+      "library_location": "<test-root>/copy-off/lost_reply \"été\".mp3",
+      "copied": false,
+      "mutations": [
+        "import",
+        "playlist"
+      ],
+      "source_matches": 1,
+      "playlist_memberships": 1
+    },
+    {
+      "case": "partial",
+      "track_id": "824339D6D9ED5A7E",
+      "library_location": "<test-root>/copy-off/partial \"été\".mp3",
+      "copied": false,
+      "mutations": [
+        "import",
+        "playlist",
+        "playlist"
+      ],
+      "source_matches": 1,
+      "playlist_memberships": 1
+    }
+  ]
+}

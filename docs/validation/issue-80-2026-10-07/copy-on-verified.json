@@ -1,0 +1,44 @@
+{
+  "macos": "27.0",
+  "library": "0EFDCF7D075BAF42",
+  "playlist": "SC2AM, \"Test\" été",
+  "cases": [
+    {
+      "case": "repeat",
+      "track_id": "A6FADDFFD2CB89E2",
+      "library_location": "<test-root>/SC2AM Import Test/Media.localized/Music/Unknown Artist/Unknown Album/SC2AM repeat ef09c5c7-c2e9-4a01-83e7-4faa1c6ac651.mp3",
+      "copied": true,
+      "mutations": [
+        "import",
+        "playlist"
+      ],
+      "source_matches": 1,
+      "playlist_memberships": 1
+    },
+    {
+      "case": "lost_reply",
+      "track_id": "B8D986CBF81B1814",
+      "library_location": "<test-root>/SC2AM Import Test/Media.localized/Music/Unknown Artist/Unknown Album/SC2AM lost_reply efee9f48-aa97-494d-8572-6166a1477257.mp3",
+      "copied": true,
+      "mutations": [
+        "import",
+        "playlist"
+      ],
+      "source_matches": 1,
+      "playlist_memberships": 1
+    },
+    {
+      "case": "partial",
+      "track_id": "FD1D81FDC0B656C0",
+      "library_location": "<test-root>/SC2AM Import Test/Media.localized/Music/Unknown Artist/Unknown Album/SC2AM partial 26c51b3d-d26c-4a27-9d89-796a51507b0f.mp3",
+      "copied": true,
+      "mutations": [
+        "import",
+        "playlist",
+        "playlist"
+      ],
+      "source_matches": 1,
+      "playlist_memberships": 1
+    }
+  ]
+}

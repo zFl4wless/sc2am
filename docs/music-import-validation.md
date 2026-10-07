@@ -9,16 +9,78 @@ they do not establish Music's actual import behavior.
 
 On 2026-10-07 the production script and the two read-only acceptance scripts
 compiled successfully against the installed macOS Music scripting dictionary.
-Compilation does not execute imports or prove runtime behavior. **Live validation
-is pending**: no isolated test library was available, and the user requested that
-this gate remain open in the PR. No personal Music library was modified. Keep the
-PR in draft until the following evidence is recorded; do not mark #80 complete in
-roadmap #94 before review and merge. Work on dependent #86 remains out of scope.
+Compilation alone does not prove runtime behavior. Live validation started on
+2026-10-07 using a newly created local `SC2AM Import Test` library in the current
+macOS account, as explicitly requested by the user. Before importing, the UI
+confirmed an empty song list, Sync Library disabled, and a media folder inside
+the isolated temporary test directory. The personal library was not imported into
+or edited. The account remains signed in; the test library is not cloud-synced.
+
+Both copy-on and copy-off runs passed normal repeats, lost mutation replies and
+partial playlist failure followed by retry. Each generated source has exactly
+one library track and one playlist membership. Sanitized machine-readable results
+are in [copy-on evidence](validation/issue-80-2026-10-07/copy-on-verified.json) and
+[copy-off evidence](validation/issue-80-2026-10-07/copy-off.json). Environment:
+macOS 27.0, Music 1.7, Python 3.14.8, yt-dlp 2026.07.04, mutagen 1.47.0.
+The tested implementation is commit `67fae59` (based on `ba7866f` with the
+source-ID/evidence-lookup corrections below). Tests were run by the coding agent
+with the user authorizing the isolated setup and temporary permission change.
+
+The first run exposed two issues: the library playlist's persistent ID was the
+reserved-looking `0000000000000005`, whereas its containing library source has ID
+`0EFDCF7D075BAF42`; journal scoping and test guards now use the source ID. Also,
+the evidence helper must retrieve the track's location into a value before
+coercing it to a POSIX path. The first run's one fixture remains in the isolated
+library; the corrected runs used fresh fixtures and checked per-source counts.
+
+The additional live checks also passed:
+
+- After quitting and reopening Music, all six fixtures retained their track IDs
+  and unique memberships. Repeating imports dispatched zero mutations
+  ([restart evidence](validation/issue-80-2026-10-07/restart.json)).
+- Removing the copy-on repeat fixture from the playlist through Music's UI and
+  rerunning restored exactly one membership, with the same library track ID and
+  exactly one `playlist` mutation; no `import` was sent
+  ([membership evidence](validation/issue-80-2026-10-07/membership.json)).
+- The real Click CLI downloaded and imported
+  [Discovery (CC BY) by Scott Buckley](https://soundcloud.com/scottbuckley/discovery-cc-by).
+  An offline repeat and a batch containing the same URL twice reused the verified
+  MP3 and the same track ID, with one library track and one playlist membership.
+- With the existing Music Automation permission temporarily disabled in System
+  Settings, the CLI reported the real macOS `-1743` denial and actionable
+  Automation guidance, reused the MP3, and sent no mutations. After restoring
+  the same permission, retry succeeded with the same track ID and no mutations.
+  The switch was visually confirmed on again. The existing download-based summary
+  still reports one success and exit 0 while printing Music warnings; changing
+  that policy belongs to #86.
+
+[CLI evidence](validation/issue-80-2026-10-07/soundcloud-cli.json) records the real
+command results. A temporary harness invoked the production Click entry point
+with a custom config/download directory, pinning production Music-script calls
+to the isolated source ID. The offline, denied and recovery runs blocked Python
+socket connections and rejected any `yt-dlp` subprocess; neither was attempted.
+This isolates the test process rather than disabling the Mac's network. Both
+`download` and `batch` used the existing playlist and the normal import flow.
+Independent read-only queries required one source marker and one membership.
+
+Lost replies and pre-dispatch playlist failures were injected around real Music
+operations; no actual hung-app timeout was induced. No cloud sync, iPhone or
+CarPlay behavior is claimed. Published evidence contains only generated test
+identifiers, the public test-track attribution and general outcomes. Absolute
+fixture paths are replaced with `<test-root>`; raw logs, account details, UI
+screenshots and personal-library content are excluded. The isolated library and
+fixtures remain available locally for review, with copying disabled at the end.
+
+The live acceptance gate for #80 is complete. Keep #80 unchecked in roadmap #94
+until review and merge. Dependent #86 remains out of scope.
 
 ## Isolated setup (manual, required before running the helper)
 
-Use a disposable macOS user account without an Apple Account signed into Music.
-Do not use a personal or cloud-synced library. In that account, quit Music and hold
+Prefer a disposable macOS user account without an Apple Account signed into Music.
+A separately created local library in the current account can also be used with
+explicit user authorization, after verifying Sync Library is disabled, the song
+list is empty, and the media folder is isolated. Do not use a personal or
+cloud-synced library. Quit Music and hold
 Option while reopening it, then create a new library named `SC2AM Import Test` in
 a temporary test folder. Apple documents the library chooser in
 [Use multiple libraries in Music](https://support.apple.com/guide/music/mus7663a920a/mac).
@@ -29,7 +91,7 @@ empty and Sync Library is disabled. Create a regular playlist named
 Read the isolated library's identifier only after checking this setup:
 
 ```bash
-osascript -e 'tell application "Music" to get persistent ID of library playlist 1'
+osascript -e 'tell application "Music" to get persistent ID of container of library playlist 1'
 ```
 
 Record that ID independently. A library ID alone does **not** prove isolation;
@@ -64,29 +126,30 @@ or attach sanitized copies to the PR. They contain local paths.
 
 ## Additional manual acceptance checks
 
-- [ ] Record commit SHA, macOS/Music versions, isolation setup, Automation
+- [x] Record commit SHA, macOS/Music versions, isolation setup, Automation
       permission state, library ID, copy preference, date and tester.
-- [ ] Run the helper in both copy modes. Require three PASS lines per run and
+- [x] Run the helper in both copy modes. Require three PASS lines per run and
       inspect Music for one track/playlist entry per generated source.
-- [ ] Quit and reopen Music and rerun imports for the same fixtures using
+- [x] Quit and reopen Music and rerun imports for the same fixtures using
       `AppleMusicManager.add_to_playlist(Path(...), playlist_name)` from Python.
       Verify the persistent IDs and counts do not change.
-- [ ] Remove one fixture from the playlist only; rerun that import and verify one
+- [x] Remove one fixture from the playlist only; rerun that import and verify one
       restored membership and no additional library track.
-- [ ] Temporarily revoke Automation permission in the disposable account. Run an
-      import, observe an actionable warning, restore permission, and retry.
+- [x] With explicit authorization, temporarily revoke the test process's Music
+      Automation permission. Run an import, observe an actionable warning,
+      restore the same permission, and retry.
       Confirm no duplication. Permission failure during a read sends no mutation.
-- [ ] With a permitted public SoundCloud track, run `sc2am download URL --playlist
+- [x] With a permitted public SoundCloud track, run `sc2am download URL --playlist
       'SC2AM, "Test" été'` using a download directory inside the test area. Run the
       same command again without network access and verify `Reused verified
       download`, unchanged track ID, and no additional playlist entry. Repeat
       through `batch` with the same URL twice.
-- [ ] Inspect the CLI's current download-based summary and warning exit policy;
+- [x] Inspect the CLI's current download-based summary and warning exit policy;
       stage-specific counters/strict exits belong to #86, not this change.
-- [ ] Record any real Music timeout separately. Do not claim that simulated lost
-      replies prove behavior under an actual hung application.
+- [x] Record any real Music timeout separately (none induced in this run). Do not
+      claim that simulated lost replies prove behavior under an actual hung app.
 
-Keep the live gate unchecked until these observations are available. Cloud sync,
+Check the live gate only after these observations are available. Cloud sync,
 iPhone and CarPlay are separate acceptance work and are not implied by a local
 track reference. After review and merge of #80, update its checkbox in roadmap
 #94; do not start dependent work before that point.
