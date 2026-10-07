@@ -319,3 +319,12 @@ def test_damaged_pending_record_cannot_allow_replay(track, music_double):
     assert not success
     assert "Invalid pending Music record" in message
     assert music_double.mutations == ["import"]
+
+
+def test_music_scope_uses_library_source_not_reserved_playlist_id():
+    from sc2am.music_script import MUSIC_SCRIPT
+
+    # Music 1.7 returned 0000000000000005 for the library playlist, but a
+    # distinct persistent ID for its containing source during live acceptance.
+    assert "set libraryID to persistent ID of container of libraryPlaylist" in MUSIC_SCRIPT
+    assert "set libraryID to persistent ID of libraryPlaylist\n" not in MUSIC_SCRIPT

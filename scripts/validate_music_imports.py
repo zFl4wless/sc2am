@@ -20,7 +20,7 @@ CHECK_SCRIPT = """
 on run argv
     set expectedLibrary to item 1 of argv
     tell application "Music"
-        set actualLibrary to persistent ID of library playlist 1
+        set actualLibrary to persistent ID of container of library playlist 1
         if actualLibrary is not expectedLibrary then error "Wrong active Music library; stopped."
         return actualLibrary
     end tell
@@ -36,12 +36,13 @@ on run argv
     set targetName to item 3 of argv
     tell application "Music"
         set libraryPlaylist to library playlist 1
-        if persistent ID of libraryPlaylist is not expectedLibrary then error "Wrong active library."
+        if persistent ID of container of libraryPlaylist is not expectedLibrary then error "Wrong active library."
         set matchingTracks to every file track of libraryPlaylist whose comment contains sourceMarker
         if (count of matchingTracks) is not 1 then error "Expected exactly one source marker in the library."
         set libraryTrack to item 1 of matchingTracks
         set trackID to persistent ID of libraryTrack
-        set libraryLocation to POSIX path of (location of libraryTrack)
+        set trackLocation to get location of libraryTrack
+        set libraryLocation to POSIX path of trackLocation
         set matchingPlaylists to every user playlist whose name is targetName
         if (count of matchingPlaylists) is not 1 then error "Expected one target playlist."
         set destinationPlaylist to item 1 of matchingPlaylists

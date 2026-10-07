@@ -11,7 +11,7 @@ on run argv
     set expectedPlaylistID to item 7 of argv
     tell application "Music"
         set libraryPlaylist to library playlist 1
-        set libraryID to persistent ID of libraryPlaylist
+        set libraryID to persistent ID of container of libraryPlaylist
         if expectedLibraryID is not "" and libraryID is not expectedLibraryID then
             error "SC2AM_NOT_STARTED: The active Music library changed. Run the command again."
         end if
