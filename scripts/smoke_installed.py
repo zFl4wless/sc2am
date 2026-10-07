@@ -48,21 +48,37 @@ def smoke():
 
         run("--help", expected="Usage:")
         run("config", "init", expected="Configuration file created")
-        assert (root / ".sc2am" / "config.yaml").is_file()
+        config_path = root / ".sc2am" / "config.yaml"
+        assert config_path.is_file()
+        config_path.write_text("default_playlist: Kept until explicit reset\n", encoding="utf-8")
+        run("config", "init", expected="Use --force to overwrite")
+        assert config_path.read_text(encoding="utf-8") == (
+            "default_playlist: Kept until explicit reset\n"
+        )
+
+        # Configuration repair must not remove the separate resume journal.
+        history = root / "downloads" / ".sc2am" / "history.sqlite3"
+        history.parent.mkdir(parents=True)
+        history.write_bytes(b"isolated smoke fixture")
+        run("config", "init", "--force", expected="Configuration file created")
+        assert "Kept until explicit reset" not in config_path.read_text(encoding="utf-8")
+        assert history.read_bytes() == b"isolated smoke fixture"
+
         run("config", "show", expected="Current Configuration:")
         url = "https://soundcloud.com/artist/track"
-        run("download", url, "--dry-run", expected="Dry-run previews: 1 succeeded, 0 failed")
+        run("download", url, "--dry-run", expected="1 succeeded, 0 failed")
         batch = root / "urls.txt"
         batch.write_text(f"# Smoke test\n{url}\n", encoding="utf-8")
-        run("batch", str(batch), "--dry-run", expected="Dry-run previews: 1 succeeded, 0 failed")
+        run("batch", str(batch), "--dry-run", expected="1 succeeded, 0 failed")
         run(
             "download",
             "invalid",
             "--dry-run",
             code=2,
-            expected="Dry-run previews: 0 succeeded, 1 failed",
+            expected="0 succeeded, 1 failed",
         )
-        assert not (root / "downloads").exists()
+        assert list((root / "downloads").iterdir()) == [history.parent]
+        assert not list((root / "downloads").glob("*.mp3"))
         assert not (root / "logs").exists()
 
     if sys.platform == "darwin":

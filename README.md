@@ -37,55 +37,65 @@ For a step-by-step checklist, see [`docs/macos-setup.md`](docs/macos-setup.md).
 Release preparation is documented in [`docs/releasing.md`](docs/releasing.md),
 and user-facing changes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
-### Setup
+### End-user installation on macOS
 
-Install FFmpeg and ffprobe before downloading tracks. On macOS, install both with
-Homebrew:
+This install path uses the verified `v2.0.1` GitHub wheel. It requires macOS,
+Python 3.10 or newer, and Homebrew for the external `ffmpeg` and `ffprobe`
+programs. Music.app is needed when importing tracks; a real download also needs
+network access.
 
 ```bash
 brew install ffmpeg
-```
-
-SC2AM checks for `yt-dlp`, `ffmpeg`, and `ffprobe` when a real download starts.
-Help and `--dry-run` do not require these download tools.
-
-1. **Clone or download the project:**
-```bash
 git clone https://github.com/zfl4wless/sc2am.git
 cd sc2am
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install \
+  "https://github.com/zFl4wless/sc2am/releases/download/v2.0.1/sc2am-2.0.1-py3-none-any.whl"
+sc2am doctor
+sc2am download "https://soundcloud.com/artist/track"
 ```
 
-2. **Create a virtual environment (recommended):**
+The wheel installs SC2AM and its Python dependencies into the active virtual
+environment. Do not also install `requirements.txt`; it is a compatibility
+wrapper around the same project dependencies. The `doctor` check reports
+missing prerequisites before the first real download. For Music.app permissions,
+see [macOS setup](docs/macos-setup.md).
+
+To upgrade an existing installation from `v2.0.0` to the current `v2.0.1`,
+activate the same environment and install the released wheel with `--upgrade`:
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python -m pip install --upgrade \
+  "https://github.com/zFl4wless/sc2am/releases/download/v2.0.1/sc2am-2.0.1-py3-none-any.whl"
+python -m pip check
 ```
 
-3. **Install dependencies:**
+For later upgrades, use the wheel URL for the latest GitHub release; its version
+is part of the asset filename and URL. The GitHub releases page is linked from
+the project's [release notes](https://github.com/zFl4wless/sc2am/releases).
+
+The application upgrade does not remove `~/.sc2am/config.yaml`, downloaded
+tracks, or `<download_dir>/.sc2am/history.sqlite3`. If an old config contains
+settings no longer recognized by this version, keep a backup, remove or correct
+only those settings, and retry `sc2am doctor`. To regenerate defaults, first copy
+the config file and then run `sc2am config init --force`; this replaces only the
+selected YAML file. Never remove the download folder's `.sc2am` directory: it
+contains the journal SC2AM uses to safely resume downloads and imports.
+
+### Contributor setup
+
+For development, clone the repository, create and activate a virtual environment,
+and install the project with its development tools:
+
 ```bash
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
 ```
 
-4. **Install from source (recommended for the `sc2am` command):**
-If you want to work on the project or install it in editable mode:
-```bash
-pip install -e .
-```
-
-5. **Initialize configuration (optional):**
-```bash
-sc2am config init
-```
-
-This creates a default config at `~/.sc2am/config.yaml`.
-
-To update an existing installation and its runtime dependencies, activate the
-same environment and run `python -m pip install --upgrade sc2am` (or
-`python -m pip install --upgrade -e .` from a source checkout), then verify it
-with `python -m pip check`. Reinstalling without `--upgrade` may keep older
-transitive dependencies already present in the environment. See the
-[runtime dependency maintenance guide](docs/dependency-maintenance.md) for the
-audit command and the assessment of the October 2026 scanner findings.
+The editable install is for contributors who need changes in the checkout to be
+available immediately. It is not an additional step for end users.
 
 ## Usage
 
