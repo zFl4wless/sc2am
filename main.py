@@ -24,6 +24,22 @@ class ExitCode(IntEnum):
     USAGE = 2
 
 
+class _ClickExceptionWithExitCode(click.ClickException):
+    """A Click error with a caller-selected process exit code."""
+
+    def __init__(self, message: str, exit_code: int) -> None:
+        super().__init__(message)
+        self._exit_code = exit_code
+
+    @property
+    def exit_code(self) -> int:
+        return self._exit_code
+
+    @exit_code.setter
+    def exit_code(self, value: int) -> None:
+        self._exit_code = value
+
+
 def _exit_with_error(
     logger,
     message: str,
@@ -31,9 +47,7 @@ def _exit_with_error(
     exit_code: int = int(ExitCode.ERROR),
 ) -> NoReturn:
     logger.error(detail or message)
-    exc = click.ClickException(message)
-    exc.exit_code = exit_code
-    raise exc
+    raise _ClickExceptionWithExitCode(message, exit_code)
 
 
 def _create_downloader(cfg, logger) -> Downloader:
@@ -54,9 +68,7 @@ def _context_state(
                 overrides={**state.get("overrides", {}), **(overrides or {})},
             )
         except ConfigurationError as exc:
-            error = click.ClickException(str(exc))
-            error.exit_code = int(ExitCode.USAGE)
-            raise error from exc
+            raise _ClickExceptionWithExitCode(str(exc), int(ExitCode.USAGE)) from exc
         cfg = state["config"]
         try:
             state["logger"] = setup_logging(cfg.log_level, cfg.log_file if log_to_file else None)
