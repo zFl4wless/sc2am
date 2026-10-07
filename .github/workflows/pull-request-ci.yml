@@ -93,6 +93,9 @@ jobs:
           python -m pip install build
           python -m build --outdir "$RUNNER_TEMP/dist"
 
+      - name: Verify license metadata and files
+        run: python scripts/verify_package_metadata.py "$RUNNER_TEMP/dist"
+
       - name: Install artifact into a fresh environment
         env:
           ARTIFACT: ${{ matrix.artifact }}

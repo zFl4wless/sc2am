@@ -18,7 +18,8 @@ tree on the `main` branch.
 - [ ] Run `PYTHONPATH=. pytest -q`.
 - [ ] Run `black --check .`.
 - [ ] Run `flake8 main.py sc2am tests scripts`.
-- [ ] Run `python -m build` and inspect the generated artifacts.
+- [ ] Run `python -m build` and `python scripts/verify_package_metadata.py dist` to
+      verify the sdist and wheel license metadata and files.
 - [ ] Verify the package metadata reports the intended version.
 - [ ] Review `git diff` and confirm the working tree contains only release files.
 
@@ -51,8 +52,10 @@ includes `main.py` in linting. Package jobs build an sdist and a wheel, then
 install each format in a fresh virtual environment on Ubuntu. macOS also builds
 and installs the wheel and runs the same CLI smoke check.
 
-`scripts/smoke_installed.py` must run with the installed environment's Python
-using `-I`, from outside the checkout. It verifies installed module paths,
+Package jobs verify that both artifact formats declare the SPDX license
+expression and include the license file. `scripts/smoke_installed.py` must run
+with the installed environment's Python using `-I`, from outside the checkout.
+It verifies installed module paths,
 entry-point metadata and version agreement, help, configuration initialization
 and display, download/batch dry runs, invalid-input exit status, and absence of
 download/log writes. On macOS it also executes a harmless `osascript` command.
