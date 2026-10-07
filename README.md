@@ -94,6 +94,13 @@ audit command and the assessment of the October 2026 scanner findings.
 SoundCloud-Links must point to a single track, for example:
 `https://soundcloud.com/artist/track`
 or `https://www.soundcloud.com/artist/track`.
+Mobile share links such as `https://on.soundcloud.com/<token>` are also accepted
+by `download` and `batch`. SC2AM resolves them before validation and passes the
+resolved track URL to the downloader. Resolution makes at most five HTTP HEAD
+requests, with a 3-second connection and 5-second read timeout per request.
+Redirects to unrelated hosts, loops, expired links, and collections are rejected;
+use a fresh share link or a direct track URL if resolution fails. `--dry-run`
+also needs a network connection for share links; direct URLs are validated locally.
 Profiles, profile tabs (such as `/likes` or `/tracks`), albums, and sets are
 rejected. SC2AM also checks the extracted result before downloading audio;
 if it is a collection or cannot be verified as a single track, the download stops.

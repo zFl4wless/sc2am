@@ -122,7 +122,7 @@ class Downloader:
         Returns:
             Tuple of (success, file_path, message)
         """
-        valid, message = URLValidator.validate_url(url)
+        valid, url, message = URLValidator.resolve_track_url(url)
         if not valid:
             return False, None, message
 
@@ -316,7 +316,7 @@ class Downloader:
         Returns:
             Tuple of (success, info_dict, message)
         """
-        valid, message = URLValidator.validate_url(url)
+        valid, url, message = URLValidator.resolve_track_url(url)
         if not valid:
             return False, None, message
 
