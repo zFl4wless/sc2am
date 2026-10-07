@@ -129,6 +129,12 @@ sc2am config init --force
 sc2am --config ./settings/sc2am.yaml config init
 ```
 
+Before using `--force` to replace a configuration with older or unknown keys,
+copy the YAML file to a backup: all custom settings in that file are replaced.
+This command only writes the selected YAML file. It does not remove downloaded
+audio or the `<download_dir>/.sc2am/history.sqlite3` journal. Keep that journal
+with its download folder; SC2AM needs it to verify and safely resume prior work.
+
 ## Exit status and output
 
 | Code | Meaning |

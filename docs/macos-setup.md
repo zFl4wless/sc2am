@@ -2,6 +2,13 @@
 
 SC2AM can only automate Apple Music reliably on macOS when a few local prerequisites are in place. This guide documents the checks you should do before importing tracks.
 
+For the end-user installation commands (Python 3.10+, Homebrew FFmpeg, first
+download and upgrades), follow the single workflow in the README's
+[macOS installation section](../README.md#end-user-installation-on-macos). It
+installs the verified GitHub release wheel. Do not repeat dependency
+installation with `requirements.txt`; the wheel already declares the Python
+runtime dependencies.
+
 ## Required prerequisites
 
 - **macOS is installed and up to date enough to run Music.app automation**
@@ -63,4 +70,3 @@ Before running SC2AM, confirm that Music.app works on its own:
 - [`README.md`](../README.md)
 - [`docs/commands.md`](commands.md)
 - [`docs/architecture.md`](architecture.md)
-
