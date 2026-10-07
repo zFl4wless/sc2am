@@ -28,9 +28,11 @@ classifiers = [
 
 dependencies = [
     "yt-dlp>=2026.7.4",
-    "click>=8.1.0",
+    "click>=8.3.3",
+    "idna>=3.15",
     "pyyaml>=6.0",
     "requests>=2.33.0",
+    "urllib3>=2.8.0",
     "mutagen>=1.46.0",
     "pydantic>=2.4.0",
 ]

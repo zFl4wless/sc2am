@@ -10,6 +10,24 @@ permissions:
   contents: read
 
 jobs:
+  runtime-dependency-audit:
+    name: Runtime dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: python -m pip install pip-audit
+
+      - name: Audit runtime dependencies from project metadata
+        run: python -m pip_audit --strict .
+
   test-lint-format:
     runs-on: ubuntu-latest
     strategy:
