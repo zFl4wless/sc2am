@@ -4,6 +4,8 @@ Handles opening MP3s with Apple Music and playlist management.
 """
 
 import json
+import hashlib
+import re
 import logging
 import subprocess
 import platform
@@ -11,6 +13,10 @@ import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from mutagen.id3 import ID3, ID3NoHeaderError, COMM
+
+from .history import History
+from .music_script import MUSIC_SCRIPT
 from .logger import DIAGNOSTIC_HINT
 
 logger = logging.getLogger(__name__)
@@ -120,122 +126,160 @@ class AppleMusicManager:
         command = ["osascript", "-e", applescript, *(arguments or [])]
         return cls._run_command_with_retry(command, operation, read_only=read_only)
 
-    @staticmethod
-    def open_file_with_music(file_path: Path) -> Tuple[bool, str]:
-        """
-        Open MP3 file with Apple Music.
+    @classmethod
+    def open_file_with_music(cls, file_path: Path) -> Tuple[bool, str]:
+        """Import and confirm a library track (a successful dispatch is insufficient)."""
+        return cls._import(file_path)
 
-        Args:
-            file_path: Path to MP3 file
-
-        Returns:
-            Tuple of (success, message)
-        """
-        if not file_path.exists():
+    @classmethod
+    def add_to_playlist(cls, file_path: Path, playlist_name: str) -> Tuple[bool, str]:
+        """Reuse a confirmed library track and verify playlist membership."""
+        if not file_path.is_file():
             return False, "The downloaded file was not found."
+        resolved, error = cls._resolve_playlist_name(playlist_name)
+        if resolved is None:
+            return False, error
+        return cls._import(file_path, resolved)
 
-        if not file_path.suffix.lower() == ".mp3":
+    @staticmethod
+    def _mark_file(file_path: Path, marker: str) -> None:
+        """Put the source marker in the default comment Music reads on import."""
+        try:
+            tags = ID3(str(file_path))
+        except ID3NoHeaderError:
+            tags = ID3()
+        comments = tags.getall("COMM")
+        existing = next(
+            (frame for frame in comments if frame.desc == "" and frame.lang == "eng"), None
+        )
+        text = "\n".join(existing.text) if existing else ""
+        if marker not in text:
+            tags.add(COMM(encoding=3, lang="eng", desc="", text=[(text + "\n" + marker).strip()]))
+            tags.save(str(file_path), v2_version=3)
+
+    @classmethod
+    def _music_state(
+        cls,
+        path: Path,
+        playlist: str,
+        marker: str,
+        track_id: str = "",
+        library_id: str = "",
+        action: str = "lookup",
+        playlist_id: str = "",
+    ) -> dict:
+        success, result, error = cls._run_osascript(
+            MUSIC_SCRIPT,
+            "Checking Music import" if action == "lookup" else "Importing into Music",
+            [str(path), playlist, marker, track_id, library_id, action, playlist_id],
+            read_only=action == "lookup",
+        )
+        if not success or result is None:
+            raise RuntimeError(error or "Music did not return a confirmed track reference.")
+        fields = result.stdout.strip().split("|")
+        if (
+            len(fields) != 4
+            or not re.fullmatch(r"[0-9A-Fa-f]{16}", fields[0])
+            or any(value and not re.fullmatch(r"[0-9A-Fa-f]{16}", value) for value in fields[1:3])
+            or fields[3] not in ("0", "1")
+            or (bool(playlist) != bool(fields[2]))
+            or (fields[3] == "1" and (not fields[1] or not fields[2]))
+            or (library_id and library_id != fields[0])
+            or (playlist_id and playlist_id != fields[2])
+        ):
+            raise RuntimeError("Music did not return a valid library/track confirmation.")
+        return dict(library=fields[0], track=fields[1], playlist=fields[2], member=fields[3] == "1")
+
+    @classmethod
+    def _import(cls, file_path: Path, playlist: str = "") -> Tuple[bool, str]:
+        if not file_path.is_file():
+            return False, "The downloaded file was not found."
+        if file_path.suffix.lower() != ".mp3":
             return False, "The selected file is not an MP3."
-
+        if file_path.is_symlink():
+            return False, "Use the verified MP3 file, not a symbolic link."
+        path = file_path.resolve()
         try:
-            # Use 'open' command with -a flag to open with specific app
-            cmd = ["open", "-a", "Music", str(file_path)]
-            success, result, error = AppleMusicManager._run_command_with_retry(
-                cmd,
-                "Opening file with Music",
-            )
-
-            if not success:
-                logger.error(f"Failed to open file with Music app: {error}")
-                # Provide an actionable message that surfaces the underlying error
-                return (
-                    False,
-                    f"Apple Music could not be opened: {error}.\n"
-                    "Ensure Apple Music is installed and that this application is allowed to open/automate it. "
-                    "If a permissions prompt appeared, grant access in System Settings -> Privacy & Security.",
+            with History(path.parent) as history, history.music_lock():
+                source = history.file_source(path)
+                marker = "sc2am:" + hashlib.sha256(source.encode()).hexdigest()
+                # Discover the active library before using a stored persistent ID.
+                state = cls._music_state(path, playlist, marker)
+                key = "music:" + state["library"] + ":" + source
+                known = history.get(key) or ""
+                if known:
+                    state = cls._music_state(path, playlist, marker, known, state["library"])
+                for stage in (["import", "playlist"] if playlist else ["import"]):
+                    pending = (
+                        key
+                        + ":pending:"
+                        + (state["playlist"] if stage == "playlist" else "library")
+                    )
+                    confirmed = bool(state["track"]) if stage == "import" else state["member"]
+                    if confirmed:
+                        history.put(key, state["track"])
+                        history.delete(pending)
+                        continue
+                    if history.get(pending):
+                        raise RuntimeError(
+                            "A previous Music mutation is still unconfirmed and was not repeated. "
+                            "Check the Music library and target playlist, then rerun to reconcile. "
+                            "If still unresolved, follow docs/music-import-validation.md before clearing the pending record."
+                        )
+                    if stage == "import":
+                        cls._mark_file(path, marker)
+                        history.refresh_file(path, source)
+                    # Commit intent BEFORE sending the event. A crash, timeout or
+                    # lost response must leave a durable barrier against replay.
+                    history.put(pending, {"path": str(path), "stage": stage, "playlist": playlist})
+                    mutation_error = ""
+                    try:
+                        changed = cls._music_state(
+                            path,
+                            playlist,
+                            marker,
+                            state["track"],
+                            state["library"],
+                            stage,
+                            state["playlist"],
+                        )
+                        if changed["track"]:
+                            history.put(key, changed["track"])
+                    except RuntimeError as exc:
+                        mutation_error = str(exc)
+                        if "SC2AM_NOT_STARTED:" in mutation_error:
+                            history.delete(pending)
+                            raise
+                    # Read-only reconciliation also handles a timed-out event that
+                    # Music completed. No mutating subprocess is blindly retried.
+                    state = cls._music_state(
+                        path,
+                        playlist,
+                        marker,
+                        history.get(key) or state["track"],
+                        state["library"],
+                        playlist_id=state["playlist"],
+                    )
+                    confirmed = bool(state["track"]) if stage == "import" else state["member"]
+                    if not confirmed:
+                        raise RuntimeError(
+                            (mutation_error + " " if mutation_error else "")
+                            + "Music has not confirmed the requested change. The MP3 is retained; "
+                            "rerun to reconcile without redownloading. Check the Music library and target playlist."
+                        )
+                    history.put(key, state["track"])
+                    history.delete(pending)
+                return True, (
+                    f"Added to playlist '{playlist}'"
+                    if playlist
+                    else "Import confirmed in Apple Music"
                 )
-
-            logger.info(f"Opened {file_path.name} with Apple Music")
-            return True, "Opened with Apple Music"
-
-        except Exception:
-            logger.exception("Error opening file in Apple Music")
-            return (
-                False,
-                "Could not open the file in Apple Music due to an unexpected error. "
-                f"Ensure Music.app is installed and accessible. {DIAGNOSTIC_HINT}",
-            )
-
-    @staticmethod
-    def add_to_playlist(file_path: Path, playlist_name: str) -> Tuple[bool, str]:
-        """
-        Add track to Apple Music playlist via AppleScript.
-
-        Args:
-            file_path: Path to MP3 file
-            playlist_name: Name of target playlist
-
-        Returns:
-            Tuple of (success, message)
-        """
-        if not file_path.exists():
-            return False, "The downloaded file was not found."
-
-        resolved_playlist, error_message = AppleMusicManager._resolve_playlist_name(playlist_name)
-        if resolved_playlist is None:
-            return False, error_message
-
-        resolved_file_path = file_path.resolve()
-        applescript = """
-        on run argv
-            set trackPath to item 1 of argv
-            set targetPlaylist to item 2 of argv
-            tell application "Music"
-                activate
-                set sourcePath to POSIX file trackPath
-                set matchingPlaylists to every playlist whose name is targetPlaylist
-                if (count of matchingPlaylists) is 0 then
-                    error "The playlist no longer exists. Please check the playlist name."
-                end if
-                if (count of matchingPlaylists) is greater than 1 then
-                    error "Multiple playlists have this name. Please rename one or choose a unique playlist name."
-                end if
-                set destinationPlaylist to item 1 of matchingPlaylists
-                if class of destinationPlaylist is not user playlist then
-                    error "Choose a regular user playlist that can receive tracks."
-                end if
-                if smart of destinationPlaylist or genius of destinationPlaylist or special kind of destinationPlaylist is not none then
-                    error "Choose a regular user playlist; Smart, Genius, folder and system playlists cannot receive tracks."
-                end if
-                add sourcePath to destinationPlaylist
-            end tell
-        end run
-        """
-
-        try:
-            success, result, error = AppleMusicManager._run_osascript(
-                applescript,
-                "Adding track to playlist",
-                [str(resolved_file_path), resolved_playlist],
-            )
-
-            if not success:
-                logger.warning(f"Failed to add to playlist: {error}")
-                return (
-                    False,
-                    f"Failed to add the track to playlist '{resolved_playlist}': {error}.\n"
-                    "Verify the playlist exists, Music.app is running, and that this application is allowed to control Music (System Settings -> Privacy & Security -> Automation).",
-                )
-
-            logger.info(f"Added {file_path.name} to playlist '{resolved_playlist}'")
-            return True, f"Added to playlist '{resolved_playlist}'"
-
-        except Exception:
-            logger.exception("Error running AppleScript")
-            return (
-                False,
-                "Could not add the track to the playlist due to an unexpected error. "
-                f"Confirm Music.app can be automated by this process. {DIAGNOSTIC_HINT}",
+        except Exception as exc:
+            logger.exception("Could not confirm Music import")
+            return False, (
+                f"Could not confirm the Music import: {exc}. "
+                "Open Music.app and check Automation permissions in System Settings > Privacy & Security. "
+                f"{DIAGNOSTIC_HINT}"
             )
 
     @staticmethod

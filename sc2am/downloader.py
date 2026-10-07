@@ -10,6 +10,9 @@ import time
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 import shutil
+import sqlite3
+
+from .history import History
 
 from .metadata import MetadataWriter
 from .logger import DIAGNOSTIC_HINT
@@ -95,6 +98,21 @@ class Downloader:
         time.sleep(cls._RETRY_DELAY_SECONDS * attempt)
 
     def download(self, url: str) -> Tuple[bool, Optional[Path], str]:
+        try:
+            return self._download(url)
+        except (OSError, sqlite3.Error, ValueError, RuntimeError):
+            logger.exception("Could not use download history")
+            return (
+                False,
+                None,
+                (
+                    "Could not verify the download history or cached MP3. "
+                    "Check the download directory, file integrity and permissions; keep .sc2am history for safe retries. "
+                    f"{DIAGNOSTIC_HINT}"
+                ),
+            )
+
+    def _download(self, url: str) -> Tuple[bool, Optional[Path], str]:
         """
         Download audio from URL.
 
@@ -107,6 +125,14 @@ class Downloader:
         valid, message = URLValidator.validate_url(url)
         if not valid:
             return False, None, message
+
+        # An exact previously validated URL can resume offline, including after
+        # a Music failure. Do not retag or ask yt-dlp to fetch it again.
+        if self.download_dir.is_dir():
+            with History(self.download_dir) as history:
+                cached = history.cached_file(history.get("url:" + url))
+                if cached:
+                    return True, cached, f"Reused verified download: {cached.name}"
 
         info_ok, info, info_msg = self.get_track_info(url)
         if not info_ok or info is None:
@@ -123,6 +149,13 @@ class Downloader:
             )
             logger.exception("Could not prepare download directory: %s", self.download_dir)
             return False, None, message
+
+        source = "soundcloud:" + str(track_info["id"]) if track_info.get("id") else "url:" + url
+        with History(self.download_dir) as history:
+            cached = history.cached_file(source)
+            if cached:
+                history.put("url:" + url, source)
+                return True, cached, f"Reused verified download: {cached.name}"
 
         # yt-dlp command
         output_template = str(self.download_dir.resolve() / "%(title)s [%(id)s].%(ext)s")
@@ -198,6 +231,8 @@ class Downloader:
                         metadata_message = " (metadata could not be added)"
                         logger.warning(f"Metadata tagging issue: {meta_msg}")
 
+                with History(self.download_dir) as history:
+                    history.remember_download(url, source, downloaded_file)
                 logger.info(f"Successfully downloaded: {downloaded_file.name}")
                 return (
                     True,

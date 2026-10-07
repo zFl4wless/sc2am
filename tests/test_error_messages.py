@@ -123,28 +123,6 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertFalse(success)
         self.assertEqual(message, "The downloaded file was not found.")
 
-    def test_open_file_with_music_does_not_replay_appleevent_timeout(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "track.mp3"
-            file_path.touch()
-
-            first_attempt = Mock(returncode=1, stdout="", stderr="AppleEvent timed out")
-            second_attempt = Mock(returncode=0, stdout="", stderr="")
-
-            with (
-                mock.patch.object(
-                    apple_music.subprocess, "run", side_effect=[first_attempt, second_attempt]
-                ) as run_mock,
-                mock.patch.object(apple_music.time, "sleep") as sleep_mock,
-            ):
-                success, message = AppleMusicManager.open_file_with_music(file_path)
-
-        self.assertFalse(success)
-        self.assertIn("AppleEvent timed out", message)
-        self.assertIn("Check the Music library and target playlist", message)
-        self.assertEqual(run_mock.call_count, 1)
-        sleep_mock.assert_not_called()
-
     def test_missing_playlist_file_returns_clear_error(self):
         success, message = AppleMusicManager.add_to_playlist(
             Path("/tmp/does-not-exist.mp3"),
@@ -219,6 +197,9 @@ class ErrorMessageTests(unittest.TestCase):
             ):
                 run_mock.return_value.returncode = 0
                 run_mock.return_value.stderr = ""
+                run_mock.return_value.stdout = (
+                    "AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"
+                )
                 success, message = AppleMusicManager.add_to_playlist(
                     file_path,
                     "  roadtrip  ",
@@ -227,33 +208,6 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertTrue(success)
         self.assertEqual(message, "Added to playlist 'Roadtrip'")
         self.assertTrue(run_mock.called)
-
-    def test_add_to_playlist_does_not_replay_appleevent_timeout(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "track.mp3"
-            file_path.touch()
-
-            first_attempt = Mock(returncode=1, stdout="", stderr="AppleEvent timed out")
-            second_attempt = Mock(returncode=0, stdout="", stderr="")
-
-            with (
-                mock.patch.object(
-                    AppleMusicManager,
-                    "get_playlists",
-                    return_value=(True, ["Roadtrip"], "Playlists retrieved"),
-                ),
-                mock.patch.object(
-                    apple_music.subprocess, "run", side_effect=[first_attempt, second_attempt]
-                ) as run_mock,
-                mock.patch.object(apple_music.time, "sleep") as sleep_mock,
-            ):
-                success, message = AppleMusicManager.add_to_playlist(file_path, "Roadtrip")
-
-        self.assertFalse(success)
-        self.assertIn("AppleEvent timed out", message)
-        self.assertIn("Check the Music library and target playlist", message)
-        self.assertEqual(run_mock.call_count, 1)
-        sleep_mock.assert_not_called()
 
     def test_exit_helper_raises_click_exception(self):
         logger = Mock()

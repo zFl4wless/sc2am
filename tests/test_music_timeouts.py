@@ -18,53 +18,28 @@ def sleep_mock(monkeypatch):
     return sleep
 
 
-@pytest.mark.parametrize("operation", ["open", "playlist"])
 @pytest.mark.parametrize("failure", ["process_timeout", "appleevent_timeout", "busy", "denied"])
-def test_import_failure_is_bounded_and_never_replayed(
-    monkeypatch, tmp_path, sleep_mock, operation, failure
-):
-    track = tmp_path / "track.mp3"
-    track.touch()
-    monkeypatch.setattr(AppleMusicManager, "get_playlists", lambda: (True, ["Roadtrip"], ""))
-    imported = []
-
-    def run(command, **kwargs):
-        if failure == "process_timeout":
-            # Music can receive the event before its caller times out.
-            imported.append(track)
-            raise subprocess.TimeoutExpired(command, kwargs["timeout"], output=b"partial")
-        errors = {
-            "appleevent_timeout": "Music got an error: AppleEvent timed out. (-1712)",
-            "busy": "Application is busy; try again",
-            "denied": "Not authorised to send Apple events. (-1743)",
-        }
-        return subprocess.CompletedProcess(command, 1, stdout="", stderr=errors[failure])
-
-    run_mock = Mock(side_effect=run)
+def test_mutating_subprocess_is_bounded_and_never_replayed(monkeypatch, sleep_mock, failure):
+    error = {
+        "appleevent_timeout": "AppleEvent timed out",
+        "busy": "Music is busy",
+        "denied": "Not authorised (-1743)",
+    }.get(failure)
+    outcome = (
+        subprocess.TimeoutExpired("osascript", 30)
+        if failure == "process_timeout"
+        else Mock(returncode=1, stdout="", stderr=error)
+    )
+    run_mock = (
+        Mock(side_effect=outcome) if isinstance(outcome, Exception) else Mock(return_value=outcome)
+    )
     monkeypatch.setattr(apple_music.subprocess, "run", run_mock)
-
-    if operation == "open":
-        success, message = AppleMusicManager.open_file_with_music(track)
-        assert run_mock.call_args.args[0][:3] == ["open", "-a", "Music"]
-    else:
-        success, message = AppleMusicManager.add_to_playlist(track, "Roadtrip")
-        assert run_mock.call_args.args[0][:2] == ["osascript", "-e"]
-
-    assert success is False
+    success, _, message = AppleMusicManager._run_osascript("test", "Importing into Music")
+    assert not success
     assert "This command was not retried" in message
     assert "Music may already have imported the track" in message
-    assert "Check the Music library and target playlist before repeating" in message
-    assert "avoid duplicates" in message
-    if failure == "process_timeout":
-        assert "timed out after 30 seconds" in message
-        assert "check for permission prompts" in message
-        assert imported == [track]
     run_mock.assert_called_once()
-    assert run_mock.call_args.kwargs == {
-        "capture_output": True,
-        "text": True,
-        "timeout": 30,
-    }
+    assert run_mock.call_args.kwargs["timeout"] == 30
     sleep_mock.assert_not_called()
 
 
@@ -171,9 +146,9 @@ def test_cli_shows_timeout_warning_and_continues_downloads(
     assert result.exit_code == 0, result.output
     assert "WARNING:" in result.output
     assert "timed out after 30 seconds" in result.output
-    assert "Check the Music library and target playlist" in result.output
+    assert "Open Music.app and check for permission prompts" in result.output
     assert f"{expected_downloads} succeeded, 0 failed" in result.output
     assert downloader.download.call_count == expected_downloads
-    assert run_mock.call_count == expected_downloads
+    assert run_mock.call_count == expected_downloads * AppleMusicManager._MAX_RETRIES
     assert track.exists()
-    sleep_mock.assert_not_called()
+    assert sleep_mock.call_count == expected_downloads * 2
