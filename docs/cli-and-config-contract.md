@@ -13,10 +13,19 @@ sc2am [--config PATH] [--log-level LEVEL] download URL... [OPTIONS]
 sc2am [--config PATH] [--log-level LEVEL] batch FILE [OPTIONS]
 sc2am [--config PATH] config init [--force]
 sc2am [--config PATH] [--log-level LEVEL] config show
+sc2am [--config PATH] doctor
 ```
 
 `--help` is available at every command level. Help does not load configuration,
 create log files, check download dependencies, or access Music.app.
+
+`doctor` reads the selected configuration and reports Python/platform, yt-dlp,
+`ffmpeg`/`ffprobe`, download-directory accessibility, and Music.app/AppleScript
+availability. It performs no write probes and does not run Music automation.
+Its output is human-readable. Exit code `0` means every performed check passed;
+`1` means a prerequisite or configuration check failed. It cannot determine
+whether macOS has granted automation permission, or guarantee Music.app will
+work when a real operation runs.
 
 `download` requires at least one SoundCloud track URL. `batch` requires a readable
 UTF-8 text file containing one URL per line. Blank lines and lines beginning with
@@ -127,6 +136,9 @@ sc2am --config ./settings/sc2am.yaml config init
 | `0` | Help, configuration operation, or processing completed without input/download failures |
 | `1` | Runtime/setup failure, download failure, or a run that continued past invalid entries |
 | `2` | Invalid CLI/configuration input, rejected batch file, or URL-validation abort |
+
+The `doctor` command uses `0` for passing checks and `1` for missing
+prerequisites or invalid configuration.
 
 If a continued run encounters both input and download failures, it returns `1`.
 A direct run that has already encountered a download failure also returns `1`.

@@ -4,6 +4,11 @@ Command-line interface and main entry point
 """
 
 import logging
+import importlib.metadata
+import os
+import platform
+import shutil
+import subprocess
 import sys
 from enum import IntEnum
 from pathlib import Path
@@ -106,6 +111,11 @@ def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
         return str(default_playlist).strip() or None
 
     return None
+
+
+def _doctor_check(label: str, ok: bool, detail: str) -> bool:
+    click.echo(f"{'OK' if ok else 'WARN'}: {label}: {detail}")
+    return ok
 
 
 def _print_run_summary(
@@ -483,6 +493,102 @@ def batch(
 @cli.group()
 def config():
     """Manage SC2AM configuration."""
+
+
+@cli.command()
+@click.pass_context
+def doctor(ctx: click.Context) -> None:
+    """Check runtime and integration prerequisites without changing files or Music."""
+    click.echo(f"Platform: {platform.system()} {platform.release()}")
+    click.echo(f"Python: {platform.python_version()}")
+    checks_ok = True
+
+    for distribution in ("yt-dlp",):
+        try:
+            version = importlib.metadata.version(distribution)
+            checks_ok &= _doctor_check(distribution, True, version)
+        except importlib.metadata.PackageNotFoundError:
+            checks_ok &= _doctor_check(
+                distribution, False, "not installed; install with: pip install yt-dlp"
+            )
+    for tool in ("ffmpeg", "ffprobe"):
+        location = shutil.which(tool)
+        if location is None:
+            checks_ok &= _doctor_check(tool, False, "not found on PATH")
+            continue
+        try:
+            version_result = subprocess.run(
+                [location, "-version"], capture_output=True, text=True, timeout=5, check=False
+            )
+            version_line = (version_result.stdout or version_result.stderr).splitlines()[0]
+            version_ok = version_result.returncode == 0 and bool(version_line)
+            detail = version_line if version_ok else f"could not read version ({location})"
+        except (OSError, subprocess.TimeoutExpired, IndexError):
+            version_ok = False
+            detail = f"could not read version ({location})"
+        checks_ok &= _doctor_check(tool, version_ok, detail)
+
+    try:
+        cfg = ConfigManager.get_config(
+            ctx.obj.get("config_path"), overrides=ctx.obj.get("overrides", {})
+        )
+    except ConfigurationError as exc:
+        click.echo(f"WARN: Configuration: {exc}")
+        checks_ok = False
+        download_dir = None
+    else:
+        download_dir = cfg.download_dir
+
+    if download_dir is not None:
+        if download_dir.exists():
+            writable = download_dir.is_dir() and os.access(download_dir, os.W_OK)
+            detail = "exists and is writable" if writable else "not a writable directory"
+        else:
+            ancestor = download_dir.parent
+            while not ancestor.exists() and ancestor != ancestor.parent:
+                ancestor = ancestor.parent
+            writable = ancestor.is_dir() and os.access(ancestor, os.W_OK)
+            detail = (
+                f"does not exist; nearest existing parent {ancestor} is writable"
+                if writable
+                else f"does not exist; nearest existing parent {ancestor} is not writable"
+            )
+        checks_ok &= _doctor_check(f"Download directory ({download_dir})", writable, detail)
+
+    if platform.system() == "Darwin":
+        music_app = next(
+            (
+                path
+                for path in (
+                    Path("/System/Applications/Music.app"),
+                    Path("/Applications/Music.app"),
+                )
+                if path.exists()
+            ),
+            None,
+        )
+        checks_ok &= _doctor_check(
+            "Music.app", music_app is not None, str(music_app) if music_app else "not found"
+        )
+        osascript = shutil.which("osascript")
+        checks_ok &= _doctor_check(
+            "AppleScript tool", osascript is not None, osascript or "osascript not found on PATH"
+        )
+        click.echo(
+            "INFO: Music automation permission and runtime behavior are not tested; "
+            "checking them would require running automation."
+        )
+    else:
+        checks_ok &= _doctor_check(
+            "Music.app", False, "available only on macOS; Music integration cannot be used here"
+        )
+        click.echo("INFO: Music automation permission cannot be checked on this platform.")
+
+    click.echo(
+        "Doctor: all checked prerequisites are available." if checks_ok else "Doctor: issues found."
+    )
+    if not checks_ok:
+        raise _ClickExceptionWithExitCode("Prerequisite checks failed.", int(ExitCode.ERROR))
 
 
 @config.command("init")

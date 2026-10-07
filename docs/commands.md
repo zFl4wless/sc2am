@@ -55,6 +55,7 @@ Use the CLI entry point directly during development.
 
 ```bash
 python main.py --help
+python main.py doctor
 python main.py config show
 python main.py download "https://soundcloud.com/artist/track"
 python main.py download "https://soundcloud.com/artist/track1" "https://soundcloud.com/artist/track2"
@@ -91,6 +92,15 @@ SC2AM uses stable exit codes for scripts and automation:
 | `0` | Help, configuration, or processing completed without input/download failures |
 | `1` | Runtime/setup or download failure, including a continued partial failure |
 | `2` | Invalid CLI/configuration input or URL-validation abort |
+
+`sc2am doctor` reports the platform and Python version, installed yt-dlp,
+`ffmpeg`/`ffprobe` availability, download-directory accessibility, and basic
+Music.app prerequisites. It returns `0` when all checked prerequisites are
+available and `1` when a check fails (including invalid configuration). It
+does not create files or logs, download anything, invoke Music.app, or modify
+the library. Music.app presence and the `osascript` executable do not prove
+that macOS automation permissions are granted or that a later Music operation
+will succeed; those checks are intentionally not exercised.
 
 Music.app import and playlist failures are warnings and do not change the exit
 code by default. Use `sc2am download URL --strict-import` (also supported by
