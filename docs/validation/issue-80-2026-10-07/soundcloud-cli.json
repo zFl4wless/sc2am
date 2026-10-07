@@ -1,0 +1,97 @@
+{
+  "online": {
+    "mode": "online",
+    "public_source": "https://soundcloud.com/scottbuckley/discovery-cc-by",
+    "attribution": "Discovery by Scott Buckley (CC BY)",
+    "runs": [
+      {
+        "command": "download",
+        "exit_code": 0,
+        "track_id": "FEF32798ADE84E8B",
+        "unique_track_and_membership": true,
+        "mutations": [
+          "import",
+          "playlist"
+        ],
+        "network_attempts": null,
+        "verified_cache_reused": false,
+        "summary": [
+          "Summary: 1 succeeded, 0 failed (100% success rate)"
+        ]
+      }
+    ],
+    "network_guard_enabled": false
+  },
+  "offline": {
+    "mode": "offline",
+    "public_source": "https://soundcloud.com/scottbuckley/discovery-cc-by",
+    "attribution": "Discovery by Scott Buckley (CC BY)",
+    "runs": [
+      {
+        "command": "download",
+        "exit_code": 0,
+        "track_id": "FEF32798ADE84E8B",
+        "unique_track_and_membership": true,
+        "mutations": [],
+        "network_attempts": [],
+        "verified_cache_reused": true,
+        "summary": [
+          "Summary: 1 succeeded, 0 failed (100% success rate)"
+        ]
+      },
+      {
+        "command": "batch",
+        "exit_code": 0,
+        "track_id": "FEF32798ADE84E8B",
+        "unique_track_and_membership": true,
+        "mutations": [],
+        "network_attempts": [],
+        "verified_cache_reused": true,
+        "summary": [
+          "Summary: 2 succeeded, 0 failed (100% success rate)"
+        ]
+      }
+    ],
+    "network_guard_enabled": true
+  },
+  "denied": {
+    "mode": "denied",
+    "public_source": "https://soundcloud.com/scottbuckley/discovery-cc-by",
+    "attribution": "Discovery by Scott Buckley (CC BY)",
+    "runs": [
+      {
+        "command": "download",
+        "exit_code": 0,
+        "actionable_automation_warning": true,
+        "mutations": [],
+        "network_attempts": [],
+        "verified_cache_reused": true,
+        "summary": [
+          "Summary: 1 succeeded, 0 failed (100% success rate)"
+        ],
+        "macos_error_code": -1743
+      }
+    ],
+    "network_guard_enabled": true
+  },
+  "recovery": {
+    "mode": "recovery",
+    "public_source": "https://soundcloud.com/scottbuckley/discovery-cc-by",
+    "attribution": "Discovery by Scott Buckley (CC BY)",
+    "runs": [
+      {
+        "command": "download",
+        "exit_code": 0,
+        "track_id": "FEF32798ADE84E8B",
+        "unique_track_and_membership": true,
+        "mutations": [],
+        "network_attempts": [],
+        "verified_cache_reused": true,
+        "summary": [
+          "Summary: 1 succeeded, 0 failed (100% success rate)"
+        ]
+      }
+    ],
+    "network_guard_enabled": true
+  }
+}

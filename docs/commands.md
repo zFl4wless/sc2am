@@ -70,6 +70,18 @@ Use `--dry-run` to validate URLs and preview the workflow without downloading,
 writing files, creating log files, or accessing Music.app. To disable all Music
 actions during a normal run, combine `--no-open --playlist ""`.
 
+## Repeat or Resume an Import
+
+Rerun the same `download` or `batch` command with the same download directory.
+An unchanged recorded MP3 is reused without network extraction, downloading or
+retagging. Music checks the active library reference and playlist membership
+before doing more work. A failed playlist stage can resume using the library
+track. Pending mutations are reconciled by reads; unresolved ones stop with a
+warning. Keep `.sc2am/history.sqlite3` alongside the downloads, and follow the
+[isolated Music validation/recovery procedure](music-import-validation.md) if
+manual reconciliation is needed. No new CLI flags or summary/exit policy are
+introduced by this behavior.
+
 ## Exit Codes
 
 SC2AM uses stable exit codes for scripts and automation:

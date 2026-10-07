@@ -1,13 +1,13 @@
 # Architecture Overview
 
-SC2AM is a small command-line application that downloads a SoundCloud track, enriches the resulting MP3 with metadata, and opens the file in Apple Music on macOS.
+SC2AM is a small command-line application that downloads a SoundCloud track, enriches the resulting MP3 with metadata, and confirms an import into Apple Music on macOS.
 
 ## High-Level Flow
 1. The CLI in `main.py` validates the user input.
 2. `sc2am/validator.py` checks whether a URL or batch file entry is supported.
 3. `sc2am/downloader.py` uses `yt-dlp` to fetch track information and download audio.
 4. `sc2am/metadata.py` normalizes metadata, writes ID3 tags, and embeds cover art.
-5. `sc2am/apple_music.py` opens the final MP3 in Music.app and optionally adds it to a playlist.
+5. `sc2am/apple_music.py` confirms the final MP3 in Music.app and optionally verifies playlist membership.
 6. `sc2am/config_manager.py` provides defaults, configuration files, and environment-variable overrides.
 7. `sc2am/logger.py` sets up application logging.
 
@@ -20,6 +20,7 @@ SC2AM is a small command-line application that downloads a SoundCloud track, enr
 | `sc2am/downloader.py`     | Download orchestration, error classification, and metadata hand-off            |
 | `sc2am/metadata.py`       | Metadata normalization, tag writing, artwork extraction, and fallback handling |
 | `sc2am/apple_music.py`    | macOS Music.app automation and playlist operations                             |
+| `sc2am/history.py`       | Durable download evidence, library references and pending mutations           |
 | `sc2am/config_manager.py` | Configuration defaults, loading, and persistence                               |
 | `sc2am/logger.py`         | Logging setup                                                                  |
 
@@ -34,18 +35,39 @@ names and paths are not interpolated into script source.
 Playlist names are serialized as a JSON array using macOS Foundation so commas,
 Unicode, quotes and embedded whitespace survive listing and resolution. The import
 script rechecks that exactly one playlist matches and that it is a regular user
-playlist, then adds the file to that object. Smart, Genius, folder and system
+playlist, then adds the confirmed library reference to that object. Smart, Genius, folder and system
 playlists are rejected with an actionable error.
 
-All Music subprocess attempts (`open` and `osascript`) use a 30-second timeout.
-Only read-only playlist lookups opt into retries: at most three attempts with
-1- and 2-second backoff delays. Importing commands are never automatically
-replayed after a failure, including AppleEvent timeout errors and subprocess
-timeouts, because Music may already have applied the mutation. Their warning
-asks users to inspect the library and playlist before repeating the import.
-Subprocess termination does not undo a delivered Music event. Confirmed library
-references, import reconciliation and safe repeat/resume across runs remain
-separate work in #80; the existing success and CLI warning contracts are preserved.
+All Music subprocess attempts use a 30-second timeout. Read-only queries retry
+at most three times, with 1- and 2-second backoff. Fixed AppleScript returns
+validated library/track/playlist persistent IDs and membership, not a dispatch
+acknowledgement. The library ID scopes recorded references. A library track is
+found by a confirmed persistent ID, a stable source marker in its comment, or
+its original file location. Playlist additions duplicate the existing library
+reference only if membership is absent; they do not re-add the MP3.
+
+`History` stores evidence in a SQLite journal inside `<download_dir>/.sc2am`.
+Downloaded files are indexed by the validated URL and SoundCloud ID; reuse
+requires a regular file in the same directory with the recorded SHA-256 hash.
+An exact known URL can resume offline. Metadata is not refreshed on reuse.
+The import marker is appended to the English default ID3 comment before importing;
+the journal records the resulting file hash. This allows Music's copied files to
+be located even when an import response is lost. Other comments are preserved.
+
+A nonblocking file lock serializes Music operations using the same download
+folder. Each mutation commits a pending intent before dispatch and performs an
+independent read-only confirmation afterward. An uncertain result remains pending
+across process restarts and is never blindly replayed. A later read can reconcile
+it. Explicit script errors before the mutation clear intent so corrected targets
+can be retried; generic errors/timeouts do not. Confirmed references are checked
+live, including playlist membership removed since the previous run. Missing
+confirmed tracks can be reimported. Failed writes/corrupt journals stop the Music
+stage instead of silently resetting history. Cross-directory concurrent imports,
+legacy copied imports without markers, and manual edits to cached audio require
+manual care; there is no cross-machine or cloud idempotency guarantee.
+
+See [Music validation and recovery](music-import-validation.md) for the isolated
+macOS acceptance procedure and the distinction between automated and live evidence.
 
 Before downloading, the downloader validates the URL and requires a successful
 single-track extraction. Metadata uses `--dump-single-json --flat-playlist
@@ -67,9 +89,9 @@ importing any file. It never selects another MP3 by scanning the directory.
 
 The output template is `%(title)s [%(id)s].%(ext)s`, so different SoundCloud
 track IDs cannot collide merely because their titles match. yt-dlp is called with
-`--no-overwrites`: repeats with the same ID and title reuse existing audio, then
-SC2AM refreshes tags and applies the configured Music actions. A changed title
-creates a new path; legacy title-only files are not migrated or reused.
+`--no-overwrites` for downloads without reusable journal evidence. Once recorded,
+the source ID determines reuse even after title changes; legacy title-only files
+are not migrated or reused.
 
 ## Important Design Rules
 - Metadata should be normalized before tagging so downstream code receives predictable values.

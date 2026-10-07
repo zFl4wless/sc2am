@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "case": "copy-on-verified/repeat",
+      "track_id": "A6FADDFFD2CB89E2",
+      "unique_track_and_membership": true
+    },
+    {
+      "case": "copy-on-verified/lost_reply",
+      "track_id": "B8D986CBF81B1814",
+      "unique_track_and_membership": true
+    },
+    {
+      "case": "copy-on-verified/partial",
+      "track_id": "FD1D81FDC0B656C0",
+      "unique_track_and_membership": true
+    },
+    {
+      "case": "copy-off/repeat",
+      "track_id": "FD11D00CC56530E4",
+      "unique_track_and_membership": true
+    },
+    {
+      "case": "copy-off/lost_reply",
+      "track_id": "75B7CC388536AA98",
+      "unique_track_and_membership": true
+    },
+    {
+      "case": "copy-off/partial",
+      "track_id": "824339D6D9ED5A7E",
+      "unique_track_and_membership": true
+    }
+  ],
+  "mutations": [
+    "playlist"
+  ]
+}

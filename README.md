@@ -245,17 +245,31 @@ SC2AM_DOWNLOAD_DIR=~/Music sc2am download "..."
 1. **Validate** - Checks if the provided URL is from a supported platform
 2. **Download** - Uses yt-dlp to download audio as MP3 (192kbps)
 3. **Tag** - Embeds title, artist, album/genre/date and cover artwork into the MP3
-4. **Open** - Launches Apple Music with the tagged MP3 file
-5. **Add** - (Optional) Adds track to specified playlist via AppleScript
+4. **Import** - Confirms a library track reference in Apple Music
+5. **Add** - (Optional) Reuses that track and confirms playlist membership via AppleScript
 
-SC2AM automatically retries transient download and Apple Music import failures a few times before surfacing an error, so brief network hiccups or a busy Music.app are less likely to interrupt a run.
+SC2AM retries transient download failures and read-only Music queries. Mutations
+are confirmed against the active Music library before reporting success.
 
 MP3 filenames include the SoundCloud track ID: `Title [123456789].mp3`.
-Tracks with the same title and different IDs are saved separately. Repeating a
-download with the same ID and title reuses the existing audio without overwriting
-it; metadata is refreshed and the configured Music actions still run. A changed
-title produces a new filename. Older title-only files are left untouched and are
-not reused by the new naming scheme.
+Tracks with the same title and different IDs are saved separately. A local journal
+in `<download_dir>/.sc2am/history.sqlite3` records source IDs, verified file hashes
+and Music references. Repeating a recorded URL reuses the unchanged MP3 without
+network extraction, download or retagging. A new URL resolving to the same source
+ID also reuses it, even if the title changed. Missing files can be downloaded
+again; changed files stop with an integrity warning. Legacy title-only files are
+not migrated.
+
+Music imports store a source marker in the MP3's default English ID3 comment
+(preserving existing text) so copied library files can be found after a lost
+response. Confirmed persistent IDs are scoped to the active library and checked
+on every run. Existing playlist membership is reused. Keep the download folder
+and its `.sc2am` journal together; safe repeat/resume is scoped to this folder.
+Do not run concurrent imports from different download folders into one library.
+Existing imports from older SC2AM versions can be recognized by their original
+file location; copied legacy imports without a marker/history need manual review
+before the first run. Confirmation covers the local library only, not cloud sync,
+iPhone availability or playback.
 
 SC2AM only tags and imports the verified MP3 path reported by that download.
 Missing or invalid output paths cause a download error, even when other MP3s
@@ -371,10 +385,10 @@ pip install yt-dlp --upgrade
 - Ensure the Music.app is not currently playing (can interfere with AppleScript)
 
 ### Apple Music commands time out
-- Each `open` or `osascript` attempt is limited to 30 seconds. Playlist lookups retry temporary failures and timeouts up to three attempts, with 1- and 2-second delays (at most about 93 seconds).
+- Each `osascript` attempt is limited to 30 seconds. Read-only lookups retry temporary failures and timeouts up to three attempts, with 1- and 2-second delays (at most about 93 seconds).
 - Open Music.app and check for permission prompts or an unresponsive app.
-- Failed file-opening and playlist-import commands are not automatically retried: Music may have received the import before the error or timeout. Check the Music library and target playlist before repeating the import to avoid duplicates. Stopping the command does not undo an import already received by Music.
-- Music failures remain CLI warnings; the downloaded MP3 is retained. Successful `open` dispatch still does not confirm a library import, and SC2AM does not yet reconcile uncertain imports or prevent duplicates across separate runs.
+- After a failed mutation SC2AM queries Music to reconcile a completed import or playlist addition. A pending journal record prevents replay if the result is still uncertain. Stopping the command does not undo a delivered event. Rerun the same command to reconcile; no new download is needed while the verified MP3 remains available.
+- Music failures remain CLI warnings and retain the existing download-based summary and exit status. An unresolved mutation needs the [manual recovery procedure](docs/music-import-validation.md); do not delete the journal or blindly repeat imports.
 
 ### Permission denied on download
 - Check that download directory exists and is writable:

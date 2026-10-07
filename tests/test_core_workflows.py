@@ -566,7 +566,11 @@ def test_add_to_playlist_resolves_full_serialized_name(
     run_mock = Mock(
         side_effect=[
             Mock(returncode=0, stdout=json.dumps(names), stderr=""),
-            Mock(returncode=0, stdout="", stderr=""),
+            Mock(
+                returncode=0,
+                stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1",
+                stderr="",
+            ),
         ]
     )
     monkeypatch.setattr(apple_music.subprocess, "run", run_mock)
@@ -575,7 +579,7 @@ def test_add_to_playlist_resolves_full_serialized_name(
 
     assert (success, message) == (True, f"Added to playlist '{expected}'")
     assert run_mock.call_count == 2
-    assert run_mock.call_args.args[0][-2:] == [str(file_path.resolve()), expected]
+    assert run_mock.call_args.args[0][3:5] == [str(file_path.resolve()), expected]
 
 
 @pytest.mark.parametrize("names", [["Road, Trip", "Road, Trip"], ["Road, Trip", "road, trip"]])
@@ -633,27 +637,32 @@ def test_add_to_playlist_passes_absolute_path_and_playlist_as_exact_arguments(
         "get_playlists",
         lambda: (True, [playlist_name], "Playlists retrieved"),
     )
-    osascript_mock = Mock(return_value=(True, Mock(), ""))
+    osascript_mock = Mock(
+        return_value=(True, Mock(stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"), "")
+    )
     monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
 
     success, message = AppleMusicManager.add_to_playlist(file_path, f" {playlist_name} ")
 
     assert (success, message) == (True, f"Added to playlist '{playlist_name}'")
     script, operation, arguments = osascript_mock.call_args.args
-    assert operation == "Adding track to playlist"
+    assert operation == "Checking Music import"
     assert "on run argv" in script
     assert "set trackPath to item 1 of argv" in script
     assert "set targetPlaylist to item 2 of argv" in script
     assert f'"{file_path}"' not in script
     assert f'"{playlist_name}"' not in script
-    assert arguments == [str(file_path.resolve()), playlist_name]
+    assert arguments[:2] == [str(file_path.resolve()), playlist_name]
+    assert arguments[5] == "lookup"
 
 
 def test_playlist_import_selects_one_writable_object(monkeypatch, tmp_path):
     file_path = tmp_path / "track.mp3"
     file_path.touch()
     monkeypatch.setattr(AppleMusicManager, "get_playlists", lambda: (True, ["Road, Trip"], ""))
-    osascript_mock = Mock(return_value=(True, Mock(), ""))
+    osascript_mock = Mock(
+        return_value=(True, Mock(stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"), "")
+    )
     monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
 
     assert AppleMusicManager.add_to_playlist(file_path, "Road, Trip")[0]
@@ -666,9 +675,9 @@ def test_playlist_import_selects_one_writable_object(monkeypatch, tmp_path):
     assert "smart of destinationPlaylist" in script
     assert "genius of destinationPlaylist" in script
     assert "special kind of destinationPlaylist is not none" in script
-    assert "add sourcePath to destinationPlaylist" in script
-    assert script.index('error "Choose a regular user playlist;') < script.index(
-        "add sourcePath to destinationPlaylist"
+    assert "duplicate libraryTrack to destinationPlaylist" in script
+    assert script.index('error "SC2AM_NOT_STARTED: Choose a regular user playlist;') < script.index(
+        "duplicate libraryTrack to destinationPlaylist"
     )
 
 
@@ -697,7 +706,7 @@ def test_playlist_target_validation_errors_are_actionable(monkeypatch, tmp_path,
     success, message = AppleMusicManager.add_to_playlist(file_path, "Road, Trip")
 
     assert success is False
-    assert "Failed to add the track to playlist 'Road, Trip'" in message
+    assert "Could not confirm the Music import" in message
     assert error in message
     assert run_mock.call_count == 2
     sleep_mock.assert_not_called()
