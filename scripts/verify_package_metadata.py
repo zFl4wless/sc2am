@@ -38,7 +38,9 @@ def verify_sdist(artifact: Path, expected_license: bytes) -> None:
 def verify_wheel(artifact: Path, expected_license: bytes) -> None:
     with zipfile.ZipFile(artifact) as archive:
         metadata = [name for name in archive.namelist() if name.endswith(".dist-info/METADATA")]
-        licenses = [name for name in archive.namelist() if name.endswith(".dist-info/licenses/LICENSE")]
+        licenses = [
+            name for name in archive.namelist() if name.endswith(".dist-info/licenses/LICENSE")
+        ]
         if len(metadata) != 1:
             raise SystemExit(f"{artifact.name}: expected one METADATA file")
         check_metadata(archive.read(metadata[0]), artifact)
