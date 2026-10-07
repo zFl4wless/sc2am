@@ -70,6 +70,9 @@ the examples in the README. Both `download` and `batch` also support
 Use `--dry-run` to validate URLs and preview the workflow without downloading,
 writing files, creating log files, or accessing Music.app. To disable all Music
 actions during a normal run, combine `--no-open --playlist ""`.
+Both commands accept `https://on.soundcloud.com/<token>` share links and resolve
+them to a single track before processing. This also makes bounded HTTP requests
+in `--dry-run`; use a direct SoundCloud track URL for offline URL validation.
 
 ## Repeat or Resume an Import
 

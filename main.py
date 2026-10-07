@@ -245,7 +245,7 @@ def _run_tracks(
                 click.echo(f"{label}: Processing {url}")
             logger.info(f"Processing URL: {url}")
             _track_status(logger, label, "Validating SoundCloud URL...")
-            valid, message = URLValidator.validate_url(url)
+            valid, target_url, message = URLValidator.resolve_track_url(url)
             if not valid:
                 failed_items.append((url, message))
                 _track_status(logger, label, f"ERROR: {message}", fg="red", level="error")
@@ -257,6 +257,7 @@ def _run_tracks(
                 exit_code = ExitCode.ERROR
                 continue
 
+            url = target_url
             _track_status(logger, label, f"OK: Valid {message} URL", fg="green")
             if dry_run:
                 _track_status(logger, label, "DRY-RUN: Would download track", fg="yellow")
