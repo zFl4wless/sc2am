@@ -217,6 +217,8 @@ class Downloader:
                 logger.exception("Unexpected download error")
                 return False, None, message
 
+        return False, None, f"The download failed after {self._MAX_RETRIES} attempts."
+
     @classmethod
     def _classify_download_error(cls, stderr: str) -> str:
         """Convert yt-dlp failures into user-friendly messages."""
@@ -339,3 +341,9 @@ class Downloader:
                     None,
                     f"Could not fetch track information. {DIAGNOSTIC_HINT}",
                 )
+
+        return (
+            False,
+            None,
+            f"Could not fetch track information after {Downloader._MAX_RETRIES} attempts.",
+        )

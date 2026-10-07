@@ -125,6 +125,19 @@ def test_permanent_lookup_failure_is_not_retried(monkeypatch, sleep_mock):
     sleep_mock.assert_not_called()
 
 
+def test_get_playlists_handles_missing_result_after_success(monkeypatch):
+    monkeypatch.setattr(
+        AppleMusicManager,
+        "_run_osascript",
+        lambda *args, **kwargs: (True, None, ""),
+    )
+
+    success, playlists, message = AppleMusicManager.get_playlists()
+
+    assert (success, playlists) == (False, [])
+    assert "Could not retrieve playlists" in message
+
+
 @pytest.mark.parametrize("kind", ["single", "batch"])
 @pytest.mark.parametrize("operation", ["open", "playlist"])
 def test_cli_shows_timeout_warning_and_continues_downloads(

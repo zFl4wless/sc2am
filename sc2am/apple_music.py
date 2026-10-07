@@ -70,7 +70,7 @@ class AppleMusicManager:
         """Bound each attempt; retry only operations that cannot import tracks."""
         for attempt in range(1, cls._MAX_RETRIES + 1):
             try:
-                result = subprocess.run(
+                completed = subprocess.run(
                     cmd, capture_output=True, text=True, timeout=cls._COMMAND_TIMEOUT_SECONDS
                 )
             except subprocess.TimeoutExpired:
@@ -80,10 +80,11 @@ class AppleMusicManager:
                     "Open Music.app and check for permission prompts or an unresponsive app"
                 )
             else:
-                if result.returncode == 0:
-                    return True, result, ""
+                if completed.returncode == 0:
+                    return True, completed, ""
 
-                error = (result.stderr or result.stdout or "Unknown error").strip()
+                result = completed
+                error = (completed.stderr or completed.stdout or "Unknown error").strip()
 
             # Killing open/osascript cannot undo an event already delivered to Music.
             # Even a nonzero exit can follow a partial import, so do not replay it.
@@ -263,7 +264,7 @@ class AppleMusicManager:
                 read_only=True,
             )
 
-            if not success:
+            if not success or result is None:
                 logger.error(f"Failed to get playlists: {error}")
                 return (
                     False,
