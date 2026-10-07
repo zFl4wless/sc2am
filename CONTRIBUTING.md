@@ -75,7 +75,12 @@ opening a pull request:
 PYTHONPATH=. pytest -q
 black --check .
 flake8 sc2am tests
+mypy main.py sc2am
 ```
+
+The mypy check covers the CLI entry point and all application modules. Its
+development dependencies, including third-party type stubs, are installed by
+`pip install -r requirements-dev.txt`.
 
 When changing CLI behavior, also run `sc2am --help` and the relevant command
 with `--dry-run` so no files or Music.app actions are triggered during a

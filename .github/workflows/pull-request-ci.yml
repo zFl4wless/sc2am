@@ -60,6 +60,9 @@ jobs:
       - name: Run flake8
         run: python -m flake8 main.py sc2am tests scripts
 
+      - name: Run mypy
+        run: python -m mypy main.py sc2am
+
       - name: Run black check
         run: python -m black --check .
 

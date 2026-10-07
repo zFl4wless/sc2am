@@ -136,6 +136,33 @@ def test_unreadable_preflight_aborts_without_downloading(tmp_path, monkeypatch, 
     assert not downloader.download_dir.exists()
 
 
+def test_download_returns_error_when_retry_limit_is_zero(tmp_path, monkeypatch):
+    monkeypatch.setattr(Downloader, "_check_dependencies", staticmethod(lambda: None))
+    monkeypatch.setattr(Downloader, "_MAX_RETRIES", 0)
+    monkeypatch.setattr(
+        Downloader,
+        "get_track_info",
+        staticmethod(lambda _: (True, {"id": "123"}, "OK")),
+    )
+    downloader = Downloader(tmp_path / "downloads")
+
+    assert downloader.download("https://soundcloud.com/artist/track") == (
+        False,
+        None,
+        "The download failed after 0 attempts.",
+    )
+
+
+def test_get_track_info_returns_error_when_retry_limit_is_zero(monkeypatch):
+    monkeypatch.setattr(Downloader, "_MAX_RETRIES", 0)
+
+    assert Downloader.get_track_info("https://soundcloud.com/artist/track") == (
+        False,
+        None,
+        "Could not fetch track information after 0 attempts.",
+    )
+
+
 def test_real_yt_dlp_preflight_preserves_collection_without_extracting_entries(
     tmp_path, monkeypatch
 ):
