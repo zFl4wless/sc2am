@@ -109,14 +109,48 @@ def _resolve_playlist_name(cfg, playlist: Optional[str]) -> Optional[str]:
 
 
 def _print_run_summary(
-    logger, succeeded: int, failed: int, failed_items: Optional[list] = None
+    logger,
+    succeeded: int,
+    failed: int,
+    failed_items: Optional[list] = None,
+    *,
+    dry_run: bool = False,
+    music_counts: Optional[Dict[str, int]] = None,
+    music_errors: Optional[list] = None,
 ) -> None:
     total = succeeded + failed
     success_rate = int((succeeded / total * 100)) if total > 0 else 0
-    summary = f"Summary: {succeeded} succeeded, {failed} failed ({success_rate}% success rate)"
+    scope = "Dry-run previews" if dry_run else "Downloads"
+    summary = f"{scope}: {succeeded} succeeded, {failed} failed ({success_rate}% success rate)"
     fg = "green" if failed == 0 else "yellow"
     click.secho(summary, fg=fg, bold=True)
     logger.info(summary)
+
+    if dry_run:
+        click.echo("DRY-RUN: No downloads, imports or playlist changes performed.")
+    elif music_counts is not None:
+        for stage, confirmed in (("Imports", "imported"), ("Playlists", "playlist_added")):
+            requested = music_counts[
+                "import_requested" if stage == "Imports" else "playlist_requested"
+            ]
+            count = music_counts[confirmed]
+            enabled = music_counts["import_enabled" if stage == "Imports" else "playlist_enabled"]
+            unattempted = "not attempted" if enabled else "not requested"
+            message = (
+                f"{stage}: {count} confirmed, {requested - count} failed/unconfirmed"
+                if requested
+                else f"{stage}: {unattempted}"
+            )
+            click.secho(message, fg="yellow" if requested > count else "green", bold=True)
+            logger.info(message)
+        if music_counts["import_requested"]:
+            click.echo(
+                "Music confirmation covers the local library only; cloud/iPhone availability is not verified."
+            )
+    if music_errors:
+        click.secho("\nFailed/unconfirmed Music stages:", fg="yellow", bold=True)
+        for url, stage, error in music_errors:
+            click.echo(f"  {url} [{stage}]: {error}")
 
     # Print detailed error list if there were failures
     if failed_items and len(failed_items) > 0:
@@ -170,6 +204,7 @@ def _run_tracks(
     dry_run: bool,
     input_errors: Optional[list] = None,
     numbered: bool = False,
+    strict_import: bool = False,
 ) -> None:
     """Apply one workflow to single URLs, multiple URLs, and batch files."""
     effective_continue = (
@@ -179,6 +214,15 @@ def _run_tracks(
     playlist_name = _resolve_playlist_name(cfg, playlist)
     failed_items = list(input_errors or [])
     succeeded = 0
+    music_counts = dict(
+        import_requested=0,
+        imported=0,
+        playlist_requested=0,
+        playlist_added=0,
+        import_enabled=int(bool(open_music or playlist_name)),
+        playlist_enabled=int(bool(playlist_name)),
+    )
+    music_errors = []
     downloader = None
     music_manager = None
     exit_code = ExitCode.ERROR if failed_items else ExitCode.SUCCESS
@@ -208,7 +252,7 @@ def _run_tracks(
                 _track_status(logger, label, "DRY-RUN: Would download track", fg="yellow")
                 if open_music:
                     _track_status(
-                        logger, label, "DRY-RUN: Would open with Apple Music", fg="yellow"
+                        logger, label, "DRY-RUN: Would import into Apple Music", fg="yellow"
                     )
                 if playlist_name:
                     _track_status(
@@ -240,12 +284,21 @@ def _run_tracks(
                 continue
 
             _track_status(logger, label, f"OK: {message}", fg="green")
+            succeeded += 1
+            imported = False
+            import_error = (
+                "No local Music import confirmed. Check Music.app and rerun to reconcile."
+            )
+            playlist_ok = True
             if open_music or playlist_name:
+                music_counts["import_requested"] += 1
                 if music_manager is None:
                     music_manager = AppleMusicManager()
                 if open_music:
-                    _track_status(logger, label, "Opening with Apple Music...")
+                    _track_status(logger, label, "Importing into Apple Music...")
                     success, message = music_manager.open_file_with_music(file_path)
+                    imported = success
+                    import_error = message
                     _track_status(
                         logger,
                         label,
@@ -255,7 +308,16 @@ def _run_tracks(
                     )
                 if playlist_name:
                     _track_status(logger, label, f"Adding to playlist '{playlist_name}'...")
-                    success, message = music_manager.add_to_playlist(file_path, playlist_name)
+                    music_counts["playlist_requested"] += 1
+                    result = music_manager.add_to_playlist_result(file_path, playlist_name)
+                    success, message = result.success, result.message
+                    imported = imported or result.imported
+                    if not open_music:
+                        import_error = message
+                    playlist_ok = success
+                    music_counts["playlist_added"] += int(success)
+                    if not success:
+                        music_errors.append((url, "playlist", message))
                     _track_status(
                         logger,
                         label,
@@ -263,10 +325,29 @@ def _run_tracks(
                         fg="green" if success else "yellow",
                         level="info" if success else "warning",
                     )
-            succeeded += 1
-            click.secho(f"{label}: Done!", fg="green", bold=True)
+                music_counts["imported"] += int(imported)
+                if not imported:
+                    music_errors.append((url, "import", import_error))
+            partial = (open_music or playlist_name) and (not imported or not playlist_ok)
+            click.secho(
+                f"{label}: {'Partial success (MP3 retained; Music stages incomplete)' if partial else 'Done!'}",
+                fg="yellow" if partial else "green",
+                bold=True,
+            )
+            if partial and strict_import:
+                exit_code = ExitCode.ERROR
+                if not effective_continue:
+                    break
     finally:
-        _print_run_summary(logger, succeeded, len(failed_items), failed_items)
+        _print_run_summary(
+            logger,
+            succeeded,
+            len(failed_items),
+            failed_items,
+            dry_run=dry_run,
+            music_counts=music_counts,
+            music_errors=music_errors,
+        )
 
     if exit_code != ExitCode.SUCCESS:
         sys.exit(int(exit_code))
@@ -289,6 +370,11 @@ def _track_options(command):
                 "--continue-on-error/--stop-on-error",
                 default=None,
                 help="Continue/stop after an error. Defaults to config (stop).",
+            ),
+            click.option(
+                "--strict-import",
+                is_flag=True,
+                help="Return exit code 1 for failed/unconfirmed Music imports or playlist actions; honors stop/continue-on-error.",
             ),
             click.option(
                 "--dry-run",
@@ -323,11 +409,19 @@ def download(
     no_open: Optional[bool],
     continue_on_error: Optional[bool],
     dry_run: bool = False,
+    strict_import: bool = False,
 ):
     """Download one or more SoundCloud track URLs and import them into Apple Music."""
     state = _track_context(ctx, dry_run, playlist, no_open, continue_on_error)
     _run_tracks(
-        state["config"], state["logger"], urls, playlist, no_open, continue_on_error, dry_run
+        state["config"],
+        state["logger"],
+        urls,
+        playlist,
+        no_open,
+        continue_on_error,
+        dry_run,
+        strict_import=strict_import,
     )
 
 
@@ -342,6 +436,7 @@ def batch(
     continue_on_error: Optional[bool],
     dry_run: bool = False,
     no_open: Optional[bool] = None,
+    strict_import: bool = False,
 ):
     """Process a UTF-8 file of URLs, one per line. Blank lines and # comments are ignored.
 
@@ -381,6 +476,7 @@ def batch(
         dry_run,
         input_errors=[(f"line {line}", error) for line, error in errors],
         numbered=True,
+        strict_import=strict_import,
     )
 
 

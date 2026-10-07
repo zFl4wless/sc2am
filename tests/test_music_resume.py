@@ -328,3 +328,38 @@ def test_music_scope_uses_library_source_not_reserved_playlist_id():
     # distinct persistent ID for its containing source during live acceptance.
     assert "set libraryID to persistent ID of container of libraryPlaylist" in MUSIC_SCRIPT
     assert "set libraryID to persistent ID of libraryPlaylist\n" not in MUSIC_SCRIPT
+
+
+@pytest.mark.parametrize("failure", ["before", "timeout_before", "no_effect"])
+def test_playlist_result_preserves_confirmed_import_evidence(track, music_double, failure):
+    music_double.failure["playlist"] = failure
+    result = Manager.add_to_playlist_result(track, "Roadtrip")
+    assert not result.success
+    assert result.imported
+    assert music_double.mutations == ["import", "playlist"]
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_cli_playlist_only_partial_import_is_counted(track, monkeypatch, music_double, strict):
+    downloader = Mock()
+    downloader.download.return_value = (True, track, "Downloaded")
+    monkeypatch.setattr(main, "_create_downloader", Mock(return_value=downloader))
+    music_double.failure["playlist"] = "before"
+    flags = ["--strict-import"] if strict else []
+    result = CliRunner().invoke(
+        main.cli,
+        [
+            "download",
+            "https://soundcloud.com/artist/track",
+            "--no-open",
+            "--playlist",
+            "Roadtrip",
+            *flags,
+        ],
+    )
+    assert result.exit_code == (1 if strict else 0), result.output
+    assert "Downloads: 1 succeeded, 0 failed" in result.output
+    assert "Imports: 1 confirmed, 0 failed/unconfirmed" in result.output
+    assert "Playlists: 0 confirmed, 1 failed/unconfirmed" in result.output
+    assert "Partial success" in result.output
+    assert music_double.mutations == ["import", "playlist"]

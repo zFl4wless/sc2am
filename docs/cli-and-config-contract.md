@@ -29,6 +29,7 @@ Both processing commands accept exactly the same workflow options:
 | `--playlist NAME` | Uses the trimmed name; `--playlist ""` disables playlist actions | Uses `default_playlist` |
 | `--no-open` / `--open` | Disables / enables automatic opening in Music.app | Uses `open_music_app` |
 | `--continue-on-error` / `--stop-on-error` | Continues / stops after a track error | Uses `continue_on_error` |
+| `--strict-import` | Returns `1` for failed/unconfirmed requested Music import or playlist stages; respects stop/continue-on-error | Music warnings do not change exit status |
 | `--dry-run` | Validates and previews actions without writing files, downloading, or accessing Music.app | Executes the workflow |
 
 `--no-open` controls the automatic open step only. A requested playlist action can
@@ -131,10 +132,31 @@ If a continued run encounters both input and download failures, it returns `1`.
 A direct run that has already encountered a download failure also returns `1`.
 Continuation never converts a partial failure into success.
 
-For compatibility, Music opening and playlist failures are warnings and do not
-change exit status. Summary success counts refer to downloaded tracks (or valid
-previews in a dry run), not confirmed Music imports. Failed or missing download
-results count as failures. Items not attempted after stopping are not counted.
+For compatibility, Music import and playlist failures are warnings and do not
+change exit status by default. Opt in with `--strict-import` on `download` or
+`batch` to return `1` when a requested Music stage fails or remains unconfirmed.
+Strict mode stops after that track unless `--continue-on-error` is effective;
+all requested stages for the current track are evaluated first. If a later
+playlist action confirms an initially unconfirmed import, the final import
+counts as confirmed. Input/configuration exit codes still apply; a previously
+failed strict Music stage keeps code `1`, like a download failure.
+
+The summary reports downloads, confirmed local Music imports and confirmed
+playlist memberships separately. Download counts include reused verified MP3s;
+import and playlist counts include already confirmed library tracks/memberships.
+Failed or missing download results and invalid inputs appear in the download
+failure count. Music failures do not erase successful downloads or confirmed
+imports. A playlist-only run (`--no-open --playlist NAME`) can import a track;
+a confirmed import is counted even when subsequent playlist addition fails.
+Failed/unconfirmed Music stages are listed separately, and affected tracks show
+partial success with the MP3 retained. Disabled stages are “not requested”;
+enabled stages with no attempt (for example after download failure) are “not attempted”.
+Items and stages not attempted after stopping or download failure are not counted.
+
+Dry-run summaries count valid previews only and explicitly state that no download,
+import or playlist change was performed. `--strict-import` does not create Music
+failures in a dry run because Music is never accessed. Local confirmation never
+proves cloud sync, iPhone availability or playback.
 
 Progress and summaries are human-readable console output. Logger warnings and
 errors, Click errors, and batch-line diagnostics go to stderr. By default,

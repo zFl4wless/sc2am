@@ -64,7 +64,7 @@ python main.py download "https://soundcloud.com/artist/track1" "https://soundclo
 The installed `sc2am` command is equivalent to `python main.py` and is used in
 the examples in the README. Both `download` and `batch` also support
 `--playlist NAME`, `--open` / `--no-open`, `--continue-on-error` /
-`--stop-on-error`, and `--dry-run`.
+`--stop-on-error`, `--strict-import`, and `--dry-run`.
 
 Use `--dry-run` to validate URLs and preview the workflow without downloading,
 writing files, creating log files, or accessing Music.app. To disable all Music
@@ -79,8 +79,8 @@ before doing more work. A failed playlist stage can resume using the library
 track. Pending mutations are reconciled by reads; unresolved ones stop with a
 warning. Keep `.sc2am/history.sqlite3` alongside the downloads, and follow the
 [isolated Music validation/recovery procedure](music-import-validation.md) if
-manual reconciliation is needed. No new CLI flags or summary/exit policy are
-introduced by this behavior.
+manual reconciliation is needed. The summary includes reused downloads and
+confirmed local Music results.
 
 ## Exit Codes
 
@@ -92,8 +92,14 @@ SC2AM uses stable exit codes for scripts and automation:
 | `1` | Runtime/setup or download failure, including a continued partial failure |
 | `2` | Invalid CLI/configuration input or URL-validation abort |
 
-Music.app open and playlist failures are reported as warnings and do not change
-the exit code. See the [CLI and configuration contract](cli-and-config-contract.md)
+Music.app import and playlist failures are warnings and do not change the exit
+code by default. Use `sc2am download URL --strict-import` (also supported by
+`batch`) to return `1` for failed/unconfirmed Music stages. Combine with
+`--continue-on-error` to process remaining tracks after a Music failure.
+Summaries separate downloads, confirmed imports and playlist results, including
+partial success. Dry runs report previews only; local Music confirmation does
+not verify cloud/iPhone availability. See the
+[CLI and configuration contract](cli-and-config-contract.md)
 for the complete precedence and validation rules.
 
 ## Build a Release Check

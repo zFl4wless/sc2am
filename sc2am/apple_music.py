@@ -4,6 +4,7 @@ Handles opening MP3s with Apple Music and playlist management.
 """
 
 import json
+from dataclasses import dataclass
 import hashlib
 import re
 import logging
@@ -20,6 +21,15 @@ from .music_script import MUSIC_SCRIPT
 from .logger import DIAGNOSTIC_HINT
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class MusicResult:
+    """Local library and playlist evidence, including a partially completed import."""
+
+    success: bool
+    imported: bool
+    message: str
 
 
 class AppleMusicManager:
@@ -129,16 +139,23 @@ class AppleMusicManager:
     @classmethod
     def open_file_with_music(cls, file_path: Path) -> Tuple[bool, str]:
         """Import and confirm a library track (a successful dispatch is insufficient)."""
-        return cls._import(file_path)
+        result = cls._import(file_path)
+        return result.success, result.message
 
     @classmethod
     def add_to_playlist(cls, file_path: Path, playlist_name: str) -> Tuple[bool, str]:
         """Reuse a confirmed library track and verify playlist membership."""
+        result = cls.add_to_playlist_result(file_path, playlist_name)
+        return result.success, result.message
+
+    @classmethod
+    def add_to_playlist_result(cls, file_path: Path, playlist_name: str) -> MusicResult:
+        """Return confirmed import evidence even if playlist membership fails."""
         if not file_path.is_file():
-            return False, "The downloaded file was not found."
+            return MusicResult(False, False, "The downloaded file was not found.")
         resolved, error = cls._resolve_playlist_name(playlist_name)
         if resolved is None:
-            return False, error
+            return MusicResult(False, False, error)
         return cls._import(file_path, resolved)
 
     @staticmethod
@@ -191,14 +208,15 @@ class AppleMusicManager:
         return dict(library=fields[0], track=fields[1], playlist=fields[2], member=fields[3] == "1")
 
     @classmethod
-    def _import(cls, file_path: Path, playlist: str = "") -> Tuple[bool, str]:
+    def _import(cls, file_path: Path, playlist: str = "") -> MusicResult:
         if not file_path.is_file():
-            return False, "The downloaded file was not found."
+            return MusicResult(False, False, "The downloaded file was not found.")
         if file_path.suffix.lower() != ".mp3":
-            return False, "The selected file is not an MP3."
+            return MusicResult(False, False, "The selected file is not an MP3.")
         if file_path.is_symlink():
-            return False, "Use the verified MP3 file, not a symbolic link."
+            return MusicResult(False, False, "Use the verified MP3 file, not a symbolic link.")
         path = file_path.resolve()
+        imported = False
         try:
             with History(path.parent) as history, history.music_lock():
                 source = history.file_source(path)
@@ -209,6 +227,7 @@ class AppleMusicManager:
                 known = history.get(key) or ""
                 if known:
                     state = cls._music_state(path, playlist, marker, known, state["library"])
+                imported = bool(state["track"])
                 for stage in (["import", "playlist"] if playlist else ["import"]):
                     pending = (
                         key
@@ -267,19 +286,28 @@ class AppleMusicManager:
                             + "Music has not confirmed the requested change. The MP3 is retained; "
                             "rerun to reconcile without redownloading. Check the Music library and target playlist."
                         )
+                    imported = bool(state["track"])
                     history.put(key, state["track"])
                     history.delete(pending)
-                return True, (
-                    f"Added to playlist '{playlist}'"
-                    if playlist
-                    else "Import confirmed in Apple Music"
+                return MusicResult(
+                    True,
+                    imported,
+                    (
+                        f"Added to playlist '{playlist}'"
+                        if playlist
+                        else "Import confirmed in Apple Music"
+                    ),
                 )
         except Exception as exc:
             logger.exception("Could not confirm Music import")
-            return False, (
-                f"Could not confirm the Music import: {exc}. "
-                "Open Music.app and check Automation permissions in System Settings > Privacy & Security. "
-                f"{DIAGNOSTIC_HINT}"
+            return MusicResult(
+                False,
+                imported,
+                (
+                    f"Could not confirm the Music import: {exc}. "
+                    "Open Music.app and check Automation permissions in System Settings > Privacy & Security. "
+                    f"{DIAGNOSTIC_HINT}"
+                ),
             )
 
     @staticmethod

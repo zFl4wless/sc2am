@@ -51,11 +51,17 @@ def smoke():
         assert (root / ".sc2am" / "config.yaml").is_file()
         run("config", "show", expected="Current Configuration:")
         url = "https://soundcloud.com/artist/track"
-        run("download", url, "--dry-run", expected="1 succeeded, 0 failed")
+        run("download", url, "--dry-run", expected="Dry-run previews: 1 succeeded, 0 failed")
         batch = root / "urls.txt"
         batch.write_text(f"# Smoke test\n{url}\n", encoding="utf-8")
-        run("batch", str(batch), "--dry-run", expected="1 succeeded, 0 failed")
-        run("download", "invalid", "--dry-run", code=2, expected="0 succeeded, 1 failed")
+        run("batch", str(batch), "--dry-run", expected="Dry-run previews: 1 succeeded, 0 failed")
+        run(
+            "download",
+            "invalid",
+            "--dry-run",
+            code=2,
+            expected="Dry-run previews: 0 succeeded, 1 failed",
+        )
         assert not (root / "downloads").exists()
         assert not (root / "logs").exists()
 
