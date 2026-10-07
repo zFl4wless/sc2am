@@ -168,6 +168,33 @@ def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
     assert command[-1] == "https://soundcloud.com/artist/night-drive"
 
 
+def test_downloader_reports_when_fallback_artwork_was_used(downloader, tmp_path, monkeypatch):
+    track_path = tmp_path / "downloads" / "night-drive.mp3"
+    track_path.parent.mkdir()
+    track_path.touch()
+    downloader.metadata_writer = Mock()
+    downloader.metadata_writer.write_to_file.return_value = (
+        True,
+        "Metadata embedded with fallback artwork; downloaded artwork unavailable",
+    )
+    monkeypatch.setattr(
+        downloader,
+        "get_track_info",
+        lambda _: (True, {"title": "Night Drive"}, "Info fetched successfully"),
+    )
+    monkeypatch.setattr(
+        downloader_module.subprocess,
+        "run",
+        Mock(return_value=Mock(returncode=0, stdout=json.dumps(str(track_path)), stderr="")),
+    )
+
+    success, result_path, message = downloader.download("https://soundcloud.com/artist/night-drive")
+
+    assert success is True
+    assert result_path == track_path
+    assert message == "Downloaded: night-drive.mp3 (metadata embedded; fallback artwork used)"
+
+
 def test_downloader_keeps_download_when_metadata_tagging_fails(downloader, tmp_path, monkeypatch):
     track_path = tmp_path / "downloads" / "untagged.mp3"
     track_path.parent.mkdir()

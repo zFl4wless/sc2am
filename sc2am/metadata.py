@@ -6,12 +6,16 @@ from __future__ import annotations
 
 import base64
 from datetime import datetime
+from io import BytesIO
 import logging
 import re
 from pathlib import Path
+import time
 from typing import Any, Dict, Optional, Tuple
+import warnings
 
 import requests
+from PIL import Image, ImageOps
 from mutagen.easyid3 import EasyID3, EasyID3KeyError
 from mutagen.id3 import APIC, ID3, ID3NoHeaderError, TALB, TCON, TDRC, TPE2, TSSE, TXXX
 
@@ -22,8 +26,14 @@ class MetadataWriter:
     """Writes SoundCloud/yt-dlp metadata into local audio files."""
 
     USER_AGENT = "sc2am/0.1"
+    ARTWORK_MAX_BYTES = 10 * 1024 * 1024
+    ARTWORK_MAX_PIXELS = 16_000_000
+    ARTWORK_MAX_DIMENSION = 1600
+    ARTWORK_TOTAL_TIMEOUT_SECONDS = 20
+    ARTWORK_CONNECT_TIMEOUT_SECONDS = 5
+    ARTWORK_READ_TIMEOUT_SECONDS = 2
     FALLBACK_COVER_ART_PNG = base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5f6WcAAAAASUVORK5CYII="
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP48OEDAAWkAtFabOJuAAAAAElFTkSuQmCC"
     )
 
     def write_to_file(self, file_path: Path, track_info: Dict[str, Any]) -> Tuple[bool, str]:
@@ -37,10 +47,15 @@ class MetadataWriter:
         try:
             normalized_track_info = self._normalize_track_info(track_info)
             self._write_text_tags(file_path, normalized_track_info)
-            artwork_verified = self._write_cover_art(file_path, normalized_track_info)
-            if artwork_verified:
+            artwork_status = self._write_cover_art(file_path, normalized_track_info)
+            if artwork_status == "verified":
                 return True, "Metadata embedded and artwork verified"
-            return True, "Metadata embedded, but artwork could not be verified"
+            if artwork_status == "fallback":
+                return (
+                    True,
+                    "Metadata embedded with fallback artwork; downloaded artwork unavailable",
+                )
+            return True, "Metadata embedded, but no artwork could be saved"
         except Exception as exc:
             logger.error(f"Failed to embed metadata: {exc}")
             return False, str(exc)
@@ -140,22 +155,26 @@ class MetadataWriter:
             id3.add(TXXX(encoding=3, desc="SOURCE_URL", text=[source_url]))
         id3.save(str(file_path), v2_version=3)
 
-    def _write_cover_art(self, file_path: Path, track_info: Dict[str, Any]) -> bool:
+    def _write_cover_art(self, file_path: Path, track_info: Dict[str, Any]) -> str:
         for thumbnail_url in self._cover_art_candidates(track_info):
             image_bytes, mime = self._download_image(thumbnail_url)
             if image_bytes and self._save_cover_art(file_path, image_bytes, mime):
-                return True
+                return "verified"
             if image_bytes:
                 logger.warning(
                     "Artwork candidate downloaded successfully, but could not be verified after saving."
                 )
 
-        fallback_bytes, fallback_mime = self._fallback_cover_art()
-        if self._save_cover_art(file_path, fallback_bytes, fallback_mime):
-            return True
+        fallback_bytes, _ = self._fallback_cover_art()
+        normalized_fallback = self._normalize_image(fallback_bytes)
+        if normalized_fallback and self._save_cover_art(
+            file_path, normalized_fallback, "image/jpeg"
+        ):
+            logger.warning("Downloaded artwork was unavailable; embedded fallback artwork.")
+            return "fallback"
 
         logger.warning("Fallback artwork could not be verified after saving.")
-        return False
+        return "unavailable"
 
     def _extract_tags(self, track_info: Dict[str, Any]) -> Dict[str, str]:
         track_value = track_info.get("track")
@@ -410,25 +429,101 @@ class MetadataWriter:
             return match.group(0)
         return text
 
-    @staticmethod
-    def _download_image(url: str) -> Tuple[Optional[bytes], str]:
+    @classmethod
+    def _download_image(cls, url: str) -> Tuple[Optional[bytes], str]:
+        response = None
         try:
+            deadline = time.monotonic() + cls.ARTWORK_TOTAL_TIMEOUT_SECONDS
             response = requests.get(
                 url,
-                timeout=20,
+                stream=True,
+                timeout=(cls.ARTWORK_CONNECT_TIMEOUT_SECONDS, cls.ARTWORK_READ_TIMEOUT_SECONDS),
                 headers={"User-Agent": MetadataWriter.USER_AGENT},
             )
-            response.raise_for_status()
-            image_bytes = response.content
-            mime = MetadataWriter._detect_image_mime(
-                image_bytes, response.headers.get("Content-Type", "")
-            )
-            if not image_bytes or not mime:
+            if time.monotonic() >= deadline:
+                logger.warning("Artwork download exceeded its total-time limit.")
                 return None, "image/jpeg"
-            return image_bytes, mime
+            response.raise_for_status()
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                try:
+                    if int(content_length) > cls.ARTWORK_MAX_BYTES:
+                        logger.warning(
+                            "Artwork response exceeds the %d-byte limit.", cls.ARTWORK_MAX_BYTES
+                        )
+                        return None, "image/jpeg"
+                except ValueError:
+                    pass
+
+            chunks = []
+            size = 0
+            for chunk in response.iter_content(chunk_size=64 * 1024):
+                if time.monotonic() >= deadline:
+                    logger.warning("Artwork download exceeded its total-time limit.")
+                    return None, "image/jpeg"
+                if not chunk:
+                    continue
+                size += len(chunk)
+                if size > cls.ARTWORK_MAX_BYTES:
+                    logger.warning(
+                        "Artwork response exceeds the %d-byte limit.", cls.ARTWORK_MAX_BYTES
+                    )
+                    return None, "image/jpeg"
+                chunks.append(chunk)
+
+            if time.monotonic() >= deadline:
+                logger.warning("Artwork download exceeded its total-time limit.")
+                return None, "image/jpeg"
+            image_bytes = cls._normalize_image(b"".join(chunks))
+            if not image_bytes:
+                logger.warning("Artwork response did not contain a valid supported image.")
+                return None, "image/jpeg"
+            if time.monotonic() >= deadline:
+                logger.warning("Artwork download exceeded its total-time limit.")
+                return None, "image/jpeg"
+            return image_bytes, "image/jpeg"
         except Exception as exc:
             logger.warning(f"Could not download artwork: {exc}")
             return None, "image/jpeg"
+        finally:
+            if response is not None:
+                response.close()
+
+    @classmethod
+    def _normalize_image(cls, image_bytes: bytes) -> Optional[bytes]:
+        """Decode image bytes and normalize the first frame to Music-friendly JPEG."""
+        if not image_bytes:
+            return None
+
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                with Image.open(BytesIO(image_bytes)) as image:
+                    if image.format not in {"JPEG", "PNG", "WEBP", "GIF"}:
+                        return None
+                    if image.width * image.height > cls.ARTWORK_MAX_PIXELS:
+                        return None
+                    image.verify()
+
+                with Image.open(BytesIO(image_bytes)) as image:
+                    if image.width * image.height > cls.ARTWORK_MAX_PIXELS:
+                        return None
+                    image.seek(0)
+                    image.load()
+                    oriented_image = ImageOps.exif_transpose(image)
+                    rgba = oriented_image.convert("RGBA")
+                    rgb = Image.new("RGB", rgba.size, (255, 255, 255))
+                    rgb.paste(rgba, mask=rgba.getchannel("A"))
+                    rgb.thumbnail(
+                        (cls.ARTWORK_MAX_DIMENSION, cls.ARTWORK_MAX_DIMENSION),
+                        Image.Resampling.LANCZOS,
+                    )
+                    output = BytesIO()
+                    rgb.save(output, format="JPEG", quality=90, optimize=True)
+                    return output.getvalue()
+        except Exception as exc:
+            logger.warning(f"Could not decode artwork image: {exc}")
+            return None
 
     @staticmethod
     def _first_available(*values: Any) -> str:
@@ -568,32 +663,6 @@ class MetadataWriter:
             return int(width) * int(height)
         except (TypeError, ValueError):
             return 0
-
-    @staticmethod
-    def _detect_image_mime(image_bytes: bytes, content_type: str) -> Optional[str]:
-        if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
-            return "image/png"
-        if image_bytes.startswith(b"\xff\xd8\xff"):
-            return "image/jpeg"
-        if image_bytes.startswith((b"GIF87a", b"GIF89a")):
-            return "image/gif"
-        if (
-            len(image_bytes) >= 12
-            and image_bytes.startswith(b"RIFF")
-            and image_bytes[8:12] == b"WEBP"
-        ):
-            return "image/webp"
-
-        lowered = (content_type or "").lower()
-        if "png" in lowered:
-            return "image/png"
-        if "jpeg" in lowered or "jpg" in lowered:
-            return "image/jpeg"
-        if "gif" in lowered:
-            return "image/gif"
-        if "webp" in lowered:
-            return "image/webp"
-        return None
 
     def _save_cover_art(self, file_path: Path, image_bytes: bytes, mime: str) -> bool:
         if not image_bytes:

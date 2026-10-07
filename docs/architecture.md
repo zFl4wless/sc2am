@@ -73,7 +73,7 @@ creates a new path; legacy title-only files are not migrated or reused.
 
 ## Important Design Rules
 - Metadata should be normalized before tagging so downstream code receives predictable values.
-- Artwork handling should always prefer a valid embedded image and fall back safely when no usable artwork exists.
+- Artwork responses are streamed with a 10 MiB cap and a 20-second total-time budget. Image bytes must decode successfully and stay under the pixel limit before SC2AM resizes and embeds them as JPEG; a fallback is reported separately from verified downloaded artwork.
 - CLI errors should be clear enough for users to act on without reading stack traces.
 - CLI exit codes should stay stable (`0` success, `1` processing failure, `2` usage/config input error) so automation can rely on them.
 - The project should remain macOS-friendly but avoid hard-coding local paths or machine-specific assumptions.
