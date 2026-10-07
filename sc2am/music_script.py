@@ -17,9 +17,13 @@ on run argv
         end if
         set playlistID to ""
         if targetPlaylist is not "" then
-            set matchingPlaylists to every playlist whose name is targetPlaylist
+            if expectedPlaylistID is not "" then
+                set matchingPlaylists to every playlist whose persistent ID is expectedPlaylistID
+            else
+                set matchingPlaylists to every playlist whose name is targetPlaylist
+            end if
             if (count of matchingPlaylists) is 0 then
-                error "SC2AM_NOT_STARTED: The playlist no longer exists. Please check the playlist name."
+                error "SC2AM_NOT_STARTED: The target playlist is unavailable or was deleted. Check Music.app and run the command again."
             end if
             if (count of matchingPlaylists) is greater than 1 then
                 error "SC2AM_NOT_STARTED: Multiple playlists have this name. Please rename one or choose a unique playlist name."
@@ -35,6 +39,9 @@ on run argv
             if expectedPlaylistID is not "" and playlistID is not expectedPlaylistID then
                 error "SC2AM_NOT_STARTED: The target playlist changed. Run the command again."
             end if
+        end if
+        if actionName is "resolve" then
+            return libraryID & "||" & playlistID & "|0"
         end if
         set matchingTracks to {}
         if knownTrackID is not "" then

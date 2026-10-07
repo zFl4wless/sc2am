@@ -25,6 +25,10 @@ class MusicDouble:
 
     def __init__(self):
         self.library = LIBRARY
+        self.playlist = PLAYLIST
+        self.playlist_name = "Roadtrip"
+        self.listings = 0
+        self.target_error = ""
         self.track = ""
         self.marker = ""
         self.member = False
@@ -36,11 +40,25 @@ class MusicDouble:
         assert kwargs == {"capture_output": True, "text": True, "timeout": 30}
         assert command[:2] == ["osascript", "-e"]
         if len(command) == 3:
-            return subprocess.CompletedProcess(command, 0, '["Roadtrip"]', "")
+            self.listings += 1
+            return subprocess.CompletedProcess(command, 0, json.dumps([self.playlist_name]), "")
         path, playlist, marker, known, library, action, playlist_id = command[3:]
         self.calls.append(command[3:])
         if library and library != self.library:
             return subprocess.CompletedProcess(command, 1, "", "SC2AM_NOT_STARTED: Library changed")
+        if playlist and (
+            self.target_error
+            or (playlist_id and playlist_id != self.playlist)
+            or (not playlist_id and playlist != self.playlist_name)
+        ):
+            return subprocess.CompletedProcess(
+                command,
+                1,
+                "",
+                "SC2AM_NOT_STARTED: " + (self.target_error or "Target playlist is stale; rerun"),
+            )
+        if action == "resolve":
+            return subprocess.CompletedProcess(command, 0, f"{self.library}||{self.playlist}|0", "")
         if action != "lookup":
             self.mutations.append(action)
             with History(Path(path).parent) as history:
@@ -76,7 +94,7 @@ class MusicDouble:
             [
                 self.library,
                 track,
-                PLAYLIST if playlist else "",
+                self.playlist if playlist else "",
                 "1" if track and playlist and self.member else "0",
             ]
         )
@@ -363,3 +381,99 @@ def test_cli_playlist_only_partial_import_is_counted(track, monkeypatch, music_d
     assert "Playlists: 0 confirmed, 1 failed/unconfirmed" in result.output
     assert "Partial success" in result.output
     assert music_double.mutations == ["import", "playlist"]
+
+
+@pytest.mark.parametrize("change", ["library", "replacement", "deleted", "nonwritable"])
+def test_pinned_target_rejects_stale_destination_before_mutation(track, music_double, change):
+    target, error = Manager.resolve_playlist(" roadtrip ")
+    assert not error
+    assert target.name == "Roadtrip"
+    assert (target.library_id, target.playlist_id) == (LIBRARY, PLAYLIST)
+    if change == "library":
+        music_double.library = "DDDDDDDDDDDDDDDD"
+    elif change == "replacement":
+        music_double.playlist = "EEEEEEEEEEEEEEEE"
+    else:
+        music_double.target_error = "Target unavailable; choose a regular user playlist and rerun"
+    result = Manager.add_to_resolved_playlist_result(track, target)
+    assert not result.success and not result.imported
+    assert "SC2AM_NOT_STARTED:" in result.message
+    assert not music_double.mutations
+    assert not pending_records(track)
+    assert music_double.listings == 1
+
+
+def test_resolved_target_reuses_ids_and_reconciles_pending_membership(track, music_double):
+    target, _ = Manager.resolve_playlist("Roadtrip")
+    music_double.failure["playlist"] = "timeout_before"
+    result = Manager.add_to_resolved_playlist_result(track, target)
+    assert not result.success and result.imported
+    assert pending_records(track)
+    assert not Manager.add_to_resolved_playlist_result(track, target).success
+    music_double.member = True
+    assert Manager.add_to_resolved_playlist_result(track, target).success
+    assert music_double.mutations == ["import", "playlist"]
+    assert not pending_records(track)
+    assert music_double.listings == 1
+    assert len([call for call in music_double.calls if call[5] == "resolve"]) == 1
+    assert all(call[4] == LIBRARY and call[6] == PLAYLIST for call in music_double.calls[1:])
+
+
+@pytest.mark.parametrize("names", [[], ["Roadtrip", "ROADTRIP"]])
+def test_resolve_rejects_unavailable_or_ambiguous_names(monkeypatch, names):
+    monkeypatch.setattr(Manager, "get_playlists", lambda: (True, names, ""))
+    state = Mock()
+    monkeypatch.setattr(Manager, "_music_state", state)
+    target, error = Manager.resolve_playlist("Roadtrip")
+    assert target is None and error
+    state.assert_not_called()
+
+
+@pytest.mark.parametrize("problem", ["deleted", "Smart", "Genius", "folder", "system"])
+def test_resolve_checks_target_before_any_track_work(monkeypatch, problem):
+    monkeypatch.setattr(Manager, "get_playlists", lambda: (True, ["Roadtrip"], ""))
+    run = Mock(return_value=(False, None, f"SC2AM_NOT_STARTED: {problem}; choose a user playlist"))
+    monkeypatch.setattr(Manager, "_run_osascript", run)
+    target, error = Manager.resolve_playlist("Roadtrip")
+    assert target is None
+    assert problem in error and "rerun" in error
+    assert run.call_args.kwargs["read_only"] is True
+    assert run.call_args.args[2][5] == "resolve"
+
+
+def test_script_uses_pinned_id_and_resolves_without_touching_tracks():
+    from sc2am.music_script import MUSIC_SCRIPT
+
+    assert "every playlist whose persistent ID is expectedPlaylistID" in MUSIC_SCRIPT
+    assert MUSIC_SCRIPT.index('if actionName is "resolve"') < MUSIC_SCRIPT.index(
+        "set matchingTracks"
+    )
+    assert MUSIC_SCRIPT.index("if smart of destinationPlaylist") < MUSIC_SCRIPT.index(
+        'if actionName is "resolve"'
+    )
+
+
+@pytest.mark.parametrize(
+    "output", [f"{LIBRARY}|{TRACK}|{PLAYLIST}|0", f"{LIBRARY}||{PLAYLIST}|1", f"{LIBRARY}|||0"]
+)
+def test_resolve_rejects_malformed_confirmation(monkeypatch, output):
+    monkeypatch.setattr(Manager, "get_playlists", lambda: (True, ["Roadtrip"], ""))
+    monkeypatch.setattr(
+        Manager, "_run_osascript", Mock(return_value=(True, Mock(stdout=output), ""))
+    )
+    target, error = Manager.resolve_playlist("Roadtrip")
+    assert target is None
+    assert "valid library/track confirmation" in error
+
+
+def test_same_id_remains_selected_after_name_changes(track, music_double, monkeypatch):
+    target, _ = Manager.resolve_playlist("Roadtrip")
+    music_double.playlist_name = "Renamed"
+    # A later name listing would redirect selection to another object or fail.
+    listing = Mock(side_effect=AssertionError("Names must not be resolved again"))
+    monkeypatch.setattr(Manager, "get_playlists", listing)
+    assert Manager.add_to_resolved_playlist_result(track, target).success
+    assert Manager.add_to_resolved_playlist_result(track, target).success
+    listing.assert_not_called()
+    assert music_double.mutations == ["import", "playlist"]
+    assert all(call[6] == PLAYLIST for call in music_double.calls[1:])

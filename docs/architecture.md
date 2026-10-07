@@ -34,9 +34,16 @@ track path and playlist name as separate `osascript` arguments. User-provided
 names and paths are not interpolated into script source.
 Playlist names are serialized as a JSON array using macOS Foundation so commas,
 Unicode, quotes and embedded whitespace survive listing and resolution. The import
-script rechecks that exactly one playlist matches and that it is a regular user
-playlist, then adds the confirmed library reference to that object. Smart, Genius, folder and system
-playlists are rejected with an actionable error.
+workflow lists playlist names and resolves a writable target once per run, lazily
+after the first successful download. Both the selected library and playlist
+persistent IDs are pinned for subsequent playlist imports. Each track still
+checks those IDs and the destination type before mutations; a deleted/replaced
+playlist or a changed library fails explicitly instead of selecting another
+playlist with the same name. A renamed playlist with the same ID remains the
+selected object. Smart, Genius, folder and system playlists are rejected with an
+actionable error. Unavailable/ambiguous targets are reported for affected tracks
+without repeating name resolution during that run. A new invocation resolves
+again; `--dry-run` and disabled playlist actions never resolve Music targets.
 
 All Music subprocess attempts use a 30-second timeout. Read-only queries retry
 at most three times, with 1- and 2-second backoff. Fixed AppleScript returns
@@ -74,7 +81,22 @@ single-track extraction. Metadata uses `--dump-single-json --flat-playlist
 --playlist-end 1` to preserve the collection envelope without extracting every
 entry or downloading audio. Results containing `entries` or a non-track `_type`
 are rejected, including empty and single-entry collections. Failed extraction
-also stops the workflow. `--no-playlist` is an additional download precaution.
+also stops the workflow. The complete single-track JSON (including formats) is
+passed to the download command using `--load-info-json` in a private temporary
+file, then removed on success or failure. The same extraction supplies ID3
+metadata and history identity. This avoids a second URL extraction while
+retaining two bounded yt-dlp subprocesses per fresh track. `--no-playlist` is an
+additional download precaution. See the [yt-dlp filesystem options](https://github.com/yt-dlp/yt-dlp#filesystem-options).
+
+The download-only copy omits `webpage_url` to disable yt-dlp's automatic URL
+re-extraction on media failure, which could bypass the collection preflight or
+change the track identity/metadata. Original metadata is retained for tagging.
+Temporary failures retry the checked extraction; an expired media URL fails
+without recording a successful download. Rerunning performs a fresh preflight
+when there is no verified cached file. Exact-URL and source-ID download reuse,
+file verification and durable Music mutation barriers remain unchanged.
+See [isolated workflow measurements](workflow-performance.md) for call counts,
+reproduction commands and the limits of simulated timings.
 
 Both yt-dlp commands include `--ignore-config`, so external yt-dlp configuration
 files cannot add archives, filters, or skip-download settings. SC2AM's CLI,

@@ -2,6 +2,8 @@
 
 import contextlib
 import io
+import json
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -36,13 +38,14 @@ def local_downloads(tmp_path, monkeypatch):
     monkeypatch.setattr(downloader, "get_track_info", lambda url: (True, tracks[url], "OK"))
 
     def run(command, **kwargs):
+        assert json.loads(Path(command[-1]).read_text())["id"] in {"101", "202"}
         options = yt_dlp.parse_options(command[1:]).ydl_opts
         # Exercise real file downloads/reuse and after_move output, without FFmpeg
         # or network access. Audio conversion and SoundCloud extraction are out of scope.
         options.update(enable_file_urls=True, postprocessors=[], noupdate=True)
         output = io.StringIO()
         with contextlib.redirect_stdout(output), yt_dlp.YoutubeDL(options) as ydl:
-            ydl.process_ie_result(dict(tracks[command[-1]]), download=True)
+            assert ydl.download_with_info_file(command[-1]) == 0
         return Mock(returncode=0, stdout=output.getvalue(), stderr="")
 
     monkeypatch.setattr(downloader_module.subprocess, "run", run)

@@ -86,6 +86,26 @@ warning. Keep `.sc2am/history.sqlite3` alongside the downloads, and follow the
 manual reconciliation is needed. The summary includes reused downloads and
 confirmed local Music results.
 
+The target playlist is resolved once per run after a successful download, and
+subsequent playlist stages use its library and playlist IDs. Deleted/replaced or
+non-writable targets and library changes produce warnings; MP3s are retained.
+An unavailable target is not repeatedly resolved for later tracks in that run.
+Check Music.app and rerun to resolve a corrected target. `--strict-import` and
+stop/continue policies apply to these failures as to other Music failures.
+
+## Measure Isolated Workflow Work
+
+```bash
+.venv/bin/python scripts/benchmark_workflow.py
+```
+
+This runs real CLI/batch, history and reconciliation paths with mocked external
+commands and tagging, using temporary files only. It never accesses SoundCloud
+or the personal Music library. The output labels simulated latency and reports
+call counts plus median wall times for fresh and resumed runs. See
+[workflow performance](workflow-performance.md) for the baseline comparison and
+reproduction instructions; these timings do not establish real service speed.
+
 ## Exit Codes
 
 SC2AM uses stable exit codes for scripts and automation:

@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 import main
 from sc2am.config_manager import ConfigManager
-from sc2am.apple_music import MusicResult
+from sc2am.apple_music import MusicResult, PlaylistTarget
 
 URLS = ("https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two")
 
@@ -25,7 +25,8 @@ def backends(monkeypatch, tmp_path):
     factory = Mock(return_value=downloader)
     music = Mock()
     music.open_file_with_music.return_value = (True, "Opened")
-    music.add_to_playlist_result.return_value = MusicResult(True, True, "Added")
+    music.resolve_playlist.side_effect = lambda name: (PlaylistTarget(name, "A" * 16, "C" * 16), "")
+    music.add_to_resolved_playlist_result.return_value = MusicResult(True, True, "Added")
     music_factory = Mock(return_value=music)
     monkeypatch.setattr(main, "_create_downloader", factory)
     monkeypatch.setattr(main, "AppleMusicManager", music_factory)
@@ -128,9 +129,10 @@ def test_playlist_override_and_disable(
     result = runner.invoke(main.cli, [*command_args(kind, tmp_path), "--no-open", *flags])
     assert result.exit_code == 0, result.output
     backends[3].open_file_with_music.assert_not_called()
-    calls = backends[3].add_to_playlist_result.call_args_list
+    calls = backends[3].add_to_resolved_playlist_result.call_args_list
     assert bool(calls) == (expected is not None)
-    assert all(call.args[1] == expected for call in calls)
+    assert all(call.args[1].name == expected for call in calls)
+    assert backends[3].resolve_playlist.call_count == int(expected is not None)
 
 
 @pytest.mark.parametrize("kind", ["multiple", "batch"])
@@ -259,7 +261,9 @@ def test_log_file_error_is_readable(runner, tmp_path, monkeypatch, backends):
 
 def test_music_warnings_preserve_download_success(runner, backends):
     backends[3].open_file_with_music.return_value = (False, "Music unavailable")
-    backends[3].add_to_playlist_result.return_value = MusicResult(False, False, "Playlist missing")
+    backends[3].add_to_resolved_playlist_result.return_value = MusicResult(
+        False, False, "Playlist missing"
+    )
     result = runner.invoke(main.cli, ["download", URLS[0], "--playlist", "Example"])
     assert result.exit_code == 0, result.output
     assert "WARNING: Music unavailable" in result.output
@@ -321,7 +325,7 @@ def test_stage_counts_and_strict_exit_policy(
     runner, tmp_path, backends, kind, strict, opened, playlist_result, imports, playlists
 ):
     backends[3].open_file_with_music.return_value = (opened, "Import result")
-    backends[3].add_to_playlist_result.return_value = playlist_result
+    backends[3].add_to_resolved_playlist_result.return_value = playlist_result
     flags = ["--playlist", "Example", "--continue-on-error"]
     if strict:
         flags.append("--strict-import")
@@ -417,7 +421,7 @@ def test_failed_download_leaves_requested_music_stages_unattempted(runner, backe
 @pytest.mark.parametrize("kind", ["multiple", "batch"])
 def test_mixed_results_keep_each_stage_separate(runner, tmp_path, backends, kind):
     backends[3].open_file_with_music.side_effect = [(True, "Confirmed"), (False, "Unconfirmed")]
-    backends[3].add_to_playlist_result.side_effect = [
+    backends[3].add_to_resolved_playlist_result.side_effect = [
         MusicResult(False, True, "Membership unconfirmed"),
         MusicResult(False, False, "Import unconfirmed"),
     ]
@@ -437,3 +441,47 @@ def test_mixed_results_keep_each_stage_separate(runner, tmp_path, backends, kind
     assert "Playlists: 0 confirmed, 2 failed/unconfirmed" in result.output
     assert f"{URLS[0]} [playlist]: Membership unconfirmed" in result.output
     assert f"{URLS[1]} [import]: Unconfirmed" in result.output
+
+
+@pytest.mark.parametrize("kind", ["single", "multiple", "batch"])
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("open_music", [False, True])
+def test_unavailable_playlist_is_resolved_once_and_keeps_mp3s(
+    runner, tmp_path, backends, kind, strict, open_music
+):
+    music = backends[3]
+    music.resolve_playlist.side_effect = None
+    music.resolve_playlist.return_value = (None, "Playlist unavailable; check Music.app and rerun.")
+    flags = [
+        "--playlist",
+        "Roadtrip",
+        "--continue-on-error",
+        "--open" if open_music else "--no-open",
+    ]
+    if strict:
+        flags.append("--strict-import")
+    result = runner.invoke(main.cli, [*command_args(kind, tmp_path), *flags])
+    count = 1 if kind == "single" else 2
+    assert result.exit_code == int(strict), result.output
+    assert f"Downloads: {count} succeeded, 0 failed" in result.output
+    assert f"Playlists: 0 confirmed, {count} failed/unconfirmed" in result.output
+    assert "Playlist unavailable; check Music.app and rerun." in result.output
+    music.resolve_playlist.assert_called_once_with("Roadtrip")
+    music.add_to_resolved_playlist_result.assert_not_called()
+    assert music.open_file_with_music.call_count == (count if open_music else 0)
+
+
+@pytest.mark.parametrize("kind", ["multiple", "batch"])
+def test_failed_downloads_do_not_trigger_or_repeat_playlist_resolution(
+    runner, tmp_path, backends, kind
+):
+    backends[1].download.side_effect = [
+        (False, None, "Track unavailable"),
+        (True, tmp_path / "track.mp3", "Downloaded"),
+    ]
+    result = runner.invoke(
+        main.cli, [*command_args(kind, tmp_path), "--continue-on-error", "--playlist", "Roadtrip"]
+    )
+    assert result.exit_code == 1, result.output
+    backends[3].resolve_playlist.assert_called_once_with("Roadtrip")
+    backends[3].add_to_resolved_playlist_result.assert_called_once()

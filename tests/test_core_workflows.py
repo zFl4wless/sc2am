@@ -165,7 +165,8 @@ def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(
     assert command[:3] == ["yt-dlp", "--ignore-config", "--no-playlist"]
     assert "after_move:%(filepath)j" in command
     assert "--no-overwrites" in command
-    assert command[-1] == "https://soundcloud.com/artist/night-drive"
+    assert command[-2] == "--load-info-json"
+    assert not Path(command[-1]).exists()  # Temporary extraction is cleaned up.
 
 
 def test_downloader_reports_when_fallback_artwork_was_used(downloader, tmp_path, monkeypatch):
@@ -391,7 +392,7 @@ def test_overlapping_downloads_only_tag_their_own_reported_file(
     monkeypatch.setattr(downloader, "_MAX_RETRIES", 1)
 
     def run(command, **kwargs):
-        if command[-1].endswith("/own"):
+        if json.loads(Path(command[-1]).read_text())["title"] == "Own":
             # Complete the overlapping run while this download is still in progress.
             assert other.download("https://soundcloud.com/artist/other")[0]
             output = json.dumps(str(own_path)) if has_output else ""

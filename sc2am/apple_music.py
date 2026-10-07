@@ -32,6 +32,15 @@ class MusicResult:
     message: str
 
 
+@dataclass(frozen=True)
+class PlaylistTarget:
+    """A run-scoped destination pinned to a Music library and playlist."""
+
+    name: str
+    library_id: str
+    playlist_id: str
+
+
 class AppleMusicManager:
     """Manages interaction with Apple Music on macOS."""
 
@@ -158,6 +167,29 @@ class AppleMusicManager:
             return MusicResult(False, False, error)
         return cls._import(file_path, resolved)
 
+    @classmethod
+    def resolve_playlist(cls, playlist_name: str) -> Tuple[Optional[PlaylistTarget], str]:
+        """Resolve a writable destination once, before this run's playlist imports."""
+        resolved, error = cls._resolve_playlist_name(playlist_name)
+        if resolved is None:
+            return None, error
+        try:
+            state = cls._music_state(Path("."), resolved, "", action="resolve")
+        except Exception as exc:
+            logger.exception("Could not resolve Music playlist")
+            return None, (
+                f"Could not resolve the target playlist: {exc}. Check Music.app and rerun. "
+                f"{DIAGNOSTIC_HINT}"
+            )
+        return PlaylistTarget(resolved, state["library"], state["playlist"]), ""
+
+    @classmethod
+    def add_to_resolved_playlist_result(
+        cls, file_path: Path, target: PlaylistTarget
+    ) -> MusicResult:
+        """Use the pinned destination; live validation must never select a replacement."""
+        return cls._import(file_path, target.name, target)
+
     @staticmethod
     def _mark_file(file_path: Path, marker: str) -> None:
         """Put the source marker in the default comment Music reads on import."""
@@ -187,9 +219,9 @@ class AppleMusicManager:
     ) -> dict:
         success, result, error = cls._run_osascript(
             MUSIC_SCRIPT,
-            "Checking Music import" if action == "lookup" else "Importing into Music",
+            "Checking Music import" if action in ("lookup", "resolve") else "Importing into Music",
             [str(path), playlist, marker, track_id, library_id, action, playlist_id],
-            read_only=action == "lookup",
+            read_only=action in ("lookup", "resolve"),
         )
         if not success or result is None:
             raise RuntimeError(error or "Music did not return a confirmed track reference.")
@@ -203,12 +235,15 @@ class AppleMusicManager:
             or (fields[3] == "1" and (not fields[1] or not fields[2]))
             or (library_id and library_id != fields[0])
             or (playlist_id and playlist_id != fields[2])
+            or (action == "resolve" and (fields[1] or fields[3] != "0"))
         ):
             raise RuntimeError("Music did not return a valid library/track confirmation.")
         return dict(library=fields[0], track=fields[1], playlist=fields[2], member=fields[3] == "1")
 
     @classmethod
-    def _import(cls, file_path: Path, playlist: str = "") -> MusicResult:
+    def _import(
+        cls, file_path: Path, playlist: str = "", target: Optional[PlaylistTarget] = None
+    ) -> MusicResult:
         if not file_path.is_file():
             return MusicResult(False, False, "The downloaded file was not found.")
         if file_path.suffix.lower() != ".mp3":
@@ -222,11 +257,24 @@ class AppleMusicManager:
                 source = history.file_source(path)
                 marker = "sc2am:" + hashlib.sha256(source.encode()).hexdigest()
                 # Discover the active library before using a stored persistent ID.
-                state = cls._music_state(path, playlist, marker)
+                state = cls._music_state(
+                    path,
+                    playlist,
+                    marker,
+                    library_id=target.library_id if target else "",
+                    playlist_id=target.playlist_id if target else "",
+                )
                 key = "music:" + state["library"] + ":" + source
                 known = history.get(key) or ""
                 if known:
-                    state = cls._music_state(path, playlist, marker, known, state["library"])
+                    state = cls._music_state(
+                        path,
+                        playlist,
+                        marker,
+                        known,
+                        state["library"],
+                        playlist_id=state["playlist"],
+                    )
                 imported = bool(state["track"])
                 for stage in (["import", "playlist"] if playlist else ["import"]):
                     pending = (
