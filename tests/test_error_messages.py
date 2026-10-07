@@ -254,9 +254,9 @@ class ErrorMessageTests(unittest.TestCase):
             main._print_run_summary(logger, 3, 1)
 
         secho_mock.assert_any_call(
-            "Summary: 3 succeeded, 1 failed (75% success rate)", fg="yellow", bold=True
+            "Downloads: 3 succeeded, 1 failed (75% success rate)", fg="yellow", bold=True
         )
-        logger.info.assert_called_once_with("Summary: 3 succeeded, 1 failed (75% success rate)")
+        logger.info.assert_called_once_with("Downloads: 3 succeeded, 1 failed (75% success rate)")
 
     def test_download_shows_final_summary_for_successful_run(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -290,7 +290,7 @@ class ErrorMessageTests(unittest.TestCase):
                 )
 
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 0 failed (100% success rate)", fg="green", bold=True
+            "Downloads: 1 succeeded, 0 failed (100% success rate)", fg="green", bold=True
         )
 
     def test_download_processes_multiple_links_in_one_run(self):
@@ -330,7 +330,7 @@ class ErrorMessageTests(unittest.TestCase):
 
         self.assertEqual(downloader.download.call_count, 2)
         secho_mock.assert_any_call(
-            "Summary: 2 succeeded, 0 failed (100% success rate)", fg="green", bold=True
+            "Downloads: 2 succeeded, 0 failed (100% success rate)", fg="green", bold=True
         )
 
     def test_download_respects_config_continue_on_error(self):
@@ -376,7 +376,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(downloader.download.call_count, 2)
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+            "Downloads: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
         )
 
     def test_batch_respects_config_continue_on_error(self):
@@ -429,7 +429,7 @@ class ErrorMessageTests(unittest.TestCase):
         self.assertEqual(downloader.download.call_count, 2)
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+            "Downloads: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
         )
 
     def test_batch_shows_final_summary_with_success_and_failure_counts(self):
@@ -479,7 +479,7 @@ class ErrorMessageTests(unittest.TestCase):
 
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+            "Downloads: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
         )
 
     def test_batch_shows_detailed_error_list_for_failed_tracks(self):
@@ -494,7 +494,7 @@ class ErrorMessageTests(unittest.TestCase):
 
         # Check that summary is printed
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True
+            "Downloads: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True
         )
         # Check that error header is printed (with newline prefix)
         secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
@@ -511,9 +511,9 @@ class ErrorMessageTests(unittest.TestCase):
             main._print_run_summary(logger, 3, 0, None)
 
         secho_mock.assert_called_once_with(
-            "Summary: 3 succeeded, 0 failed (100% success rate)", fg="green", bold=True
+            "Downloads: 3 succeeded, 0 failed (100% success rate)", fg="green", bold=True
         )
-        logger.info.assert_called_once_with("Summary: 3 succeeded, 0 failed (100% success rate)")
+        logger.info.assert_called_once_with("Downloads: 3 succeeded, 0 failed (100% success rate)")
 
     def test_multi_link_download_collects_and_reports_failed_urls(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -559,7 +559,7 @@ class ErrorMessageTests(unittest.TestCase):
         # Verify summary shows correct counts
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True
+            "Downloads: 1 succeeded, 2 failed (33% success rate)", fg="yellow", bold=True
         )
         # Verify error header is shown
         secho_mock.assert_any_call("\nFailed tracks:", fg="red", bold=True)
@@ -610,7 +610,7 @@ class ErrorMessageTests(unittest.TestCase):
 
         self.assertEqual(exit_ctx.exception.code, int(ExitCode.ERROR))
         secho_mock.assert_any_call(
-            "Summary: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
+            "Downloads: 1 succeeded, 1 failed (50% success rate)", fg="yellow", bold=True
         )
         secho_mock.assert_any_call("  1. line 1", fg="red")
 

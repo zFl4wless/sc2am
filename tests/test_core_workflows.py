@@ -135,7 +135,7 @@ def test_cli_reports_download_directory_failure_for_download_and_batch(
 
     assert result.exit_code == 1
     assert "Check the path and permissions." in result.output
-    assert "Summary: 0 succeeded, 1 failed" in result.output
+    assert "Downloads: 0 succeeded, 1 failed" in result.output
 
 
 def test_downloader_embeds_available_metadata_and_uses_yt_dlp_output(

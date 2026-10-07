@@ -283,8 +283,12 @@ SC2AM now returns stable exit codes for scripting:
 - `1` - runtime/download failure or a run that continued past invalid entries
 - `2` - usage/configuration error or an input-validation abort
 
-Music open/playlist failures remain warnings and do not change exit status.
-Summary success counts describe downloads or dry-run previews, not confirmed imports.
+Music import/playlist failures remain warnings and do not change exit status by
+default. Add `--strict-import` to `download` or `batch` to return `1` for failed
+or unconfirmed Music stages; use `--continue-on-error` to continue after them.
+Summaries separate downloads, confirmed local imports and playlist memberships,
+including partial success. Dry runs count previews only and perform no Music
+steps. Local confirmation does not verify cloud/iPhone availability.
 
 CLI progress output is written as clean status lines. By default, Python logger output on stderr is limited to warnings and errors so informational log lines do not duplicate the CLI status messages. Explicit `--log-level DEBUG` (or `log_level: DEBUG` / `SC2AM_LOG_LEVEL=DEBUG`) includes diagnostic and informational logs on stderr. To retain logs in a file, configure `log_file` or `SC2AM_LOG_FILE`.
 
@@ -294,10 +298,10 @@ When running batch operations with multiple links or URLs from a file, SC2AM pro
 
 - **Grouped logs** - Each track is clearly separated with visual dividers for easy scanning
 - **Real-time status** - Per-track status updates show what SC2AM is doing (downloading, opening, adding to playlist)
-- **Success rate** - Final summary includes percentage of successful downloads or previews
+- **Stage results** - Separate download, confirmed import and playlist counts preserve partial success
 - **Failed track details** - If any tracks fail, the summary lists each failed URL with its specific error message
 
-Example output:
+Example output with `--no-open --playlist "" --continue-on-error`:
 ```
 ──────────────────────────────────────────────
 Track 1/3: Processing https://soundcloud.com/artist/track1
@@ -322,7 +326,9 @@ Track 3/3: Downloading track...
 Track 3/3: OK: Downloaded: track3 [987654321].mp3
 Track 3/3: Done!
 
-Summary: 2 succeeded, 1 failed (67% success rate)
+Downloads: 2 succeeded, 1 failed (66% success rate)
+Imports: not requested
+Playlists: not requested
 
 Failed tracks:
   1. https://soundcloud.com/artist/track2

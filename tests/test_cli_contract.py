@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 import main
 from sc2am.config_manager import ConfigManager
+from sc2am.apple_music import MusicResult
 
 URLS = ("https://soundcloud.com/artist/one", "https://soundcloud.com/artist/two")
 
@@ -24,7 +25,7 @@ def backends(monkeypatch, tmp_path):
     factory = Mock(return_value=downloader)
     music = Mock()
     music.open_file_with_music.return_value = (True, "Opened")
-    music.add_to_playlist.return_value = (True, "Added")
+    music.add_to_playlist_result.return_value = MusicResult(True, True, "Added")
     music_factory = Mock(return_value=music)
     monkeypatch.setattr(main, "_create_downloader", factory)
     monkeypatch.setattr(main, "AppleMusicManager", music_factory)
@@ -87,7 +88,7 @@ def test_dry_run_does_not_initialize_backends_or_write_files(
     result = runner.invoke(main.cli, [*command_args(kind, tmp_path), "--dry-run"])
     assert result.exit_code == 0, result.output
     assert "Would download track" in result.output
-    assert "Would open with Apple Music" in result.output
+    assert "Would import into Apple Music" in result.output
     assert "Would add to playlist 'Roadtrip'" in result.output
     backends[0].assert_not_called()
     backends[2].assert_not_called()
@@ -127,7 +128,7 @@ def test_playlist_override_and_disable(
     result = runner.invoke(main.cli, [*command_args(kind, tmp_path), "--no-open", *flags])
     assert result.exit_code == 0, result.output
     backends[3].open_file_with_music.assert_not_called()
-    calls = backends[3].add_to_playlist.call_args_list
+    calls = backends[3].add_to_playlist_result.call_args_list
     assert bool(calls) == (expected is not None)
     assert all(call.args[1] == expected for call in calls)
 
@@ -258,7 +259,7 @@ def test_log_file_error_is_readable(runner, tmp_path, monkeypatch, backends):
 
 def test_music_warnings_preserve_download_success(runner, backends):
     backends[3].open_file_with_music.return_value = (False, "Music unavailable")
-    backends[3].add_to_playlist.return_value = (False, "Playlist missing")
+    backends[3].add_to_playlist_result.return_value = MusicResult(False, False, "Playlist missing")
     result = runner.invoke(main.cli, ["download", URLS[0], "--playlist", "Example"])
     assert result.exit_code == 0, result.output
     assert "WARNING: Music unavailable" in result.output
@@ -303,3 +304,136 @@ def test_missing_download_dependency_counts_failure(runner, monkeypatch, backend
     assert "Unable to prepare downloads" in result.output
     assert "0 succeeded, 1 failed" in result.output
     backends[2].assert_not_called()
+
+
+@pytest.mark.parametrize("kind", ["single", "multiple", "batch"])
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize(
+    "opened,playlist_result,imports,playlists",
+    [
+        (False, MusicResult(False, False, "Music unavailable"), 0, 0),
+        (True, MusicResult(False, True, "Playlist unavailable"), 1, 0),
+        (False, MusicResult(True, True, "Membership confirmed"), 1, 1),
+        (True, MusicResult(True, True, "Membership confirmed"), 1, 1),
+    ],
+)
+def test_stage_counts_and_strict_exit_policy(
+    runner, tmp_path, backends, kind, strict, opened, playlist_result, imports, playlists
+):
+    backends[3].open_file_with_music.return_value = (opened, "Import result")
+    backends[3].add_to_playlist_result.return_value = playlist_result
+    flags = ["--playlist", "Example", "--continue-on-error"]
+    if strict:
+        flags.append("--strict-import")
+    result = runner.invoke(main.cli, [*command_args(kind, tmp_path), *flags])
+    count = 1 if kind == "single" else 2
+    partial = not imports or not playlists
+    assert result.exit_code == (1 if strict and partial else 0), result.output
+    assert f"Downloads: {count} succeeded, 0 failed" in result.output
+    assert (
+        f"Imports: {count * imports} confirmed, {count * (1 - imports)} failed/unconfirmed"
+        in result.output
+    )
+    assert (
+        f"Playlists: {count * playlists} confirmed, {count * (1 - playlists)} failed/unconfirmed"
+        in result.output
+    )
+    assert ("Partial success" in result.output) == partial
+    assert "cloud/iPhone availability is not verified" in result.output
+
+
+@pytest.mark.parametrize("kind", ["multiple", "batch"])
+@pytest.mark.parametrize(
+    "continue_flag,count", [("--stop-on-error", 1), ("--continue-on-error", 2)]
+)
+def test_strict_music_failure_honors_continuation(
+    runner, tmp_path, backends, kind, continue_flag, count
+):
+    backends[3].open_file_with_music.return_value = (False, "Import unconfirmed")
+    result = runner.invoke(
+        main.cli, [*command_args(kind, tmp_path), "--strict-import", continue_flag]
+    )
+    assert result.exit_code == 1, result.output
+    assert backends[1].download.call_count == count
+    assert f"Downloads: {count} succeeded, 0 failed" in result.output
+    assert f"Imports: 0 confirmed, {count} failed/unconfirmed" in result.output
+    assert "Playlists: not requested" in result.output
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_disabled_music_is_not_reported_as_imported(runner, backends, strict):
+    flags = ["--strict-import"] if strict else []
+    result = runner.invoke(main.cli, ["download", URLS[0], "--no-open", "--playlist", "", *flags])
+    assert result.exit_code == 0, result.output
+    assert "Imports: not requested" in result.output
+    assert "Playlists: not requested" in result.output
+    backends[2].assert_not_called()
+
+
+@pytest.mark.parametrize("kind", ["single", "multiple", "batch"])
+def test_strict_dry_run_reports_only_previews(runner, tmp_path, backends, kind):
+    result = runner.invoke(
+        main.cli,
+        [*command_args(kind, tmp_path), "--dry-run", "--strict-import", "--playlist", "Example"],
+    )
+    count = 1 if kind == "single" else 2
+    assert result.exit_code == 0, result.output
+    assert f"Dry-run previews: {count} succeeded, 0 failed" in result.output
+    assert "No downloads, imports or playlist changes performed" in result.output
+    assert "Imports:" not in result.output
+    assert "Playlists:" not in result.output
+    assert "Downloads:" not in result.output
+    assert "confirmed" not in result.output
+    backends[0].assert_not_called()
+    backends[2].assert_not_called()
+
+
+@pytest.mark.parametrize("strict,expected", [(False, 2), (True, 1)])
+def test_strict_music_failure_precedes_later_validation_abort(runner, backends, strict, expected):
+    backends[3].open_file_with_music.return_value = (False, "Import unconfirmed")
+    flags = ["--strict-import"] if strict else []
+    result = runner.invoke(main.cli, ["download", URLS[0], "invalid", *flags])
+    assert result.exit_code == expected, result.output
+
+
+def test_strict_dry_run_preserves_validation_exit(runner, backends):
+    result = runner.invoke(main.cli, ["download", "invalid", "--dry-run", "--strict-import"])
+    assert result.exit_code == 2
+    assert "Dry-run previews: 0 succeeded, 1 failed" in result.output
+
+
+def test_failed_download_leaves_requested_music_stages_unattempted(runner, backends):
+    backends[1].download.return_value = (False, None, "Unavailable")
+    result = runner.invoke(
+        main.cli, ["download", URLS[0], "--playlist", "Example", "--strict-import"]
+    )
+    assert result.exit_code == 1, result.output
+    assert "Downloads: 0 succeeded, 1 failed" in result.output
+    assert "Imports: not attempted" in result.output
+    assert "Playlists: not attempted" in result.output
+    backends[2].assert_not_called()
+
+
+@pytest.mark.parametrize("kind", ["multiple", "batch"])
+def test_mixed_results_keep_each_stage_separate(runner, tmp_path, backends, kind):
+    backends[3].open_file_with_music.side_effect = [(True, "Confirmed"), (False, "Unconfirmed")]
+    backends[3].add_to_playlist_result.side_effect = [
+        MusicResult(False, True, "Membership unconfirmed"),
+        MusicResult(False, False, "Import unconfirmed"),
+    ]
+    result = runner.invoke(
+        main.cli,
+        [
+            *command_args(kind, tmp_path),
+            "--playlist",
+            "Example",
+            "--strict-import",
+            "--continue-on-error",
+        ],
+    )
+    assert result.exit_code == 1, result.output
+    assert "Downloads: 2 succeeded, 0 failed" in result.output
+    assert "Imports: 1 confirmed, 1 failed/unconfirmed" in result.output
+    assert "Playlists: 0 confirmed, 2 failed/unconfirmed" in result.output
+    assert f"{URLS[0]} [playlist]: Membership unconfirmed" in result.output
+    assert f"{URLS[1]} [import]: Unconfirmed" in result.output
