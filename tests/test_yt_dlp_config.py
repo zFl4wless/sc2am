@@ -77,7 +77,10 @@ def test_external_config_cannot_skip_metadata_or_audio(tmp_path, monkeypatch, lo
         output = io.StringIO()
         with contextlib.redirect_stdout(output), yt_dlp.YoutubeDL(options, auto_init=False) as ydl:
             ydl.add_info_extractor(LocalTrackIE())
-            assert ydl.download([command[-1]]) == 0
+            if "--load-info-json" in command:
+                assert ydl.download_with_info_file(command[-1]) == 0
+            else:
+                assert ydl.download([command[-1]]) == 0
         return Mock(returncode=0, stdout=output.getvalue(), stderr="")
 
     run_mock = Mock(side_effect=run)

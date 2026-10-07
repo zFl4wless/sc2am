@@ -20,7 +20,7 @@ from sc2am.config_manager import ConfigManager, ConfigurationError, LOG_LEVELS
 from sc2am.logger import DIAGNOSTIC_HINT, setup_logging
 from sc2am.validator import URLValidator
 from sc2am.downloader import Downloader
-from sc2am.apple_music import AppleMusicManager
+from sc2am.apple_music import AppleMusicManager, MusicResult
 
 
 class ExitCode(IntEnum):
@@ -235,6 +235,9 @@ def _run_tracks(
     music_errors = []
     downloader = None
     music_manager = None
+    playlist_resolved = False
+    playlist_target = None
+    playlist_error = ""
     exit_code = ExitCode.ERROR if failed_items else ExitCode.SUCCESS
 
     try:
@@ -320,7 +323,16 @@ def _run_tracks(
                 if playlist_name:
                     _track_status(logger, label, f"Adding to playlist '{playlist_name}'...")
                     music_counts["playlist_requested"] += 1
-                    result = music_manager.add_to_playlist_result(file_path, playlist_name)
+                    if not playlist_resolved:
+                        playlist_target, playlist_error = music_manager.resolve_playlist(
+                            playlist_name
+                        )
+                        playlist_resolved = True
+                    result = (
+                        music_manager.add_to_resolved_playlist_result(file_path, playlist_target)
+                        if playlist_target is not None
+                        else MusicResult(False, False, playlist_error)
+                    )
                     success, message = result.success, result.message
                     imported = imported or result.imported
                     if not open_music:

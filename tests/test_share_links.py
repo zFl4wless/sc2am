@@ -306,7 +306,8 @@ def test_download_and_history_use_resolved_url(tmp_path, monkeypatch, head):
     )
     monkeypatch.setattr(downloader_module.subprocess, "run", run)
     assert downloader.download(SHARE)[0]
-    assert [call.args[0][-1] for call in run.call_args_list] == [TRACK, TRACK]
+    assert run.call_args_list[0].args[0][-1] == TRACK
+    assert run.call_args_list[1].args[0][-2] == "--load-info-json"
     head.assert_called_once()
     run.reset_mock()
     assert downloader.download(TRACK)[0]

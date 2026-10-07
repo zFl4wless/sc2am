@@ -149,6 +149,7 @@ def test_cli_shows_timeout_warning_and_continues_downloads(
     assert "Open Music.app and check for permission prompts" in result.output
     assert f"{expected_downloads} succeeded, 0 failed" in result.output
     assert downloader.download.call_count == expected_downloads
-    assert run_mock.call_count == expected_downloads * AppleMusicManager._MAX_RETRIES
+    expected_queries = 1 if operation == "playlist" else expected_downloads
+    assert run_mock.call_count == expected_queries * AppleMusicManager._MAX_RETRIES
     assert track.exists()
-    assert sleep_mock.call_count == expected_downloads * 2
+    assert sleep_mock.call_count == expected_queries * 2

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 import shutil
 import sqlite3
+import tempfile
 
 from .history import History
 
@@ -157,7 +158,31 @@ class Downloader:
                 history.put("url:" + url, source)
                 return True, cached, f"Reused verified download: {cached.name}"
 
-        # yt-dlp command
+        # Reuse the single-track extraction, including formats and per-track tags.
+        # Do not let yt-dlp silently re-extract webpage_url on a failed media URL:
+        # that result could be a collection or disagree with our metadata/identity.
+        download_info = dict(track_info)
+        download_info.pop("webpage_url", None)
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w+", encoding="utf-8", suffix=".json"
+            ) as info_file:
+                json.dump(download_info, info_file)
+                info_file.flush()
+                return self._download_from_info(url, source, track_info, info_file.name)
+        except OSError:
+            logger.exception("Could not prepare temporary track information")
+            return (
+                False,
+                None,
+                "Could not prepare temporary track information. "
+                f"Check temporary directory space and permissions. {DIAGNOSTIC_HINT}",
+            )
+
+    def _download_from_info(
+        self, url: str, source: str, track_info: Dict[str, Any], info_path: str
+    ) -> Tuple[bool, Optional[Path], str]:
+        """Download a checked extraction without repeating the URL extractor."""
         output_template = str(self.download_dir.resolve() / "%(title)s [%(id)s].%(ext)s")
 
         cmd = [
@@ -177,7 +202,8 @@ class Downloader:
             "--print",
             "after_move:%(filepath)j",
             "--quiet",
-            url,
+            "--load-info-json",
+            info_path,
         ]
 
         for attempt in range(1, self._MAX_RETRIES + 1):
