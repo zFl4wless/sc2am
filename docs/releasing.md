@@ -21,6 +21,9 @@ tree on the `main` branch.
 - [ ] Run `python -m build` and `python scripts/verify_package_metadata.py dist` to
       verify the sdist and wheel license metadata and files.
 - [ ] Verify the package metadata reports the intended version.
+- [ ] Complete the [manual Music-to-iPhone release acceptance
+      checklist](release-acceptance.md); record `NOT TESTED` where no live
+      observation was made.
 - [ ] Review `git diff` and confirm the working tree contains only release files.
 
 ## Publish
