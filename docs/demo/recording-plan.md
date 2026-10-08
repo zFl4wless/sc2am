@@ -3,13 +3,15 @@
 For [issue #88](https://github.com/zFl4wless/sc2am/issues/88), based on main
 `2e5b46963548c903eb99f25f01db9857a068f19a`. Prepared on 2026-10-08.
 
-**Status: PREPARATION ONLY. No demo video has been recorded or published.**
+**Status: RECORDING PENDING. No demo video has been recorded or published.**
 The owner has authorized use of the existing SC2AM test Music library and
 publication of sanitized demo footage; the personal Mac library is excluded.
-Read-only UI inspection confirmed the test playlist/fixtures, an isolated test
-media folder and Sync Library disabled. No settings were changed. No real
-download/import/sync/playback command was run. No iPhone/CarPlay footage has been
-supplied. The checked-in captions are an editing draft, not evidence.
+UI inspection confirmed the test playlist/fixtures, an isolated test media
+folder and Sync Library disabled. A real download/import, repeated import and
+repeated-URL batch passed in that local test library. Tags and artwork were
+verified in the MP3 and Music.app; see the [dated acceptance record](device-acceptance-2026-10-08.md).
+No cloud sync or device playback has been observed. No iPhone/CarPlay footage
+has been supplied. The checked-in captions are an editing draft, not evidence.
 
 ## Current recording blockers
 
@@ -31,13 +33,17 @@ supplied. The checked-in captions are an editing draft, not evidence.
   recordings or music-generation service. The original geometric artwork was
   edited with OpenAI ImageGen to remove all text; the package records that
   provenance. Source assets are not demo evidence.
-  The owner still needs to upload the proposed replacement as a public single
-  SoundCloud track with its cover and send the new URL before the live run.
-- The authorized test library is not cloud-synced. Enabling Sync Library with
-  the signed-in account would involve that account's cloud library; a separate
-  local library does not isolate the cloud account. Do not enable it under the
-  existing test-library-only authorization. Agree on an authorized device/cloud
-  route before claiming iPhone availability. No Finder transfer has been tested.
+  The owner uploaded the replacement as a public single
+  [SoundCloud track](https://soundcloud.com/fl4wless-167171478/midnight-circuit)
+  with the expected title, creator, genre, tags and text-free artwork.
+- The existing test library is not cloud-synced and must remain that way. The
+  owner expressly authorized a new, initially empty Mac test library connected
+  to their personal Apple Music account, uploading only `Midnight Circuit`.
+  Personal cloud items must not be modified, recorded or published. This is a
+  documented exception to the disposable-account recommendation, not isolated
+  cloud-account testing. The new library still needs to be created via Music's
+  Option-launch chooser before this route can run. No Finder transfer has been
+  tested. Do not claim iPhone availability before observing it.
 
 Issue #87 is closed and provides the [manual release acceptance
 checklist](../release-acceptance.md). Its existence does not prove live device
@@ -97,7 +103,7 @@ holder's required credit and links. Keep the permission record with the evidence
 
 ## Command verification
 
-The only command tested for this task was a **dry run** on 2026-10-08, from the
+The first command tested for this task was a **dry run** on 2026-10-08, from the
 repository root with Python 3.14.8. A temporary config contained
 `download_dir: <temporary-test-root>/downloads` and `log_file: null`.
 Inherited `SC2AM_*` environment overrides were removed from the test subprocess.
@@ -125,9 +131,14 @@ Exit code was 0, stderr was empty, and the download directory was not created.
 This placeholder URL passes local syntax validation only. Its existence, audio,
 tags, artwork, Music import and device playback were **NOT TESTED**.
 
-For the future recording, create a config pointing at the isolated download
+The later [live local acceptance run](device-acceptance-2026-10-08.md) tested the
+actual `Midnight Circuit` URL successfully, including confirmed Music import.
+It produced logs and screenshots, not a demo video or cloud/device evidence.
+
+For the future video recording, create a config pointing at the isolated download
 directory, remove inherited `SC2AM_*` overrides, replace the URL with the
-rights-cleared track and use the following **untested live command proposal**:
+rights-cleared track and use the following command structure. This placeholder
+form is a proposal; the dated record contains the actual tested invocation:
 
 ```bash
 .venv/bin/python main.py --config "/path/to/isolated-demo/config.yaml" \
