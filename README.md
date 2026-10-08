@@ -22,9 +22,6 @@ SC2AM confirms the **local Mac import** only; it does not automate or guarantee
 cloud or iPhone sync. Importing an MP3 is separate from Apple's catalog matching:
 SC2AM does not request or guarantee a catalog match or an audio-quality upgrade.
 
-If this workflow is useful to you, [star SC2AM on GitHub](https://github.com/zFl4wless/sc2am)
-to support the project.
-
 ## See SC2AM in action
 
 [![SC2AM: SoundCloud to Apple Music](docs/demo/product-film/poster.png)](docs/demo/product-film/sc2am-product-film.mp4)
