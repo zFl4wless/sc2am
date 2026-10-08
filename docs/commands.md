@@ -162,5 +162,5 @@ release history.
 6. Obtain explicit publication approval, revalidate the merged commit and artifacts, then create a matching tag such as `v2.1.0`.
 7. Verify tag CI and publish the GitHub release using the matching changelog section.
 
-The [v2.1.0 candidate notes](releases/v2.1.0.md) document the skipped v2.0.2
-version, accepted device evidence and pending milestone/roadmap updates.
+The [v2.1.0 release notes](releases/v2.1.0.md) document the skipped v2.0.2
+version, accepted device evidence and milestone/roadmap sequencing.
