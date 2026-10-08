@@ -1,29 +1,52 @@
-# SC2AM - SoundCloud to Apple Music Automation Tool
+# SC2AM — SoundCloud tracks in your Apple Music playlists
 
-A Python CLI tool that automates downloading tracks from SoundCloud and importing them into Apple Music on macOS.
+[![CI on main](https://github.com/zFl4wless/sc2am/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/zFl4wless/sc2am/actions/workflows/pull-request-ci.yml?query=branch%3Amain)
+[![Latest release](https://img.shields.io/github/v/release/zFl4wless/sc2am)](https://github.com/zFl4wless/sc2am/releases/latest)
 
-Overview
---------
+Find music on SoundCloud and keep it alongside the songs in your existing
+Apple Music playlists. SC2AM is a command-line tool for Mac users: give it a
+single track link you have permission to download, and it downloads a tagged
+MP3, imports it into Music.app and optionally adds it to a playlist you choose.
 
-SC2AM provides a small, repeatable workflow for importing SoundCloud tracks into your macOS Music library:
+**Start here:** [Install v2.1.0](#end-user-installation-on-macos) ·
+[Mac → iPhone, offline & CarPlay setup](docs/macos-setup.md) ·
+[Watch the 36-second demo](docs/demo/product-film/sc2am-product-film.mp4)
 
-- Validate a SoundCloud track URL
-- Download the audio using yt-dlp and convert/normalize to MP3
-- Embed metadata (title, artist, album, genre, date) and cover artwork
-- Open Music.app and import the tagged MP3
-- Optionally add the track to a specified playlist
+You need macOS, Music.app with Automation permission, Python 3.10+ and FFmpeg.
+The installation guide uses Homebrew. For iPhone listening, use Apple's Sync
+Library with Apple Music or iTunes Match, or the separate Finder sync route.
+Once the track is stored on your iPhone, Apple's Music app handles offline and
+compatible CarPlay playback.
 
-The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, with improved title and artist mapping so Apple Music shows the correct track information after import. Artwork is checked as image data and normalized to JPEG; the download result reports when a fallback image is used.
+SC2AM confirms the **local Mac import** only; it does not automate or guarantee
+cloud or iPhone sync. Importing an MP3 is separate from Apple's catalog matching:
+SC2AM does not request or guarantee a catalog match or an audio-quality upgrade.
 
 ## See SC2AM in action
 
 [![SC2AM: SoundCloud to Apple Music](docs/demo/product-film/poster.png)](docs/demo/product-film/sc2am-product-film.mp4)
 
-From a SoundCloud link to Apple Music, iPhone and CarPlay.
-Watch the [36-second captioned overview](docs/demo/product-film/sc2am-product-film.mp4),
-featuring a real Apple Music screenshot, animated scenes and a demo soundtrack.
+Watch the [36-second captioned, animated overview](docs/demo/product-film/sc2am-product-film.mp4)
+of the SoundCloud → Music → iPhone → CarPlay journey. It includes a real Mac
+Music screenshot, illustrated phone/car scenes and a demo soundtrack; it is not
+a live recording or a measurement of sync time.
 
-[Setup, tested command and credits](docs/demo/product-film/README.md)
+[Setup, tested command and credits](docs/demo/product-film/README.md) ·
+[Separate device evidence and limits](docs/demo/device-acceptance-2026-10-08.md)
+
+## Overview
+
+SC2AM provides a small, repeatable workflow for importing SoundCloud tracks into your macOS Music library:
+
+- Validate a SoundCloud track URL
+- Download the audio using yt-dlp and convert it to MP3
+- Embed metadata (title, artist, album, genre, date) and cover artwork
+- Open Music.app and confirm the imported track
+- Optionally add the track to a specified playlist
+
+Artwork is checked as image data and normalized to JPEG; the download result
+reports when a fallback image is used. See [How It Works](#how-it-works) for
+repeat/resume behavior and the limits of local import confirmation.
 
 ## Installation
 
@@ -52,9 +75,9 @@ and user-facing changes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### End-user installation on macOS
 
-This install path uses the `v2.1.0` GitHub wheel. Confirm that its assets are
-visible on the [release page](https://github.com/zFl4wless/sc2am/releases/tag/v2.1.0)
-before installing; see the [release notes](docs/releases/v2.1.0.md).
+This install path uses the published `v2.1.0` GitHub wheel from the
+[release page](https://github.com/zFl4wless/sc2am/releases/tag/v2.1.0);
+see the [release notes](docs/releases/v2.1.0.md).
 It requires macOS, Python 3.10 or newer, and Homebrew for the external `ffmpeg` and `ffprobe`
 programs. Music.app is needed when importing tracks; a real download also needs
 network access.
@@ -438,6 +461,10 @@ chmod 755 ~/Downloads/sc2am
 
 ## Contributing
 
+For the next usability pilot, see the [3–5-user trial guide and blank
+records](docs/user-validation/README.md). Preparing these records does not
+establish that users have completed the journey.
+
 Contributions are welcome! Please:
 
 1. Fork the repository
@@ -482,6 +509,8 @@ MIT License - see LICENSE file for details
 - SoundCloud's terms of service should be respected
 
 ## Support
+
+If SC2AM is useful to you, consider starring this repository.
 
 The current stable release line is 2.x. Older release lines are unsupported;
 upgrade to the latest 2.x release before requesting help.
