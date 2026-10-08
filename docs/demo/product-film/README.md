@@ -1,29 +1,30 @@
-# SC2AM animated product film — first cut
+# SC2AM animated product film — revised cut
 
-[Watch the 45-second MP4](sc2am-product-film.mp4) ·
+[Watch the 36-second MP4](sc2am-product-film.mp4) ·
 [English subtitles](captions.en.vtt) · [Editable composition](index.html)
 
 A 1920×1080, 30-fps **animated product overview**, made locally with
 [Hyperframes](https://github.com/heygen-com/hyperframes) at the owner's request
-instead of collecting raw device footage. Captions are burned into the MP4 and
-provided as a matching VTT. There is no narration; the original authorized demo
+instead of collecting raw device footage. Seven short headlines serve as the burned-in captions and have a matching VTT.
+Each scene pairs one sentence of at most four words with a large visual; the
+cover connects the illustrated steps. Small evidence labels remain visible. There is no narration; the original authorized demo
 track supplies background music. The composition is reviewable and editable.
 
 ## What is real and what is illustrated
 
-- Link/command scene: an illustration of the actual tested command. No terminal
-  recording or fabricated successful terminal output is presented.
+- Link/MP3 scenes: an illustrated link entry and tagged-file motif. The actual
+  tested command is documented below; no terminal recording is presented.
 - Music scene: the actual sanitized Mac Details screenshot from the
   [dated acceptance run](../device-acceptance-2026-10-08.md), cropped only by the
   HTML viewport. Visible title, artist, genre and cover match the tested MP3.
 - Cloud scene: a graphic describing an earlier Mac observation, not a live
   upload. Uploaded was first observed 48.539 seconds after enabling sync;
   actual completion may have been earlier, and iPhone arrival time is unknown.
-- Phone/car scene: clearly labeled device illustrations. iPhone download/offline
+- Phone/car scenes: clearly labeled device illustrations. iPhone download/offline
   playback and real wireless BMW CarPlay were reported by the owner in the
   acceptance run. No device capture, audible device output or advancing fake
   playback counter is presented. The music bed is not playback evidence.
-- Timing: six designed scenes with animated entrances/exits, at 0/6/14/23/30/38
+- Timing: seven designed scenes with animated entrances/exits, at 0/5/10/17/22/27/32
   seconds; these are editorial timing, not measured end-to-end execution times.
 
 No Mac library, Apple Account, phone setting or vehicle was accessed to create
@@ -81,18 +82,21 @@ DO_NOT_TRACK=1 HYPERFRAMES_NO_TELEMETRY=1 \
   --strict --no-best-effort
 ```
 
-Edit `index.html` and keep `captions.en.vtt` aligned with its six caption blocks.
+Edit `index.html` and keep `captions.en.vtt` aligned with its seven headline captions.
 Audio/artwork provenance, credits and third-party notices are in
 [NOTICE.md](NOTICE.md). Output validation and hashes are in
 [validation.json](validation.json).
 
 ## Validation scope
 
-Hyperframes check sampled 3/10/18/26/34/41 seconds: no lint errors, runtime errors,
-layout warnings/errors or contrast failures (63/63 checks passed). Its eight
-structural lint warnings are retained: six suggestions to split scene sections
-into sub-compositions, one dense-track warning and one repeated-cover media
-warning. All repeated covers are intentional; rendered keyframes were visually
-reviewed. No motion-pass success is claimed: that automated pass was disabled by
-the tool. The local frame render and final-file checks are distinct from the
-real-device acceptance record and hosted CI.
+Hyperframes check sampled 2.5/7.5/13.5/19.5/24.5/29.5/34 seconds: no lint
+errors, runtime errors, layout warnings/errors or contrast failures (31/31
+checks passed). Its eight structural lint warnings are retained: seven
+suggestions to split scene sections into sub-compositions and one dense-track
+warning. The shared moving cover keeps this short composition in one file.
+The Music screenshot intentionally clips the lower Details fields; title,
+artist, genre and artwork stay visible. Final MP4 keyframes, the cloud-to-phone
+transition and the ending were visually reviewed. No motion-pass success is
+claimed: that automated pass was disabled by the tool. The local frame render
+and final-file checks are distinct from the real-device acceptance record and
+hosted CI.

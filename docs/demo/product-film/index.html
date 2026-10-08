@@ -1,28 +1,154 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=1920,height=1080"><title>SC2AM — Your tracks. Your next drive.</title>
-<script src="assets/gsap.min.js"></script><style>
-*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;background:#080e20;color:#f7f8ff;font-family:Arial,Helvetica,sans-serif}#film{position:relative;width:1920px;height:1080px;overflow:hidden;background:radial-gradient(ellipse at 85% 25%,#24395b 0%,#101b32 35%,#080e20 78%)}.grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff07 1px,transparent 1px),linear-gradient(90deg,#ffffff07 1px,transparent 1px);background-size:90px 90px;transform:perspective(800px) rotateX(48deg) scale(1.8);opacity:.25}.brand{position:absolute;left:92px;top:53px;font-size:32px;font-weight:800;letter-spacing:3px}.brand b{color:#ffc66e}.badge{position:absolute;right:92px;top:53px;font-size:24px;letter-spacing:2px;color:#d7e0f0;padding:13px 20px;border:1px solid #63748f;border-radius:30px}.scene{position:absolute;inset:0;opacity:0;padding:170px 100px 170px}.eyebrow{color:#ffc66e;font-size:25px;letter-spacing:4px;font-weight:700;margin-bottom:26px}.headline{font-size:112px;line-height:1.05;letter-spacing:-5px;margin:0;font-weight:800}.sub{font-size:36px;line-height:1.4;color:#c4cee0;margin-top:32px;max-width:970px}.accent{color:#ffc66e}.small{font-size:27px;line-height:1.5;color:#c4cee0}.caption{position:absolute;bottom:69px;left:100px;width:1720px;text-align:center;background:#080e20e8;border-top:1px solid #627084;padding:18px 28px;font-size:44px;line-height:1.35;color:#fff}.scope{position:absolute;bottom:22px;left:100px;width:1720px;font-size:20px;color:#aab9d0;text-align:center}.hero-cover{position:absolute;right:190px;top:185px;width:610px;height:610px;border-radius:28px;box-shadow:0 35px 100px #0008;transform:rotate(7deg)}.cover-label{position:absolute;right:190px;top:818px;width:610px;font-size:28px;text-align:center;color:#d3def2}.route{display:flex;gap:16px;align-items:center;margin-top:46px;font-size:26px}.route span{border:1px solid #63748f;border-radius:30px;padding:15px 24px}.route i{font-style:normal;color:#ffc66e}.terminal{position:absolute;left:100px;right:100px;top:330px;height:425px;border:1px solid #53627c;border-radius:22px;background:#080d18;box-shadow:0 28px 70px #0006;padding:42px 50px;font-family:monospace}.dots{display:flex;gap:11px;margin-bottom:35px}.dots b{width:16px;height:16px;border-radius:50%;background:#ffc66e}.terminal .url{font-size:32px;color:#ffc66e;line-height:1.7}.terminal .cmd{font-size:29px;line-height:1.6;color:#ecf2fc;white-space:pre-wrap;margin:20px 0 0}.terminal-label{font-size:21px;color:#b8c7dd;float:right;font-family:Arial}.cursor{display:inline-block;width:16px;height:35px;background:#ffc66e;vertical-align:middle;margin-left:12px}.music-panel{position:absolute;left:800px;top:172px;width:1010px;height:630px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 25px 80px #0007}.music-panel img{width:1010px;height:auto;display:block}.pills{display:flex;gap:16px;margin-top:40px;flex-wrap:wrap;max-width:620px}.pills span{font-size:26px;padding:14px 20px;border:1px solid #63748f;border-radius:16px;background:#18233b}.actual{position:absolute;left:817px;top:815px;font-size:23px;color:#c4cee0}.cloud-box{position:absolute;right:110px;top:180px;width:660px;height:650px;border:1px solid #53627c;background:#13213c;border-radius:28px;padding:44px}.cloud-icon{font-size:96px;color:#ffc66e;text-align:center;margin:18px 0}.cloud-box .metric{font-size:93px;font-weight:700;letter-spacing:-3px;text-align:center}.cloud-box .metric small{font-size:40px}.cloud-box p{text-align:center;font-size:27px;line-height:1.5;color:#d7e0f0}.cloud-status{display:block;margin:30px auto;text-align:center;font-size:31px;color:#b8ead1;border:1px solid #59866d;border-radius:18px;padding:20px}.devices{position:absolute;left:100px;right:100px;top:310px;height:540px;display:flex;align-items:center;gap:95px}.phone{position:relative;width:290px;height:535px;border:8px solid #64728b;border-radius:49px;background:#0a1122;padding:38px 22px;box-shadow:0 30px 70px #0008}.island{position:absolute;top:12px;left:88px;width:96px;height:20px;border-radius:15px;background:#030611}.phone img{width:230px;height:230px;border-radius:15px}.phone h3{font-size:25px;line-height:1.2;margin:24px 0 9px}.phone p{font-size:20px;color:#b8c7dd;margin:0}.downloaded{font-size:20px;color:#b8ead1;margin-top:19px}.transport{font-size:40px;letter-spacing:17px;margin-top:22px;text-align:center}.device-arrow{font-size:70px;color:#ffc66e}.car{width:970px;height:410px;border:12px solid #51627c;border-radius:35px;background:linear-gradient(140deg,#172943,#101b2e);box-shadow:0 30px 90px #0008;padding:30px;display:flex;gap:38px;align-items:center}.car img{width:280px;height:280px;border-radius:14px}.car h3{font-size:48px;margin:0 0 15px}.car p{font-size:29px;color:#c4cee0;margin:0}.car .transport{font-size:58px;margin-top:45px;letter-spacing:28px;text-align:left}.device-notice{position:absolute;right:140px;top:792px;font-size:25px;color:#d7e0f0}.end-card{display:flex;gap:85px;align-items:center;margin-top:38px}.end-card img{width:320px;height:320px;border-radius:24px}.repo{font-size:42px;font-family:monospace;color:#ffc66e}.requirements{font-size:28px;color:#d7e0f0;line-height:1.8;margin-top:25px}.credits{font-size:23px;color:#b9c7dd;line-height:1.6;margin-top:27px}.line{position:absolute;bottom:0;left:0;height:5px;background:#ffc66e;width:0}
-</style></head><body><div id="film" data-composition-id="sc2am" data-start="0" data-width="1920" data-height="1080" data-duration="45" data-fps="30">
-<div class="grid"></div><div class="brand">SC<span style="color:#ffc66e">2</span>AM</div><div class="badge">ANIMATED PRODUCT FILM</div>
-<section id="intro" class="scene clip" data-start="0" data-duration="6" data-track-index="1"><div class="eyebrow">SOUNDCLOUD → APPLE MUSIC</div><h1 class="headline">Your tracks.<br>Your <span class="accent">next drive.</span></h1><p class="sub" style="max-width:850px">A small Mac tool.<br>A journey across your music devices.</p><div class="route"><span>SoundCloud</span><i>→</i><span>Music</span><i>→</i><span>iPhone</span><i>→</i><span>CarPlay</span></div><img class="hero-cover" src="assets/cover.png" alt="Original geometric Midnight Circuit artwork"><div class="cover-label">Midnight Circuit · fl4wless</div><div class="caption">An authorized SoundCloud track.<br>Imported into Music on your Mac.</div></section>
-<section id="link" class="scene clip" data-start="6" data-duration="8" data-track-index="1"><div class="eyebrow">01 / START WITH A LINK</div><h1 class="headline" style="font-size:83px">One track. One command.</h1><div class="terminal"><span class="terminal-label">ILLUSTRATED COMMAND · ACTUALLY TESTED</span><div class="dots"><b></b><b></b><b></b></div><div class="url" id="url">https://soundcloud.com/fl4wless-167171478/midnight-circuit<span class="cursor"></span></div><pre class="cmd">.venv/bin/python main.py --config "&lt;demo-root&gt;/config.yaml" \<br>  download "https://soundcloud.com/fl4wless-167171478/midnight-circuit" \<br>  --open --playlist "" --stop-on-error --strict-import</pre></div><div class="caption">Download. Tag. Confirm the local import.<br>Command illustrated; real log linked.</div></section>
-<section id="music" class="scene clip" data-start="14" data-duration="9" data-track-index="1"><div class="eyebrow">02 / THE REAL MAC RESULT</div><h1 class="headline" style="font-size:100px">Tagged.<br>Covered.<br><span class="accent">Imported.</span></h1><div class="pills"><span>Midnight Circuit</span><span>fl4wless</span><span>Electronic</span><span>Embedded artwork</span></div><div class="music-panel"><img src="assets/music-details.png" alt="Actual sanitized Music.app Details screenshot from the acceptance test"></div><div class="actual">Actual Music.app screenshot · 8 October 2026 test</div><div class="caption">Real Music screenshot from the test.<br>Title, artist, genre and artwork checked.</div></section>
-<section id="cloud" class="scene clip" data-start="23" data-duration="7" data-track-index="1"><div class="eyebrow">03 / APPLE MANAGES THE NEXT STEP</div><h1 class="headline" style="font-size:93px">Give the cloud<br><span class="accent">time to catch up.</span></h1><p class="sub" style="max-width:1000px">Sync Library connects your devices.<br>SC2AM confirms the Mac import;<br>Apple handles the cloud transfer.</p><div class="cloud-box"><div class="cloud-icon">↑</div><div class="metric">48.539<small> s</small></div><span class="cloud-status">Mac status observed: Uploaded</span><p>First observed after sync started.<br>Actual completion may have been earlier.<br>iPhone arrival time unknown.</p></div><div class="caption">Earlier upload result; not filmed.<br>Animated transition, not live sync.</div></section>
-<section id="devices" class="scene clip" data-start="30" data-duration="8" data-track-index="1"><div class="eyebrow">04 / YOUR MUSIC, ON THE ROAD</div><h1 class="headline" style="font-size:85px">Phone to car. <span class="accent">Take it with you.</span></h1><div class="devices"><div class="phone"><div class="island"></div><img src="assets/cover.png" alt="Illustrated phone with authorized demo cover"><h3>Midnight Circuit</h3><p>fl4wless</p><div class="downloaded">↓ Downloaded · illustration</div><div class="transport">‹ ▶ ›</div></div><div class="device-arrow">→</div><div class="car"><img src="assets/cover.png" alt="Illustrated car display with authorized demo cover"><div><h3>Midnight Circuit</h3><p>fl4wless · Electronic</p><div class="transport">‹ ▶ ›</div><p style="font-size:22px;margin-top:25px">CarPlay concept · illustrated interface</p></div></div></div><div class="device-notice">Device results reported by the owner · no device footage</div><div class="caption">Owner confirmed iPhone and CarPlay tests.<br>Illustrated screens; no recorded playback.</div></section>
-<section id="end" class="scene clip" data-start="38" data-duration="7" data-track-index="1"><div class="eyebrow">SC2AM / OPEN SOURCE</div><h1 class="headline" style="font-size:88px">Start on your Mac.</h1><div class="end-card"><img src="assets/cover.png" alt="Midnight Circuit original geometric artwork"><div><div class="repo">github.com/zFl4wless/sc2am</div><div class="requirements">macOS · Python 3.10+ · FFmpeg/ffprobe · Music Automation<br>Cloud route: Apple Music or iTunes Match + Sync Library</div><div class="credits">Midnight Circuit: original algorithmic demo audio, made with Codex assistance.<br>Original geometric artwork, edited with OpenAI ImageGen.<br>Source, exact command and test scope: README companion notes.</div></div></div><div class="caption">Read prerequisites and test results.<br>Animated overview; filmed demo pending.</div></section>
-<div class="scope">Illustrated workflow · actual Mac still image · owner-reported device results · music bed, not device audio</div><div class="line"></div>
-<audio id="music-bed" class="clip" src="assets/music-bed.mp3" data-start="0" data-duration="45" data-track-index="3" data-volume="1"></audio>
-</div><script>
-window.__timelines=window.__timelines||{};
-const tl=gsap.timeline({paused:true});
-const scenes=[['intro',0,6],['link',6,8],['music',14,9],['cloud',23,7],['devices',30,8],['end',38,7]];
-for(const [id,start,duration] of scenes){tl.set('#'+id,{opacity:1},start);tl.fromTo('#'+id+' .eyebrow',{y:20,opacity:0},{y:0,opacity:1,duration:.55,ease:'power2.out'},start+.1);tl.fromTo('#'+id+' .headline',{y:40,opacity:0},{y:0,opacity:1,duration:.7,ease:'power3.out'},start+.2);tl.fromTo('#'+id+' .caption',{opacity:0},{opacity:1,duration:.35},start+.35);if(id!=='end')tl.to('#'+id,{opacity:0,duration:.3},start+duration-.3);}
-tl.fromTo('.hero-cover',{scale:.92,rotation:10},{scale:1,rotation:4,duration:5.7,ease:'power1.out'},.1);
-tl.fromTo('#url',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:1.3,ease:'none'},6.8);
-tl.fromTo('.music-panel',{y:45,opacity:0},{y:0,opacity:1,duration:.8,ease:'power3.out'},14.3);
-tl.fromTo('.cloud-box',{y:35,opacity:0},{y:0,opacity:1,duration:.7,ease:'power3.out'},23.3);
-tl.fromTo('.phone',{x:-55,opacity:0},{x:0,opacity:1,duration:.8,ease:'power3.out'},30.4);
-tl.fromTo('.car',{x:60,opacity:0},{x:0,opacity:1,duration:.8,ease:'power3.out'},30.7);
-tl.to('.line',{width:1920,duration:45,ease:'none'},0);
-window.__timelines.sc2am=tl;
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920,height=1080">
+  <title>SC2AM — SoundCloud to Music</title>
+  <script src="assets/gsap.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1920px; height: 1080px; }
+    body { background: #f5f3ee; color: #171918; font-family: Arial, Helvetica, sans-serif; }
+    #film { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+    .brand { position: absolute; left: 90px; top: 62px; font-size: 30px; font-weight: 700; letter-spacing: -1px; }
+    .disclosure { position: absolute; right: 90px; bottom: 43px; font-size: 23px; color: #5b5d58; }
+    .scene { position: absolute; inset: 0; opacity: 0; }
+    .caption { position: absolute; left: 90px; top: 340px; margin: 0; font-size: 140px; line-height: .99; letter-spacing: -7px; font-weight: 700; }
+    .caption span { display: block; }
+    .note { position: absolute; font-size: 25px; color: #5b5d58; }
+    #record { position: absolute; left: 0; top: 0; width: 640px; height: 640px; transform-origin: 0 0; z-index: 5; box-shadow: 0 16px 25px #17191812; }
+    .url-input { position: absolute; left: 90px; top: 820px; width: 1720px; height: 100px; border-bottom: 3px solid #171918; display: flex; align-items: center; gap: 28px; font-family: monospace; font-size: 31px; }
+    .url-input svg { flex: none; width: 48px; height: 48px; }
+    .url-text { white-space: nowrap; }
+    .url-cursor { width: 3px; height: 40px; background: #ed5a25; }
+    .file { position: absolute; left: 1110px; top: 176px; width: 530px; height: 696px; }
+    .file-label { position: absolute; left: 1150px; top: 230px; font-size: 58px; font-weight: 700; }
+    .file-title { position: absolute; left: 1150px; top: 800px; font-size: 29px; }
+    .music-window { position: absolute; left: 900px; top: 170px; width: 910px; height: 650px; overflow: hidden; border: 2px solid #d3d3ce; border-radius: 10px; background: white; }
+    .music-window img { width: 910px; height: auto; display: block; }
+    .music-note { left: 900px; top: 850px; }
+    .cloud { position: absolute; left: 1005px; top: 255px; width: 760px; height: 430px; }
+    .sync-note { left: 1055px; top: 800px; }
+    .phone { position: absolute; left: 1140px; top: 165px; width: 400px; height: 715px; border: 9px solid #242827; border-radius: 52px; background: #fff; box-shadow: 7px 7px 0 #a9aaa4; }
+    .phone .speaker { position: absolute; left: 147px; top: 17px; width: 88px; height: 9px; border-radius: 8px; background: #242827; }
+    .phone .title { position: absolute; left: 27px; top: 470px; font-size: 31px; font-weight: 700; }
+    .phone .artist { position: absolute; left: 27px; top: 517px; font-size: 25px; color: #5b5d58; }
+    .phone .download { position: absolute; left: 156px; top: 590px; width: 57px; height: 57px; }
+    .phone-note { left: 1140px; top: 921px; }
+    .car { position: absolute; left: 976px; top: 239px; width: 833px; height: 485px; border: 14px solid #242827; border-radius: 30px; background: #101722; box-shadow: 8px 8px 0 #a9aaa4; color: #fff; }
+    .car .title { position: absolute; left: 365px; top: 80px; font-size: 48px; font-weight: 700; line-height: 1.1; }
+    .car .artist { position: absolute; left: 365px; top: 207px; font-size: 27px; color: #cad0d7; }
+    .car .controls { position: absolute; left: 363px; top: 290px; width: 330px; height: 65px; }
+    .wheel { position: absolute; left: 876px; top: 678px; width: 222px; height: 222px; }
+    .vents { position: absolute; left: 1160px; top: 770px; width: 610px; height: 83px; }
+    .car-note { left: 1160px; top: 921px; }
+    .ending .caption { font-size: 184px; top: 306px; letter-spacing: -10px; }
+    .route { position: absolute; left: 97px; top: 570px; display: flex; align-items: center; gap: 38px; font-size: 47px; }
+    .route svg { width: 102px; height: 68px; }
+    .repo { position: absolute; left: 98px; top: 730px; font-size: 32px; color: #5b5d58; }
+    .readme { position: absolute; left: 98px; top: 870px; font-size: 27px; color: #5b5d58; }
+  </style>
+</head>
+<body>
+<div id="film" data-composition-id="sc2am" data-start="0" data-width="1920" data-height="1080" data-duration="36" data-fps="30">
+  <div class="brand">SC2AM</div>
+  <div class="disclosure">Illustrated workflow · demo soundtrack</div>
+
+  <section id="link" class="scene clip" data-start="0" data-duration="5" data-track-index="1">
+    <h1 class="caption"><span>Your</span><span>SoundCloud</span><span>track.</span></h1>
+    <div class="url-input">
+      <svg viewBox="0 0 48 48" fill="none" stroke="#ed5a25" stroke-width="4" aria-label="Link"><path d="M20 29l9-10M16 33l-3 3a9 9 0 01-13-13l9-9a9 9 0 0113 0M32 15l3-3a9 9 0 0113 13l-9 9a9 9 0 01-13 0" transform="translate(2 -1) scale(.9)"/></svg>
+      <span class="url-text">https://soundcloud.com/fl4wless-167171478/midnight-circuit</span>
+      <span class="url-cursor"></span>
+    </div>
+  </section>
+
+  <section id="file" class="scene clip" data-start="5" data-duration="5" data-track-index="1">
+    <h1 class="caption"><span>Make it</span><span>an MP3.</span></h1>
+    <svg class="file" viewBox="0 0 530 696" aria-label="MP3 file"><path d="M3 3h398l126 126v564H3z" fill="#fff" stroke="#171918" stroke-width="5"/><path d="M401 3v126h126" fill="none" stroke="#171918" stroke-width="5"/></svg>
+    <div class="file-label">MP3</div>
+    <div class="file-title">Midnight Circuit</div>
+  </section>
+
+  <section id="music" class="scene clip" data-start="10" data-duration="7" data-track-index="1">
+    <h1 class="caption"><span>In</span><span>Music.</span></h1>
+    <div class="music-window"><img id="actual-music" data-layout-allow-overflow src="assets/music-details.png" alt="Actual Music.app test screenshot with title, artist, genre and artwork"></div>
+    <div class="note music-note">Actual Mac test screenshot</div>
+  </section>
+
+  <section id="sync" class="scene clip" data-start="17" data-duration="5" data-track-index="1">
+    <h1 class="caption"><span>Let Apple</span><span>sync.</span></h1>
+    <svg class="cloud" viewBox="0 0 760 430" fill="none" stroke="#171918" stroke-width="7" aria-label="Apple Sync Library cloud"><path d="M170 360C85 360 38 298 58 235C74 185 122 161 169 165C176 78 246 35 319 50C384 62 423 112 430 165C484 128 554 146 587 202C650 197 702 239 700 295C698 337 662 360 614 360Z"/></svg>
+    <div class="note sync-note">Earlier Mac upload: observed by 48.539 s</div>
+  </section>
+
+  <section id="phone" class="scene clip" data-start="22" data-duration="5" data-track-index="1">
+    <h1 class="caption"><span>On your</span><span>iPhone.</span></h1>
+    <div class="phone">
+      <div class="speaker"></div>
+      <div class="title">Midnight Circuit</div>
+      <div class="artist">fl4wless</div>
+      <svg class="download" viewBox="0 0 60 60" fill="none" stroke="#171918" stroke-width="4" aria-label="Download"><circle cx="30" cy="30" r="26"/><path d="M30 12v28m-12-11l12 12 12-12"/></svg>
+    </div>
+    <div class="note phone-note">iPhone illustration</div>
+  </section>
+
+  <section id="car" class="scene clip" data-start="27" data-duration="5" data-track-index="1">
+    <h1 class="caption"><span>In</span><span>CarPlay.</span></h1>
+    <div class="car">
+      <div class="title">Midnight<br>Circuit</div>
+      <div class="artist">fl4wless</div>
+      <svg class="controls" viewBox="0 0 330 65" fill="#fff" aria-label="Illustrated playback controls"><path d="M10 15h5v35h-5zm30 0v35L15 32zM150 9l43 24-43 24zM298 15h5v35h-5zm-25 0l25 17-25 18z"/></svg>
+    </div>
+    <svg class="wheel" viewBox="0 0 220 220" fill="none" stroke="#242827" stroke-width="13" aria-label="Steering wheel"><circle cx="110" cy="110" r="96"/><circle cx="110" cy="110" r="23"/><path d="M86 108L22 91m110 17l64-17m-86 42v66"/></svg>
+    <svg class="vents" viewBox="0 0 610 83" fill="none" stroke="#242827" stroke-width="5" aria-label="Dashboard air vents"><rect x="3" y="3" width="604" height="77" rx="12"/><path d="M15 24h580M15 43h580M15 62h580M300 3v77"/></svg>
+    <div class="note car-note">CarPlay illustration</div>
+  </section>
+
+  <section id="end" class="scene ending clip" data-start="32" data-duration="4" data-track-index="1">
+    <h1 class="caption">SC2AM.</h1>
+    <div class="route"><span>SoundCloud</span><svg viewBox="0 0 102 68" fill="none" stroke="#ed5a25" stroke-width="5" aria-label="to"><path d="M0 34h96M68 8l28 26-28 26"/></svg><span>Music</span></div>
+    <div class="repo">github.com/zFl4wless/sc2am</div>
+    <div class="readme">Setup, tested command & credits in README.</div>
+  </section>
+
+  <img id="record" src="assets/cover.png" alt="Original authorized Midnight Circuit cover travelling through the illustrated workflow">
+  <audio id="music-bed" class="clip" src="assets/music-bed.mp3" data-start="0" data-duration="36" data-track-index="3" data-volume="1"></audio>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  const scenes = [
+    ['link', 0, 5], ['file', 5, 5], ['music', 10, 7],
+    ['sync', 17, 5], ['phone', 22, 5], ['car', 27, 5], ['end', 32, 4],
+  ];
+  for (const [id, start, duration] of scenes) {
+    tl.set('#' + id, { opacity: 1 }, start);
+    tl.fromTo('#' + id + ' .caption', { y: 18, opacity: 0 },
+      { y: 0, opacity: 1, duration: .38, ease: 'power2.out' }, start + .08);
+    if (id !== 'end') tl.to('#' + id, { opacity: 0, duration: .18 }, start + duration - .18);
+  }
+  tl.set('#record', { x: 1138, y: 170, scale: 1, opacity: 1 }, 0);
+  tl.fromTo('#record', { y: 194, opacity: 0 },
+    { y: 170, opacity: 1, duration: .55, ease: 'power2.out' }, .1);
+  tl.fromTo('.url-text', { clipPath: 'inset(0 100% 0 0)' },
+    { clipPath: 'inset(0 0% 0 0)', duration: 1.1, ease: 'none' }, .6);
+  tl.to('#record', { x: 1150, y: 335, scale: .69, duration: .65, ease: 'power2.inOut' }, 4.9);
+  tl.to('#record', { opacity: 0, duration: .22 }, 9.8);
+  tl.fromTo('.music-window', { x: 40, opacity: 0 },
+    { x: 0, opacity: 1, duration: .55, ease: 'power2.out' }, 10.1);
+  tl.set('#record', { x: 1260, y: 411, scale: .3 }, 17);
+  tl.to('#record', { opacity: 1, duration: .4 }, 17.15);
+  tl.to('#record', { x: 1180, y: 278, scale: .5, duration: .7, ease: 'power2.inOut' }, 21.9);
+  tl.fromTo('.phone', { y: 26, opacity: 0 },
+    { y: 0, opacity: 1, duration: .55, ease: 'power2.out' }, 22.05);
+  tl.to('#record', { x: 1017, y: 322, scale: .44, duration: .75, ease: 'power2.inOut' }, 26.9);
+  tl.fromTo('.car', { x: 42, opacity: 0 },
+    { x: 0, opacity: 1, duration: .55, ease: 'power2.out' }, 27.05);
+  tl.to('#record', { x: 1320, y: 270, scale: .72, duration: .65, ease: 'power2.inOut' }, 31.9);
+  tl.to('#record', { y: 256, duration: 3.2, ease: 'none' }, 32.6);
+  tl.to({}, { duration: .01 }, 35.99);
+  window.__timelines.sc2am = tl;
+</script>
+</body>
+</html>

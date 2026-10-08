@@ -1,95 +1,85 @@
 {
   "tool": "Hyperframes 0.8.141",
-  "duration_seconds": 45.0,
+  "duration_seconds": 36.0,
   "width": 1920,
   "height": 1080,
   "fps": "30/1",
   "video_codec": "h264",
   "pixel_format": "yuv420p",
   "audio_codec": "aac",
-  "bytes": 4432492,
-  "sha256": "336970aa7cf721fdff580b4c0902e0c13d68032fc77b8e095d7024f644923c23",
+  "bytes": 2625267,
+  "sha256": "869bb15af6368d8db50655fe0a0db7a7cf999947e0ed63f35619724ebe22d36a",
   "full_decode_exit": 0,
   "full_decode_stderr": "",
   "reviewed_frame_times": [
-    3,
-    10,
-    18,
-    26,
+    2.5,
+    7.5,
+    13.5,
+    19.5,
+    22.4,
+    24.5,
+    29.5,
     34,
-    41,
-    44.8
+    35.8
   ],
   "hyperframes_check": {
     "lint": {
       "ok": true,
       "errorCount": 0,
-      "warningCount": 8
+      "warningCount": 8,
+      "infoCount": 0
     },
     "runtime": {
       "ok": true,
       "errorCount": 0,
-      "warningCount": 0
+      "warningCount": 0,
+      "infoCount": 0
     },
     "layout": {
       "ok": true,
       "errorCount": 0,
-      "warningCount": 0
+      "warningCount": 0,
+      "infoCount": 0
     },
     "motion": {
       "ok": true,
       "errorCount": 0,
       "warningCount": 0,
+      "infoCount": 0,
       "enabled": false
     },
     "contrast": {
       "ok": true,
       "errorCount": 0,
       "warningCount": 0,
+      "infoCount": 0,
       "enabled": true,
-      "checked": 63,
-      "passed": 63
+      "checked": 31,
+      "passed": 31
     }
   },
+  "sample_times": [
+    2.5,
+    7.5,
+    13.5,
+    19.5,
+    24.5,
+    29.5,
+    34
+  ],
   "lint_warning_codes": [
-    "duplicate_media_discovery_risk",
     "nested_structure_needs_subcomposition",
     "timeline_track_too_dense"
   ],
   "scope": "Animated overview, not filmed end-to-end demo; device screens are illustrations; background music is not device playback evidence.",
   "audio_volume_check": {
-    "mean_volume": -21.4,
+    "mean_volume": -21.3,
     "max_volume": -4.9
   },
-  "targeted_revision_check": {
-    "lint": {
-      "ok": true,
-      "errorCount": 0,
-      "warningCount": 8
-    },
-    "runtime": {
-      "ok": true,
-      "errorCount": 0,
-      "warningCount": 0
-    },
-    "layout": {
-      "ok": true,
-      "errorCount": 0,
-      "warningCount": 0
-    },
-    "motion": {
-      "ok": true,
-      "errorCount": 0,
-      "warningCount": 0,
-      "enabled": false
-    },
-    "contrast": {
-      "ok": true,
-      "errorCount": 0,
-      "warningCount": 0,
-      "enabled": true,
-      "checked": 23,
-      "passed": 23
-    }
-  }
+  "captions": {
+    "count": 7,
+    "max_headline_words": 4,
+    "sidecar_matches_headlines": true
+  },
+  "design": "One short headline paired with a large visual; a shared cover moves through the illustrated workflow."
 }

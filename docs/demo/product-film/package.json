@@ -8,7 +8,7 @@
   },
   "scripts": {
     "preview": "hyperframes preview",
-    "check": "hyperframes check --at 3,10,18,26,34,41",
+    "check": "hyperframes check --at 2.5,7.5,13.5,19.5,24.5,29.5,34",
     "render": "hyperframes render --output sc2am-product-film.mp4 --fps 30 --workers 2 --crf 22 --strict --no-best-effort"
   },
   "dependencies": {

@@ -5,7 +5,7 @@ For [issue #88](https://github.com/zFl4wless/sc2am/issues/88), based on main
 
 **Original filmed-demo status: DEFERRED / footage unavailable.**
 The owner chose an [animated Hyperframes product film](product-film/README.md)
-instead of collecting raw recordings. A 45-second captioned MP4 and editable
+instead of collecting raw recordings. A 36-second captioned MP4 and editable
 source now exist; they are explicitly illustrated, not filmed device playback.
 The original plan below is retained for reference. **No raw recordings are
 currently requested from the owner.** Issue #88's original filmed-demo criteria
