@@ -8,14 +8,14 @@ and releases use [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 Changes merged after the latest release will be collected here until the next
-release is prepared. The v2.1.0 candidate below is not published yet.
+release is prepared.
 
-## [2.1.0] - Unreleased
+## [2.1.0] - 2026-10-08
 
 This compatible minor release combines the completed v2.0.2 and v2.1.0
 milestone work. **v2.0.2 is skipped**; it was never tagged or published.
-See the [candidate release notes](docs/releases/v2.1.0.md) for upgrade guidance,
-acceptance evidence and the remaining publication gates.
+See the [release notes](docs/releases/v2.1.0.md) for upgrade guidance,
+acceptance evidence and release verification.
 
 ### Added
 
@@ -112,8 +112,8 @@ Keep entries concise and describe the impact for users, not internal
 implementation details. Move the relevant entries from `Unreleased` into a
 dated version section when releasing.
 
-[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.0.1...HEAD
-[2.1.0]: https://github.com/zfl4wless/sc2am/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.1.0
 [2.0.1]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.1
 [2.0.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.0
 [1.4.1]: https://github.com/zfl4wless/sc2am/releases/tag/v1.4.1

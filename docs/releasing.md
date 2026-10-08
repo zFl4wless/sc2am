@@ -69,9 +69,9 @@ Preparation and passing CI do not authorize tagging or publication.
 Never reuse a published version or tag. If a release must be corrected, bump
 the version according to Semantic Versioning and document the correction.
 
-For the current candidate, see [v2.1.0 release notes](releases/v2.1.0.md).
+For v2.1.0, see [v2.1.0 release notes](releases/v2.1.0.md).
 The planned v2.0.2 scope is included in v2.1.0; no v2.0.2 tag or release is
-created. Milestones #8 and #9 remain open during preparation and review.
+created. Milestones #8 and #9 must remain open until publication is verified.
 
 ## Fresh artifact installation
 
