@@ -313,3 +313,13 @@ to eventually combine the planned patch/minor changes into v2.1.0 and document
 skipping v2.0.2; publication still requires review and merge. Issue #88's three
 demo acceptance criteria remain open until real footage is edited and published.
 Roadmap #94 is unchanged.
+
+## Subsequent presentation choice
+
+After the tests, the owner chose an [animated Hyperframes product film](product-film/README.md)
+instead of collecting raw footage. This changes how the product is presented,
+not the provenance or status of the observations in this record. The film's
+phone/CarPlay screens are labeled illustrations and its original background
+music is not audible-device-playback evidence. No further library/account/device
+action was used to make the animation. The original real-footage criterion in
+#88 remains open; no release/tag or roadmap completion follows from this film.

@@ -1,0 +1,18 @@
+{
+  "name": "sc2am-product-film",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Illustrated SC2AM product film; not a filmed device demo",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "preview": "hyperframes preview",
+    "check": "hyperframes check --at 3,10,18,26,34,41",
+    "render": "hyperframes render --output sc2am-product-film.mp4 --fps 30 --workers 2 --crf 22 --strict --no-best-effort"
+  },
+  "dependencies": {
+    "hyperframes": "0.8.141",
+    "gsap": "3.15.0"
+  }
+}

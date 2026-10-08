@@ -1,0 +1,95 @@
+{
+  "tool": "Hyperframes 0.8.141",
+  "duration_seconds": 45.0,
+  "width": 1920,
+  "height": 1080,
+  "fps": "30/1",
+  "video_codec": "h264",
+  "pixel_format": "yuv420p",
+  "audio_codec": "aac",
+  "bytes": 4432492,
+  "sha256": "336970aa7cf721fdff580b4c0902e0c13d68032fc77b8e095d7024f644923c23",
+  "full_decode_exit": 0,
+  "full_decode_stderr": "",
+  "reviewed_frame_times": [
+    3,
+    10,
+    18,
+    26,
+    34,
+    41,
+    44.8
+  ],
+  "hyperframes_check": {
+    "lint": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 8
+    },
+    "runtime": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0
+    },
+    "layout": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0
+    },
+    "motion": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "enabled": false
+    },
+    "contrast": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "enabled": true,
+      "checked": 63,
+      "passed": 63
+    }
+  },
+  "lint_warning_codes": [
+    "duplicate_media_discovery_risk",
+    "nested_structure_needs_subcomposition",
+    "timeline_track_too_dense"
+  ],
+  "scope": "Animated overview, not filmed end-to-end demo; device screens are illustrations; background music is not device playback evidence.",
+  "audio_volume_check": {
+    "mean_volume": -21.4,
+    "max_volume": -4.9
+  },
+  "targeted_revision_check": {
+    "lint": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 8
+    },
+    "runtime": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0
+    },
+    "layout": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0
+    },
+    "motion": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "enabled": false
+    },
+    "contrast": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "enabled": true,
+      "checked": 23,
+      "passed": 23
+    }
+  }
+}

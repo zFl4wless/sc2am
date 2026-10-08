@@ -15,15 +15,20 @@ SC2AM provides a small, repeatable workflow for importing SoundCloud tracks into
 
 The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, with improved title and artist mapping so Apple Music shows the correct track information after import. Artwork is checked as image data and normalized to JPEG; the download result reports when a fallback image is used.
 
-## End-to-end demo (recording pending)
+## Animated product film and device evidence
 
-The [55-second demo recording plan](docs/demo/recording-plan.md) includes the
-storyboard, shot list, draft captions, prerequisites, and the actual tested CLI
-command. The [dated acceptance record](docs/demo/device-acceptance-2026-10-08.md)
-documents real Mac import/cloud observations and owner-confirmed iPhone/offline/
-CarPlay results. The video is not yet available: raw terminal/Music, iPhone and
-parked CarPlay footage still needs to be captured. These test results and still
-images do not replace the captioned demo.
+[![SC2AM animated product film](docs/demo/product-film/poster.png)](docs/demo/product-film/sc2am-product-film.mp4)
+
+Watch the [45-second captioned product film](docs/demo/product-film/sc2am-product-film.mp4).
+It combines an actual Music.app test screenshot with **illustrated** link,
+iPhone and CarPlay scenes. It does not show live synchronization or recorded
+device playback; its music is a background track, not device-output evidence.
+
+[Prerequisites, actual tested command, credits and editable source](docs/demo/product-film/README.md)
+accompany the film. The [dated acceptance record](docs/demo/device-acceptance-2026-10-08.md)
+separately documents direct Mac observations and owner-confirmed iPhone/offline/
+CarPlay results. The original filmed end-to-end demo criterion in #88 remains
+open; the owner chose this animated alternative instead of collecting footage.
 
 ## Installation
 

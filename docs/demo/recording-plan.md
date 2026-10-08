@@ -3,7 +3,13 @@
 For [issue #88](https://github.com/zFl4wless/sc2am/issues/88), based on main
 `2e5b46963548c903eb99f25f01db9857a068f19a`. Prepared on 2026-10-08.
 
-**Status: RECORDING PENDING. No demo video has been recorded or published.**
+**Original filmed-demo status: DEFERRED / footage unavailable.**
+The owner chose an [animated Hyperframes product film](product-film/README.md)
+instead of collecting raw recordings. A 45-second captioned MP4 and editable
+source now exist; they are explicitly illustrated, not filmed device playback.
+The original plan below is retained for reference. **No raw recordings are
+currently requested from the owner.** Issue #88's original filmed-demo criteria
+remain open; this alternative must not be used to mark real footage complete.
 The owner has authorized use of the existing SC2AM test Music library and
 publication of sanitized demo footage; the personal Mac library is excluded.
 UI inspection confirmed the test playlist/fixtures, an isolated test media
@@ -206,7 +212,7 @@ preparation status instead of publishing a complete-journey claim.
   vehicle identifiers and people; retain only authorized test content. Review
   every frame and the captured audio before public upload.
 
-## Concrete recording handoff
+## Deferred filming handoff (reference only)
 
 Source rights, the authorized libraries/devices and the actual test commands
 are recorded in the [dated acceptance record](device-acceptance-2026-10-08.md).
@@ -214,7 +220,8 @@ Use the **32-second** [Midnight Circuit source](https://soundcloud.com/fl4wless-
 for the final demo; the separate 20-minute loop is for local acceptance only.
 No further source upload is needed.
 
-Retain uncut raw files for each of these shots, then edit the 55-second plan:
+If the owner later resumes the original filmed-demo scope, retain uncut raw
+files for these shots and edit the 55-second plan:
 
 1. **Mac terminal (10–15 seconds):** large readable text; paste the actual short
    source URL and run the live command below. Keep validation, verified-download
@@ -278,9 +285,9 @@ open until that export exists.
 
 ## README proposal once evidence is complete
 
-Keep the current README's `recording pending` link until all three criteria have
-evidence. Then replace that section with a real video link and the following
-text, filling every bracket from the recorded run:
+The current README links the explicitly animated product film. If the original
+filmed-demo scope resumes and all three criteria acquire evidence, add the real
+recorded demo with the following text, filling every bracket from its run:
 
 > Watch the [duration]-second captioned demo: [real hosted video link]. Recorded
 > with SC2AM [release/commit], macOS/Music [versions], iOS [version] and [CarPlay
