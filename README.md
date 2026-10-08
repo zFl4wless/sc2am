@@ -18,11 +18,12 @@ The downloaded MP3 files are automatically enriched with SoundCloud metadata (ti
 ## End-to-end demo (recording pending)
 
 The [55-second demo recording plan](docs/demo/recording-plan.md) includes the
-storyboard, shot list, draft captions, prerequisites, and a locally tested CLI
-dry run. The video is not yet available: this task has no authorized recording
-of the Music → iPhone → CarPlay journey. Cloud sync and device playback remain
-**NOT TESTED** for this demo. The plan lists the recordings and evidence needed
-before a captioned video can be published here.
+storyboard, shot list, draft captions, prerequisites, and the actual tested CLI
+command. The [dated acceptance record](docs/demo/device-acceptance-2026-10-08.md)
+documents real Mac import/cloud observations and owner-confirmed iPhone/offline/
+CarPlay results. The video is not yet available: raw terminal/Music, iPhone and
+parked CarPlay footage still needs to be captured. These test results and still
+images do not replace the captioned demo.
 
 ## Installation
 

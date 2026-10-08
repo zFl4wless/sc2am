@@ -1,0 +1,96 @@
+{
+  "tested_commit": "39ff2ae",
+  "functional_main": "2e5b469",
+  "local_library_id": "0EFDCF7D075BAF42",
+  "sync_library": false,
+  "sources": [
+    {
+      "soundcloud_id": "2415115401",
+      "music_track_id": "891EE6C629AA2506",
+      "title": "Midnight Circuit",
+      "ui_duration": "0:32"
+    },
+    {
+      "soundcloud_id": "2415141669",
+      "music_track_id": "72CAF52E1C048A1E",
+      "title": "Midnight Circuit",
+      "ui_duration": "20:00",
+      "source_note": "20-minute loop derivative of the original algorithmic audio"
+    }
+  ],
+  "long_file": {
+    "file": "Midnight Circuit [2415141669].mp3",
+    "bytes": 28895262,
+    "duration_seconds": 1200.0914285714287,
+    "sample_rate": 44100,
+    "sha256_after_import": "52d2114c7682d0236dc773bd9e707cc9474f0b1b716c2c421f5ce94318ee9692",
+    "tags": {
+      "TIT2": "Midnight Circuit",
+      "TPE1": "fl4wless",
+      "TALB": "SoundCloud",
+      "TCON": "Electronic"
+    },
+    "artwork_count": 1,
+    "decode_exit": 0,
+    "decode_stderr": ""
+  },
+  "transfer_failure": {
+    "started_utc": "2026-10-08T07:46:32.335380+00:00",
+    "elapsed_seconds": 4.458811042015441,
+    "exit_code": 1,
+    "mp3_count": 0
+  },
+  "retry": {
+    "started_utc": "2026-10-08T07:47:05.393004+00:00",
+    "elapsed_seconds": 25.305470291990787,
+    "exit_code": 0
+  },
+  "repeat": {
+    "started_utc": "2026-10-08T07:49:20.964081+00:00",
+    "elapsed_seconds": 2.0515003750333562,
+    "exit_code": 0
+  },
+  "batch": {
+    "started_utc": "2026-10-08T07:49:23.015949+00:00",
+    "elapsed_seconds": 3.1852872910094447,
+    "exit_code": 0
+  },
+  "permission_denied": {
+    "started_utc": "2026-10-08T07:49:48.389739+00:00",
+    "elapsed_seconds": 0.5368357090046629,
+    "exit_code": 1,
+    "music_journal_unchanged": true
+  },
+  "permission_restored": {
+    "started_utc": "2026-10-08T07:50:13.340644+00:00",
+    "elapsed_seconds": 0.6897329170024022,
+    "exit_code": 0
+  },
+  "controlled_transfer": {
+    "controlled_real_transfer": true,
+    "rate_limit": "64K",
+    "partial_observed": {
+      "file": "downloads/Midnight Circuit [2415141669].m4a.part-Frag2.part",
+      "bytes_before_termination": 130048,
+      "seconds_after_start": 2.6251611249754205
+    },
+    "child_exit_code": -15,
+    "forced_nonzero_barrier": true
+  },
+  "native_ui_observation": {
+    "playlist": "SC2AM, \"Test\" été",
+    "total_playlist_tracks": 10,
+    "short_source_rows": 1,
+    "long_source_rows": 1,
+    "method": "Native Music accessibility tree after repeated import and two-URL batch; this is an observation record, not video"
+  },
+  "permission_state": {
+    "responsible_app": "ChatGPT",
+    "target": "Music",
+    "initial": "on",
+    "test": "off",
+    "restored": "on",
+    "error": -1743,
+    "note": "The actual permission test ran outside the additional process sandbox. Sandbox errors -600/-2741 are excluded as permission evidence."
+  }
+}

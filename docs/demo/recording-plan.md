@@ -15,9 +15,12 @@ record includes the observed wait and screenshot. The owner reports successful
 iPhone appearance, download and offline playback; no independent device
 observation or iPhone/CarPlay footage has been supplied. The owner also confirms
 successful real wireless CarPlay playback in a BMW, including the offline check.
+Extended local same-title, Unicode/quoted-playlist, actual Automation-denial and
+controlled transfer-interruption/retry tests also passed using a separate looped
+20-minute source. This source was tested only in the nonsynced local library.
 The checked-in captions are an editing draft, not evidence.
 
-## Current recording blockers
+## Source choice and recording status
 
 - The proposed [City Lights Drive](https://soundcloud.com/fl4wless-167171478/city-lights-drive)
   page was verified as a public single track by fl4wless. The owner reports that
@@ -203,32 +206,75 @@ preparation status instead of publishing a complete-journey claim.
   vehicle identifiers and people; retain only authorized test content. Review
   every frame and the captured audio before public upload.
 
-## Recordings and evidence still needed from the owner
+## Concrete recording handoff
 
-1. A rights-cleared SoundCloud URL and written audio/artwork permission or license
-   evidence, including the public-video credit and permission for the test route.
-2. Confirmation of an authorized isolated Mac library and test account/iPhone/
-   CarPlay setup, with consent to record and publish sanitized test content.
-   Alternatively, supply recordings made by an authorized tester.
-3. The uncut terminal run and Music Details/Artwork footage, exact command,
-   config, version/commit, timestamp, exit code and embedded MP3 metadata check.
-4. Cloud status before/after and timestamps for the actual waiting period, plus
-   iPhone footage showing the same track available and downloaded. Record whether
-   the cloud status was Matched or Uploaded (or document the Finder route).
-5. Real iPhone offline-playback evidence and parked CarPlay footage with advancing
-   playback time and audible track output; list iOS/vehicle/connection details.
-6. A sanitized result record using [release-acceptance.md](../release-acceptance.md)
-   for the tested scenarios. The short demo can reference that record; it does
-   not complete the checklist's other cases. Mark all untested cases explicitly.
+Source rights, the authorized libraries/devices and the actual test commands
+are recorded in the [dated acceptance record](device-acceptance-2026-10-08.md).
+Use the **32-second** [Midnight Circuit source](https://soundcloud.com/fl4wless-167171478/midnight-circuit)
+for the final demo; the separate 20-minute loop is for local acceptance only.
+No further source upload is needed.
+
+Retain uncut raw files for each of these shots, then edit the 55-second plan:
+
+1. **Mac terminal (10–15 seconds):** large readable text; paste the actual short
+   source URL and run the live command below. Keep validation, verified-download
+   reuse/download and confirmed-import output visible. This already imported
+   track will normally be reused; label that honestly instead of presenting it
+   as a first download. Confirm the authorized local library before running.
+2. **Mac Music (10–15 seconds):** the short track's Details and Artwork panes.
+   Show title, artist, genre and the actual cover. Exclude the account sidebar,
+   private paths and unrelated tracks. The checked-in still images are reference
+   evidence, not motion footage.
+3. **Cloud transition:** the original upload was observed but not filmed. Either
+   record a new authorized transfer with new measured timestamps, or use the
+   actual Uploaded still with `Earlier Mac observation; upload not filmed`.
+   Label `First observed Uploaded after 48.539 s; wait omitted; phone arrival
+   time unknown`. Do not animate it into a fake live upload or re-enable sync
+   for the old fixture library. Switching libraries requires owner assistance.
+4. **iPhone (15–20 seconds):** start recording before finding the short track in
+   Music. Show the downloaded state, correct cover and title. Disable Wi-Fi and
+   cellular data in Settings, return to Music, restart from 0:00 and retain
+   evidence of audible playback. A separate camera recording captures actual
+   speaker audio reliably; do not assume screen recording includes Music audio.
+   Hide notifications and unrelated library content.
+5. **Parked BMW CarPlay (15–20 seconds):** film the real screen with a separate
+   camera. Keep Wi-Fi/Bluetooth on for wireless CarPlay, cellular data off and
+   no other internet route. Find the short track, press play and capture at least
+   five seconds of advancing time and audible car-speaker playback. Do not add
+   a soundtrack over this proof. Restore the phone's previous network settings
+   afterward. Exact BMW model is optional context and remains unknown so far.
+
+Save the raw footage in a local folder accessible to the editor and provide its
+path. Public consent covers sanitized demo content; review every frame and its
+sound before publishing. No account address, personal songs or vehicle identifier
+is needed. Reports that the tests worked cannot substitute for these shots.
+
+The actual tested short-track command is:
+
+```bash
+.venv/bin/python main.py --config "<demo-root>/config.yaml" \
+  download "https://soundcloud.com/fl4wless-167171478/midnight-circuit" \
+  --open --playlist "" --stop-on-error --strict-import
+```
+
+Run from the repository root with the virtual environment first on PATH and
+inherited `SC2AM_*` overrides removed; use the existing isolated demo config.
+The config selects downloads, **not** the Music library. Once raw recordings are
+available, retime the captions, add actual-source credits, export 1080p with
+burned-in captions plus VTT, check duration/readability/privacy and replace the
+README's pending link with the reviewed real video. Keep the PR draft and #88
+open until that export exists.
 
 ## Open acceptance criteria for #88
 
 - [ ] Link input, tagged track/artwork in Music, iPhone availability and CarPlay
   playback shown in real footage — **OPEN / NOT TESTED for this demo**.
 - [ ] Owned/authorized audio used and cloud waits/edits honestly labeled —
-  **OPEN**: no audio used; full permissions and measured waits still needed.
+  **OPEN**: replacement source is cleared and Mac wait recorded; the final
+  video and its truthful labels/credits are still pending.
 - [ ] Readable captioned 30–60 second demo published with prerequisites and a
-  tested live command — **OPEN**: storyboard/caption draft and dry run only.
+  tested live command — **OPEN**: storyboard/caption draft, actual tested live commands and
+  acceptance evidence exist; captioned export and public video link are pending.
 
 ## README proposal once evidence is complete
 

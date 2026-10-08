@@ -1,15 +1,16 @@
-# Device acceptance record — 2026-10-08 (in progress)
+# Device acceptance record — 2026-10-08
 
 Supports [issue #88](https://github.com/zFl4wless/sc2am/issues/88) and the
 [manual acceptance checklist](../release-acceptance.md). This is a real local
-run with screenshots and logs, **not an end-to-end demo video**. The full
-release gate is **NOT TESTED**. No release or tag was created.
+run with screenshots and logs, **not an end-to-end demo video**. The
+recorded scenarios now pass within the scope and setup exceptions below;
+release approval still requires review and merge. No release or tag was created.
 
 ## Environment and authorization
 
 | Field | Value |
 | --- | --- |
-| Tested commit | `c87126d7310a298b0e1e3756c2e448d7b5d4d06b` (documentation branch; functional code from main `2e5b469`) |
+| Tested commit | Initial run `c87126d`; extended local scenarios `39ff2ae` (documentation branch; functional code from main `2e5b469`) |
 | Tester / date | Codex-assisted Mac observations; owner device details; 2026-10-08 |
 | Mac / macOS / Music | Mac14,2 / 27.0 / 1.7 |
 | Python / yt-dlp / FFmpeg | 3.14.8 / 2026.7.4 / 9.0.2 |
@@ -174,20 +175,110 @@ ERROR: ffprobe is not installed. Install it with 'brew install ffmpeg' and try a
 Each run reported `Imports: not requested` and `Playlists: not requested`.
 These are real missing-tool checks, not a Music-permission-denial test.
 
+## Extended local scenarios with the 20-minute source
+
+The owner uploaded the separate [20-minute Midnight Circuit source](https://soundcloud.com/fl4wless-167171478/midnight-circuit-1),
+SoundCloud ID `2415141669`. It is an explicitly looped derivative of the original
+32-second algorithmic audio, not a new 20-minute composition. It shares the
+same title, artist and cover but has a different source identity and duration.
+The source MP3 was 28,801,682 bytes / 1,200.000 seconds, SHA-256
+`3c368c8d8e8de8e44daa3a46e26b18199503c70a7094311c3cef2dbb93fb6ebb`.
+The source/provenance files remain local, outside the repository.
+
+Before any further Music import, the owner reopened the original local test
+library. Native UI checks confirmed its isolated media folder, existing test
+fixtures and **Sync Library off**. The journal subsequently confirmed library
+`0EFDCF7D075BAF42`. This extra source was not imported into the cloud demo
+library or tested on iPhone/CarPlay.
+
+A test-only executable wrapper, outside the repository, delegated to real
+installed yt-dlp and limited its transfer to 64 KiB/s. After observing actual
+partial audio bytes, it terminated that child process with SIGTERM and returned
+143 as a nonzero safety barrier. Metadata extraction still used real yt-dlp.
+This is a **controlled interruption of a real network transfer**, not an observed
+network outage or mocked response. With `--open` requested, interruption at
+07:46:32.335 UTC (09:46:32 Berlin) left a 130,048-byte fragment, no final MP3 and
+no Music import. SC2AM exited 1 after 4.459 seconds, reported a download error
+with diagnostic advice, and printed `Imports: not attempted`.
+
+The normal, unwrapped CLI then retried in the **same download directory**:
+
+```bash
+.venv/bin/python main.py --config "<extended-root>/config.yaml" \
+  download "https://soundcloud.com/fl4wless-167171478/midnight-circuit-1" \
+  --open --playlist 'SC2AM, "Test" été' --stop-on-error --strict-import
+```
+
+The config used `download_dir: <extended-root>/downloads`, `log_file: null`,
+`default_playlist: null`, `open_music_app: false`, `continue_on_error: false`;
+`--open` explicitly requested import. As before, inherited `SC2AM_*` variables
+were removed and the virtual environment was first on PATH. Retry started at
+07:47:05.393 UTC, exited 0 after 25.305 seconds with empty stderr, and confirmed
+one download, one import and one playlist operation. The earlier separate
+no-open retry took 71.047 seconds; neither figure measures cloud sync.
+
+The final MP3 is **28,895,262 bytes / 1,200.091 seconds / 44,100 Hz**, with title
+`Midnight Circuit`, artist `fl4wless`, album `SoundCloud`, genre `Electronic` and
+one JPEG APIC cover. Full FFmpeg decoding exited 0 with empty stderr. SHA-256
+**after** SC2AM's import marker:
+`52d2114c7682d0236dc773bd9e707cc9474f0b1b716c2c421f5ce94318ee9692`.
+Music's File pane displayed 20:00, 28.9 MB, stereo and 192 kbit/s. Its Details
+and Artwork panes showed the expected metadata and actual text-free cover:
+
+![Actual long-track details in Music](evidence-2026-10-08/music-long-details.png)
+
+![Actual long-track artwork in Music](evidence-2026-10-08/music-long-artwork.png)
+
+The long track has Music ID `72CAF52E1C048A1E`, distinct from short-track ID
+`891EE6C629AA2506`. Both remained in Songs with the same title and their correct
+0:32 / 20:00 durations. Repeating the long command and a two-identical-URL batch
+both exited 0 with empty stderr and verified-download reuse. Native UI inspection
+of the exact `SC2AM, "Test" été` playlist showed **one short row and one long
+row**, ten tracks total including its eight older fixtures. Confirmation counts
+are operations, not new tracks. Neither repeat nor batch added duplicate rows.
+
+## Actual missing-Automation-permission check
+
+Under explicit owner permission, only **System Settings → Privacy & Security →
+Automation → ChatGPT → Music** was temporarily switched off. System Events and
+all other permissions were left unchanged. The actual cached short-track CLI
+command above, with `--open --playlist "" --stop-on-error --strict-import`, ran
+outside the extra process sandbox at 07:49:48.390 UTC. It exited 1 after 0.537
+seconds and reported:
+
+```text
+Keine Berechtigung zum Senden von Apple-Events an Music. (-1743)
+Open Music.app and check Automation permissions in System Settings > Privacy & Security.
+Imports: 0 confirmed, 1 failed/unconfirmed
+```
+
+The verified MP3 was retained. Failure occurred in the read-only library lookup,
+before the mutation stage; Music journal records were unchanged. The native
+UI showed the same two demo rows afterward. The exact Music toggle was promptly
+restored to **on** and verified. The same CLI then exited 0 with empty stderr
+and confirmed import at 07:50:13.341 UTC (0.690 seconds).
+
+Earlier supplementary process-sandbox checks produced -600 or -2741, including
+one run after restoring the toggle. Those are **excluded** as TCC permission
+evidence: the unrestricted -1743 run and successful unrestricted recovery are
+the relevant pair. No permissions were reset and no production code was changed.
+Sanitized values from these real runs and native observations are retained in
+[extended-local-results.json](evidence-2026-10-08/extended-local-results.json).
+
 ## Acceptance results
 
 | Scenario | Status | Evidence / notes |
 | --- | --- | --- |
 | MP3 title, artist and embedded artwork | PASS | Actual file inspection and screenshots above |
 | Music confirms imported track in isolated Mac library | PASS | CLI confirmation, journal ID and UI details/artwork |
-| Different tracks with the same title stay distinct | NOT TESTED | Only one source used in this run |
+| Different tracks with the same title stay distinct | PASS | Separate short/looped-long SoundCloud IDs and Music IDs; correct tags/artwork and 0:32 / 20:00 UI durations |
 | Repeated URL reuses file without duplicate Music track | PASS | Repeat exit 0; cached-file message; one UI row afterward |
 | Batch with repeated URL avoids duplicate track | PASS | Two-URL batch exit 0; one UI row afterward |
-| Playlist with commas, quotes and Unicode | NOT TESTED | Playlist disabled for this run |
+| Playlist with commas, quotes and Unicode | PASS | Exact `SC2AM, "Test" été` target; one row per source after repeat/batch |
 | Missing ffmpeg / ffprobe | PASS | Each absent from an actual per-process controlled PATH; exit 1, actionable error, no download directory or Music actions |
-| Missing Music Automation permission | NOT TESTED | Existing permission allowed actual import |
-| Interrupted network transfer and retry | NOT TESTED | No observed network interruption |
-| Representative long track | NOT TESTED | The 32-second demo source does not establish long-track behavior |
+| Missing Music Automation permission | PASS | Real Music toggle off: -1743, exit 1, read-only lookup fails before mutation; unchanged journal; restored toggle and successful retry |
+| Interrupted network transfer and retry | PASS | Controlled SIGTERM during real yt-dlp transfer after 130,048 partial bytes; --open import not attempted; same-folder retry/repeat/batch complete without duplicate rows; natural outage not tested |
+| Representative long track | PASS | Looped 20-minute source downloads, fully decodes and imports; 1,200.091 seconds / 28,895,262 bytes; Music shows 20:00 |
 | Cloud Matched/Uploaded and iPhone appearance | PASS | Agent observed Mac Uploaded after 48.539 seconds; owner confirms phone appearance with correct cover; exact phone appearance time/footage missing |
 | iPhone download and playback with Wi-Fi/cellular off | PASS | Owner affirms completed download and audible fresh offline start; no independent agent observation or footage |
 | Finder transfer and offline playback | N/A | Approved route is cloud; no Finder transfer claim |
@@ -205,26 +296,20 @@ These are real missing-tool checks, not a Music-permission-denial test.
 4. Capture the owner-confirmed parked CarPlay test: actual track selection,
    advancing elapsed time and audible offline playback, without adding a
    soundtrack over the evidence. Retain raw footage for caption editing.
-5. Resolve the remaining required release scenarios with separate real evidence.
-   The short demo and its local passes do not cover every release criterion.
+5. Retain the extended local results, restored Music permission and duplicate-safe
+   source identities. The controlled termination does not claim coverage of all
+   possible natural network failures.
 
-To make the remaining source-dependent checks concrete, a second source was
-prepared locally: an explicitly looped 20-minute derivative of our original
-32-second audio, 192 kbit/s MP3, 28,801,682 bytes. Full FFmpeg decoding and
-ffprobe's 1,200.000-second duration check passed. SHA-256:
-`3c368c8d8e8de8e44daa3a46e26b18199503c70a7094311c3cef2dbb93fb6ebb`.
-It is not a newly composed 20-minute song. Its provenance/cover accompany the
-local asset. The owner must upload it as a **new** SoundCloud track with the
-same `Midnight Circuit` title, clearly described as a looped software test, and
-provide its new canonical URL. Do not overwrite the demo track or import this
-extra source into the cloud-connected demo library. Long-track, same-title and
-interruption/retry results remain NOT TESTED until real runs produce evidence.
+**Overall scenario result: PASS (13 PASS, 1 N/A).** The Finder route is N/A
+because the approved route was cloud. Setup exceptions and owner-observed device
+results are explicitly recorded above; this is not testing under a separate
+Apple Account/disposable user. Exact phone appearance time and vehicle model
+remain unknown. Natural network outages and the long track's cloud/device path
+were not tested and are not release claims established by this record.
 
-**Overall gate: NOT TESTED.** iPhone passes above rely on the owner's actual test
-responses, not merely device ownership or enabled sync. Five required scenarios
-remain untested: same-title distinction, Unicode/quoted playlist, Automation
-permission denial, interrupted transfer/retry and representative long track.
-They still prevent a full release pass. The owner agreed to eventually combine
-the planned patch/minor changes into v2.1.0 and document skipping v2.0.2; this
-record does not authorize publication before acceptance, review and merge.
-Issue #88's three demo acceptance criteria remain open. Roadmap #94 is unchanged.
+**Release approval: pending review and merge. Reviewer/date: pending.** Passing
+these scenarios does not create a release or complete the demo. The owner agreed
+to eventually combine the planned patch/minor changes into v2.1.0 and document
+skipping v2.0.2; publication still requires review and merge. Issue #88's three
+demo acceptance criteria remain open until real footage is edited and published.
+Roadmap #94 is unchanged.
