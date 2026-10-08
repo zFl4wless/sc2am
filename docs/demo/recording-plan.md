@@ -10,8 +10,12 @@ UI inspection confirmed the test playlist/fixtures, an isolated test media
 folder and Sync Library disabled. A real download/import, repeated import and
 repeated-URL batch passed in that local test library. Tags and artwork were
 verified in the MP3 and Music.app; see the [dated acceptance record](device-acceptance-2026-10-08.md).
-No cloud sync or device playback has been observed. No iPhone/CarPlay footage
-has been supplied. The checked-in captions are an editing draft, not evidence.
+The authorized new cloud-test library subsequently showed `Uploaded`; the dated
+record includes the observed wait and screenshot. The owner reports successful
+iPhone appearance, download and offline playback; no independent device
+observation or iPhone/CarPlay footage has been supplied. The owner also confirms
+successful real wireless CarPlay playback in a BMW, including the offline check.
+The checked-in captions are an editing draft, not evidence.
 
 ## Current recording blockers
 
@@ -41,9 +45,14 @@ has been supplied. The checked-in captions are an editing draft, not evidence.
   to their personal Apple Music account, uploading only `Midnight Circuit`.
   Personal cloud items must not be modified, recorded or published. This is a
   documented exception to the disposable-account recommendation, not isolated
-  cloud-account testing. The new library still needs to be created via Music's
-  Option-launch chooser before this route can run. No Finder transfer has been
-  tested. Do not claim iPhone availability before observing it.
+  cloud-account testing. With owner assistance for Option-launch, the new
+  library was created, verified empty and given only the demo track before
+  enabling sync. It reached `Uploaded` (first observed after 48.539 seconds;
+  actual completion may be earlier between checks). The owner confirms iPhone
+  appearance, download and offline playback; the exact appearance time and raw
+  phone footage are missing. The owner confirms the parked wireless BMW CarPlay
+  test, including audible offline playback; raw CarPlay footage is still missing.
+  No Finder transfer has been tested.
 
 Issue #87 is closed and provides the [manual release acceptance
 checklist](../release-acceptance.md). Its existence does not prove live device
@@ -133,7 +142,9 @@ tags, artwork, Music import and device playback were **NOT TESTED**.
 
 The later [live local acceptance run](device-acceptance-2026-10-08.md) tested the
 actual `Midnight Circuit` URL successfully, including confirmed Music import.
-It produced logs and screenshots, not a demo video or cloud/device evidence.
+It produced logs and screenshots, not a demo video. A separate later cloud
+upload and the owner's iPhone test report are documented in the same record;
+CarPlay is also owner-confirmed; device video evidence remains pending.
 
 For the future video recording, create a config pointing at the isolated download
 directory, remove inherited `SC2AM_*` overrides, replace the URL with the
