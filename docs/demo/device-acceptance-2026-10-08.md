@@ -208,6 +208,18 @@ These are real missing-tool checks, not a Music-permission-denial test.
 5. Resolve the remaining required release scenarios with separate real evidence.
    The short demo and its local passes do not cover every release criterion.
 
+To make the remaining source-dependent checks concrete, a second source was
+prepared locally: an explicitly looped 20-minute derivative of our original
+32-second audio, 192 kbit/s MP3, 28,801,682 bytes. Full FFmpeg decoding and
+ffprobe's 1,200.000-second duration check passed. SHA-256:
+`3c368c8d8e8de8e44daa3a46e26b18199503c70a7094311c3cef2dbb93fb6ebb`.
+It is not a newly composed 20-minute song. Its provenance/cover accompany the
+local asset. The owner must upload it as a **new** SoundCloud track with the
+same `Midnight Circuit` title, clearly described as a looped software test, and
+provide its new canonical URL. Do not overwrite the demo track or import this
+extra source into the cloud-connected demo library. Long-track, same-title and
+interruption/retry results remain NOT TESTED until real runs produce evidence.
+
 **Overall gate: NOT TESTED.** iPhone passes above rely on the owner's actual test
 responses, not merely device ownership or enabled sync. Five required scenarios
 remain untested: same-title distinction, Unicode/quoted playlist, Automation
