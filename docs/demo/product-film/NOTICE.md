@@ -10,7 +10,7 @@ Original WAV SHA-256:
 `817b44abd158e1a8dcfcb4786a71b8467f866cce3d36f9d675813b5128f091d8`.
 
 Artwork: original geometric artwork, edited with OpenAI ImageGen to remove text.
-Music screenshot: actual sanitized Music.app test observation, 2026-10-08.
+Apple Music screenshot: actual sanitized Music.app test observation, 2026-10-08.
 Device outlines and layouts: HTML/CSS illustration, not an Apple interface
 capture or recording from a BMW. No Apple Account or personal library content
 was used in the animation.

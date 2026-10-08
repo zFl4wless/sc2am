@@ -20,8 +20,8 @@ The downloaded MP3 files are automatically enriched with SoundCloud metadata (ti
 [![SC2AM animated product film](docs/demo/product-film/poster.png)](docs/demo/product-film/sc2am-product-film.mp4)
 
 Watch the [36-second captioned product film](docs/demo/product-film/sc2am-product-film.mp4).
-It combines an actual Music.app test screenshot with **illustrated** link, MP3, cloud,
-iPhone and CarPlay scenes. It does not show live synchronization or recorded
+It combines an actual Apple Music (Music.app) test screenshot with
+**illustrated** link, MP3, cloud, iPhone and CarPlay scenes. It does not show live synchronization or recorded
 device playback; its music is a background track, not device-output evidence.
 
 [Prerequisites, actual tested command, credits and editable source](docs/demo/product-film/README.md)

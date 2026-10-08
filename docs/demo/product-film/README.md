@@ -16,7 +16,7 @@ supplies background music. The composition is reviewable and editable.
 
 - Link/MP3 scenes: an illustrated link entry and tagged-file motif. The actual
   tested command is documented below; no terminal recording is presented.
-- Music scene: the actual sanitized Mac Details screenshot from the
+- Apple Music scene: the actual sanitized Mac Details screenshot from the
   [dated acceptance run](../device-acceptance-2026-10-08.md), cropped only by the
   HTML viewport. Visible title, artist, genre and cover match the tested MP3.
 - Cloud scene: a graphic describing an earlier Mac observation, not a live
@@ -96,7 +96,7 @@ errors, runtime errors, layout warnings/errors or contrast failures (24/24
 checks passed). Its eight structural lint warnings are retained: seven
 suggestions to split scene sections into sub-compositions and one dense-track
 warning. The shared moving cover keeps this short composition in one file.
-The Music screenshot intentionally clips the lower Details fields; title,
+The Apple Music screenshot intentionally clips the lower Details fields; title,
 artist, genre and artwork stay visible. Final MP4 keyframes, the cloud-to-phone
 transition and the ending were visually reviewed. No motion-pass success is
 claimed: that automated pass was disabled by the tool. The local frame render
