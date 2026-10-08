@@ -52,6 +52,8 @@ and user-facing changes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### End-user installation on macOS
 
+The latest published release is **v2.0.1**. Version **v2.1.0 is being prepared**
+and has no published wheel yet; see the [candidate release notes](docs/releases/v2.1.0.md).
 This install path uses the verified `v2.0.1` GitHub wheel. It requires macOS,
 Python 3.10 or newer, and Homebrew for the external `ffmpeg` and `ffprobe`
 programs. Music.app is needed when importing tracks; a real download also needs
@@ -65,15 +67,17 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
   "https://github.com/zFl4wless/sc2am/releases/download/v2.0.1/sc2am-2.0.1-py3-none-any.whl"
-sc2am doctor
+sc2am --help
 sc2am download "https://soundcloud.com/artist/track"
 ```
 
 The wheel installs SC2AM and its Python dependencies into the active virtual
 environment. Do not also install `requirements.txt`; it is a compatibility
-wrapper around the same project dependencies. The `doctor` check reports
-missing prerequisites before the first real download. For Music.app permissions,
-see [macOS setup](docs/macos-setup.md).
+wrapper around the same project dependencies. Follow [macOS setup](docs/macos-setup.md)
+for prerequisites and Music.app permissions before the first real download.
+The usage sections below describe the v2.1.0 candidate; `doctor`, share links,
+safe repeat/resume and `--strict-import` require that version. After its
+publication, follow the candidate notes' upgrade command and run `sc2am doctor`.
 
 To upgrade an existing installation from `v2.0.0` to the current `v2.0.1`,
 activate the same environment and install the released wheel with `--upgrade`:
@@ -84,14 +88,15 @@ python -m pip install --upgrade \
 python -m pip check
 ```
 
-For later upgrades, use the wheel URL for the latest GitHub release; its version
+For later upgrades, use the wheel URL for the latest published GitHub release; its version
 is part of the asset filename and URL. The GitHub releases page is linked from
 the project's [release notes](https://github.com/zFl4wless/sc2am/releases).
 
 The application upgrade does not remove `~/.sc2am/config.yaml`, downloaded
 tracks, or `<download_dir>/.sc2am/history.sqlite3`. If an old config contains
 settings no longer recognized by this version, keep a backup, remove or correct
-only those settings, and retry `sc2am doctor`. To regenerate defaults, first copy
+only those settings, and retry `sc2am config show` (or `sc2am doctor` on v2.1.0).
+To regenerate defaults, first copy
 the config file and then run `sc2am config init --force`; this replaces only the
 selected YAML file. Never remove the download folder's `.sc2am` directory: it
 contains the journal SC2AM uses to safely resume downloads and imports.

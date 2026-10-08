@@ -34,7 +34,13 @@ black sc2am main.py tests
 Run Flake8 on the application and tests.
 
 ```bash
-flake8 sc2am main.py tests
+flake8 main.py sc2am tests scripts
+```
+
+## Check Application Types
+
+```bash
+mypy main.py sc2am
 ```
 
 ## Audit Runtime Dependencies
@@ -140,6 +146,7 @@ If packaging changes or a release is being prepared, verify the package metadata
 
 ```bash
 python -m build
+python scripts/verify_package_metadata.py dist
 ```
 
 See [`releasing.md`](releasing.md) for the complete release checklist and
@@ -149,7 +156,11 @@ release history.
 ## Release Workflow Summary
 1. Review the release scope and update `CHANGELOG.md`.
 2. Bump the version in `pyproject.toml` and `sc2am/__init__.py`.
-3. Run the tests, lint, formatting, and package build checks.
-4. Commit and push the release from `main`.
-5. Create a matching tag such as `v1.5.0`.
-6. Publish the GitHub release using the matching changelog section.
+3. Run tests, lint, formatting, type checks, dependency audit, builds and fresh installation smoke checks.
+4. Commit and push a release branch and open a PR; verify CI for its final commit.
+5. Obtain the required review approval and merge without bypassing branch protection.
+6. Obtain explicit publication approval, revalidate the merged commit and artifacts, then create a matching tag such as `v2.1.0`.
+7. Verify tag CI and publish the GitHub release using the matching changelog section.
+
+The [v2.1.0 candidate notes](releases/v2.1.0.md) document the skipped v2.0.2
+version, accepted device evidence and pending milestone/roadmap updates.

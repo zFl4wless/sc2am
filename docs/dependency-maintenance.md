@@ -33,9 +33,15 @@ Activate the virtual environment used to run SC2AM, then update the project and
 its dependencies:
 
 ```bash
-python -m pip install --upgrade sc2am
+python -m pip install --upgrade \
+  "https://github.com/zFl4wless/sc2am/releases/download/v2.0.1/sc2am-2.0.1-py3-none-any.whl"
 python -m pip check
 ```
+
+The example uses the latest published release, v2.0.1. Once v2.1.0 is
+published, use its wheel URL from the [GitHub release](https://github.com/zFl4wless/sc2am/releases)
+to receive the dependency minimums described above. Do not assume that a
+package with the same name on a package index is this GitHub release.
 
 For a source checkout, use `python -m pip install --upgrade -e .` instead. The
 upgrade option lets pip replace installed dependencies to satisfy the current
