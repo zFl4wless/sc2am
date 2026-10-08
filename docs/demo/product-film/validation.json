@@ -7,8 +7,8 @@
   "video_codec": "h264",
   "pixel_format": "yuv420p",
   "audio_codec": "aac",
-  "bytes": 2625267,
-  "sha256": "869bb15af6368d8db50655fe0a0db7a7cf999947e0ed63f35619724ebe22d36a",
+  "bytes": 2535917,
+  "sha256": "b2ec2a4289686b342d1f1074c83c7fa2458b492fcd3ad3e7b72560a6177a56e8",
   "full_decode_exit": 0,
   "full_decode_stderr": "",
   "reviewed_frame_times": [
@@ -54,8 +54,8 @@
       "warningCount": 0,
       "infoCount": 0,
       "enabled": true,
-      "checked": 31,
-      "passed": 31
+      "checked": 24,
+      "passed": 24
     }
   },
   "sample_times": [
@@ -81,5 +81,6 @@
     "max_headline_words": 4,
     "sidecar_matches_headlines": true
   },
-  "design": "One short headline paired with a large visual; a shared cover moves through the illustrated workflow."
+  "design": "One short headline paired with a large visual; a shared cover moves through the illustrated workflow.",
+  "disclosure_location": "Root README and film companion; on-screen evidence/disclosure labels removed at owner request."
 }

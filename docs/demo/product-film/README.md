@@ -7,8 +7,10 @@ A 1920×1080, 30-fps **animated product overview**, made locally with
 [Hyperframes](https://github.com/heygen-com/hyperframes) at the owner's request
 instead of collecting raw device footage. Seven short headlines serve as the burned-in captions and have a matching VTT.
 Each scene pairs one sentence of at most four words with a large visual; the
-cover connects the illustrated steps. Small evidence labels remain visible. There is no narration; the original authorized demo
-track supplies background music. The composition is reviewable and editable.
+cover connects the illustrated steps. Context about the illustrations,
+soundtrack and earlier test observations is documented below and in the README
+rather than displayed as on-screen labels. There is no narration; the original authorized demo track
+supplies background music. The composition is reviewable and editable.
 
 ## What is real and what is illustrated
 
@@ -20,7 +22,7 @@ track supplies background music. The composition is reviewable and editable.
 - Cloud scene: a graphic describing an earlier Mac observation, not a live
   upload. Uploaded was first observed 48.539 seconds after enabling sync;
   actual completion may have been earlier, and iPhone arrival time is unknown.
-- Phone/car scenes: clearly labeled device illustrations. iPhone download/offline
+- Phone/car scenes: device illustrations. iPhone download/offline
   playback and real wireless BMW CarPlay were reported by the owner in the
   acceptance run. No device capture, audible device output or advancing fake
   playback counter is presented. The music bed is not playback evidence.
@@ -90,7 +92,7 @@ Audio/artwork provenance, credits and third-party notices are in
 ## Validation scope
 
 Hyperframes check sampled 2.5/7.5/13.5/19.5/24.5/29.5/34 seconds: no lint
-errors, runtime errors, layout warnings/errors or contrast failures (31/31
+errors, runtime errors, layout warnings/errors or contrast failures (24/24
 checks passed). Its eight structural lint warnings are retained: seven
 suggestions to split scene sections into sub-compositions and one dense-track
 warning. The shared moving cover keeps this short composition in one file.

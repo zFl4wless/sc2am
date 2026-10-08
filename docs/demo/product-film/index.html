@@ -11,11 +11,9 @@
     body { background: #f5f3ee; color: #171918; font-family: Arial, Helvetica, sans-serif; }
     #film { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
     .brand { position: absolute; left: 90px; top: 62px; font-size: 30px; font-weight: 700; letter-spacing: -1px; }
-    .disclosure { position: absolute; right: 90px; bottom: 43px; font-size: 23px; color: #5b5d58; }
     .scene { position: absolute; inset: 0; opacity: 0; }
     .caption { position: absolute; left: 90px; top: 340px; margin: 0; font-size: 140px; line-height: .99; letter-spacing: -7px; font-weight: 700; }
     .caption span { display: block; }
-    .note { position: absolute; font-size: 25px; color: #5b5d58; }
     #record { position: absolute; left: 0; top: 0; width: 640px; height: 640px; transform-origin: 0 0; z-index: 5; box-shadow: 0 16px 25px #17191812; }
     .url-input { position: absolute; left: 90px; top: 820px; width: 1720px; height: 100px; border-bottom: 3px solid #171918; display: flex; align-items: center; gap: 28px; font-family: monospace; font-size: 31px; }
     .url-input svg { flex: none; width: 48px; height: 48px; }
@@ -26,22 +24,18 @@
     .file-title { position: absolute; left: 1150px; top: 800px; font-size: 29px; }
     .music-window { position: absolute; left: 900px; top: 170px; width: 910px; height: 650px; overflow: hidden; border: 2px solid #d3d3ce; border-radius: 10px; background: white; }
     .music-window img { width: 910px; height: auto; display: block; }
-    .music-note { left: 900px; top: 850px; }
     .cloud { position: absolute; left: 1005px; top: 255px; width: 760px; height: 430px; }
-    .sync-note { left: 1055px; top: 800px; }
     .phone { position: absolute; left: 1140px; top: 165px; width: 400px; height: 715px; border: 9px solid #242827; border-radius: 52px; background: #fff; box-shadow: 7px 7px 0 #a9aaa4; }
     .phone .speaker { position: absolute; left: 147px; top: 17px; width: 88px; height: 9px; border-radius: 8px; background: #242827; }
     .phone .title { position: absolute; left: 27px; top: 470px; font-size: 31px; font-weight: 700; }
     .phone .artist { position: absolute; left: 27px; top: 517px; font-size: 25px; color: #5b5d58; }
     .phone .download { position: absolute; left: 156px; top: 590px; width: 57px; height: 57px; }
-    .phone-note { left: 1140px; top: 921px; }
     .car { position: absolute; left: 976px; top: 239px; width: 833px; height: 485px; border: 14px solid #242827; border-radius: 30px; background: #101722; box-shadow: 8px 8px 0 #a9aaa4; color: #fff; }
     .car .title { position: absolute; left: 365px; top: 80px; font-size: 48px; font-weight: 700; line-height: 1.1; }
     .car .artist { position: absolute; left: 365px; top: 207px; font-size: 27px; color: #cad0d7; }
     .car .controls { position: absolute; left: 363px; top: 290px; width: 330px; height: 65px; }
     .wheel { position: absolute; left: 876px; top: 678px; width: 222px; height: 222px; }
     .vents { position: absolute; left: 1160px; top: 770px; width: 610px; height: 83px; }
-    .car-note { left: 1160px; top: 921px; }
     .ending .caption { font-size: 184px; top: 306px; letter-spacing: -10px; }
     .route { position: absolute; left: 97px; top: 570px; display: flex; align-items: center; gap: 38px; font-size: 47px; }
     .route svg { width: 102px; height: 68px; }
@@ -52,7 +46,6 @@
 <body>
 <div id="film" data-composition-id="sc2am" data-start="0" data-width="1920" data-height="1080" data-duration="36" data-fps="30">
   <div class="brand">SC2AM</div>
-  <div class="disclosure">Illustrated workflow · demo soundtrack</div>
 
   <section id="link" class="scene clip" data-start="0" data-duration="5" data-track-index="1">
     <h1 class="caption"><span>Your</span><span>SoundCloud</span><span>track.</span></h1>
@@ -73,13 +66,11 @@
   <section id="music" class="scene clip" data-start="10" data-duration="7" data-track-index="1">
     <h1 class="caption"><span>In</span><span>Music.</span></h1>
     <div class="music-window"><img id="actual-music" data-layout-allow-overflow src="assets/music-details.png" alt="Actual Music.app test screenshot with title, artist, genre and artwork"></div>
-    <div class="note music-note">Actual Mac test screenshot</div>
   </section>
 
   <section id="sync" class="scene clip" data-start="17" data-duration="5" data-track-index="1">
     <h1 class="caption"><span>Let Apple</span><span>sync.</span></h1>
     <svg class="cloud" viewBox="0 0 760 430" fill="none" stroke="#171918" stroke-width="7" aria-label="Apple Sync Library cloud"><path d="M170 360C85 360 38 298 58 235C74 185 122 161 169 165C176 78 246 35 319 50C384 62 423 112 430 165C484 128 554 146 587 202C650 197 702 239 700 295C698 337 662 360 614 360Z"/></svg>
-    <div class="note sync-note">Earlier Mac upload: observed by 48.539 s</div>
   </section>
 
   <section id="phone" class="scene clip" data-start="22" data-duration="5" data-track-index="1">
@@ -90,7 +81,6 @@
       <div class="artist">fl4wless</div>
       <svg class="download" viewBox="0 0 60 60" fill="none" stroke="#171918" stroke-width="4" aria-label="Download"><circle cx="30" cy="30" r="26"/><path d="M30 12v28m-12-11l12 12 12-12"/></svg>
     </div>
-    <div class="note phone-note">iPhone illustration</div>
   </section>
 
   <section id="car" class="scene clip" data-start="27" data-duration="5" data-track-index="1">
@@ -102,7 +92,6 @@
     </div>
     <svg class="wheel" viewBox="0 0 220 220" fill="none" stroke="#242827" stroke-width="13" aria-label="Steering wheel"><circle cx="110" cy="110" r="96"/><circle cx="110" cy="110" r="23"/><path d="M86 108L22 91m110 17l64-17m-86 42v66"/></svg>
     <svg class="vents" viewBox="0 0 610 83" fill="none" stroke="#242827" stroke-width="5" aria-label="Dashboard air vents"><rect x="3" y="3" width="604" height="77" rx="12"/><path d="M15 24h580M15 43h580M15 62h580M300 3v77"/></svg>
-    <div class="note car-note">CarPlay illustration</div>
   </section>
 
   <section id="end" class="scene ending clip" data-start="32" data-duration="4" data-track-index="1">
