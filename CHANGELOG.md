@@ -8,7 +8,51 @@ and releases use [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 Changes merged after the latest release will be collected here until the next
-release is prepared.
+release is prepared. The v2.1.0 candidate below is not published yet.
+
+## [2.1.0] - Unreleased
+
+This compatible minor release combines the completed v2.0.2 and v2.1.0
+milestone work. **v2.0.2 is skipped**; it was never tagged or published.
+See the [candidate release notes](docs/releases/v2.1.0.md) for upgrade guidance,
+acceptance evidence and the remaining publication gates.
+
+### Added
+
+- Confirmed local Music imports and playlist membership, with a download-folder
+  journal that reuses verified MP3s and reconciles interrupted Music operations
+  before sending another import. Keep the downloads and `.sc2am` journal together.
+- Separate download, import and playlist summaries, including partial success.
+  Opt-in `--strict-import` returns exit code 1 for failed or unconfirmed Music
+  stages; default Music failures remain warnings.
+- Read-only `sc2am doctor` checks for runtime dependencies, download-directory
+  accessibility and basic macOS prerequisites without accessing the Music library.
+- Bounded resolution of mobile `on.soundcloud.com` share links to single tracks
+  in `download` and `batch`; share-link dry runs also require network access.
+- A Mac-to-iPhone, offline and CarPlay setup guide, a manual acceptance record,
+  and a captioned 36-second animated overview. Device playback is owner-reported;
+  the film illustrates the journey and is not a live recording.
+
+### Fixed
+
+- Music paths and playlist names containing commas, quotes or Unicode are passed
+  safely; duplicate names and non-writable playlist types produce clear errors.
+- Music subprocess timeouts are bounded. Read-only lookups retry transient
+  failures; uncertain imports are reconciled rather than blindly repeated.
+- Download and Music errors explain how to enable diagnostics when no log file
+  is configured; configured logs retain underlying errors and tracebacks.
+- Artwork downloads have byte/time limits, validate actual image content and
+  normalize supported images to JPEG, with a reported fallback when needed.
+
+### Changed
+
+- Reused the checked track extraction for audio downloads and resolved the target
+  playlist once per run, reducing repeated work without claiming faster cloud sync.
+- Raised dependency minimums for Click, idna and urllib3, added Pillow for artwork
+  validation, and added runtime dependency auditing and application type checks
+  to CI. Packages declare the MIT SPDX expression and include the license file.
+- Clarified installation, dependency upgrades, safe journal retention and recovery.
+  Python 3.10+ remains supported; no configuration keys are removed in this release.
 
 ## [2.0.1] - 2026-10-05
 
@@ -69,6 +113,7 @@ implementation details. Move the relevant entries from `Unreleased` into a
 dated version section when releasing.
 
 [Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.0.1...HEAD
+[2.1.0]: https://github.com/zfl4wless/sc2am/compare/v2.0.1...HEAD
 [2.0.1]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.1
 [2.0.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.0
 [1.4.1]: https://github.com/zfl4wless/sc2am/releases/tag/v1.4.1

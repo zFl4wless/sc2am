@@ -1,13 +1,15 @@
 # Release Checklist
 
-Use this checklist for every SC2AM release. Complete it from a clean working
-tree on the `main` branch.
+Use this checklist for every SC2AM release. Start from the current `origin/main`
+with no unrelated tracked changes, then prepare a `chore/` release branch and PR.
+Preserve unrelated untracked files and exclude them from staging and artifacts.
+Preparation and passing CI do not authorize tagging or publication.
 
 ## Prepare
 
 - [ ] Review merged pull requests and open issues for the release scope.
-- [ ] Move the relevant `CHANGELOG.md` entries from `Unreleased` into a new
-      version section with the release date.
+- [ ] Collect verified changes since the last release in a candidate version
+      section marked `Unreleased`; record the actual date only when publishing.
 - [ ] Choose the next Semantic Versioning number:
       patch for fixes, minor for compatible features, major for breaking changes.
 - [ ] Update the version in both `pyproject.toml` and `sc2am/__init__.py`.
@@ -18,25 +20,45 @@ tree on the `main` branch.
 - [ ] Run `PYTHONPATH=. pytest -q`.
 - [ ] Run `black --check .`.
 - [ ] Run `flake8 main.py sc2am tests scripts`.
+- [ ] Run `mypy main.py sc2am`.
+- [ ] Run `python -m pip_audit --strict .` against runtime dependencies.
 - [ ] Run `python -m build` and `python scripts/verify_package_metadata.py dist` to
       verify the sdist and wheel license metadata and files.
 - [ ] Verify the package metadata reports the intended version.
+- [ ] Install each built format in a fresh virtual environment, run `pip check`,
+      and run `scripts/smoke_installed.py` with `-I` from outside the checkout
+      (see the commands below).
 - [ ] Complete the [manual Music-to-iPhone release acceptance
       checklist](release-acceptance.md); record `NOT TESTED` where no live
       observation was made.
-- [ ] Review `git diff` and confirm the working tree contains only release files.
+- [ ] Review `git diff` and the explicitly staged files; confirm only the focused
+      release scope is committed and unrelated files are unchanged/excluded.
 
-## Publish
+## Review and merge
 
 - [ ] Commit the release changes with a message such as
       `chore: prepares release v1.5.0`.
-- [ ] Push the commit to `main` and wait for CI to pass.
+- [ ] Push the release branch, open a review-ready PR using the repository
+      template, and wait for all CI jobs on the final pushed commit to pass.
+- [ ] Obtain the required approval from a reviewer other than the PR author;
+      merge through the protected `main` workflow without bypassing its rules.
+
+## Publish (after merge and explicit approval)
+
+- [ ] Obtain explicit approval to publish the merged release candidate.
+- [ ] Revalidate the final `main` commit, version agreement and release artifacts;
+      ensure its CI passed and the acceptance evidence applies to its code.
+- [ ] Set the actual release date in the changelog through a reviewed change and
+      update candidate/install links to the intended release; revalidate that
+      final commit before tagging. Do not advertise nonexistent assets as current.
 - [ ] Create and push an annotated tag matching the package version, for example:
       `git tag -a v1.5.0 -m "Release v1.5.0"` and `git push origin v1.5.0`.
 - [ ] Wait for CI on the tag's final commit to pass before creating the release.
 - [ ] Create a GitHub release for the tag and copy the matching changelog
       section into the release notes.
 - [ ] Confirm the release assets and published version are visible.
+- [ ] Close the shipped release milestone and update the roadmap only after
+      publication. Record superseded versions as skipped, never as releases.
 
 ## After publishing
 
@@ -46,6 +68,33 @@ tree on the `main` branch.
 
 Never reuse a published version or tag. If a release must be corrected, bump
 the version according to Semantic Versioning and document the correction.
+
+For the current candidate, see [v2.1.0 release notes](releases/v2.1.0.md).
+The planned v2.0.2 scope is included in v2.1.0; no v2.0.2 tag or release is
+created. Milestones #8 and #9 remain open during preparation and review.
+
+## Fresh artifact installation
+
+After building and verifying `dist`, run from the repository root with the
+development environment active. Use a new temporary directory for each run:
+
+```bash
+release_root=$(pwd)
+release_check=$(mktemp -d)
+for artifact in "$release_root"/dist/*.whl "$release_root"/dist/*.tar.gz; do
+  artifact_name=$(basename "$artifact")
+  artifact_venv="$release_check/$artifact_name-venv"
+  python -m venv "$artifact_venv"
+  "$artifact_venv/bin/python" -m pip install "$artifact" || exit 1
+  "$artifact_venv/bin/python" -m pip check || exit 1
+  (cd "$release_check" && "$artifact_venv/bin/python" -I \
+    "$release_root/scripts/smoke_installed.py") || exit 1
+done
+```
+
+The smoke script checks agreement between the installed metadata and module
+version. Separately compare both to `pyproject.toml` and the intended release
+number; agreeing on an old version is not a successful release check.
 
 ## Automated checks
 
