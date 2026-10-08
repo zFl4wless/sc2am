@@ -27,8 +27,9 @@ device playback; its music is a background track, not device-output evidence.
 [Prerequisites, actual tested command, credits and editable source](docs/demo/product-film/README.md)
 accompany the film. The [dated acceptance record](docs/demo/device-acceptance-2026-10-08.md)
 separately documents direct Mac observations and owner-confirmed iPhone/offline/
-CarPlay results. The original filmed end-to-end demo criterion in #88 remains
-open; the owner chose this animated alternative instead of collecting footage.
+CarPlay results. For #88, the owner accepted this animated film with its
+separate test evidence as the replacement for the original filmed-demo scope.
+Real device footage was not recorded.
 
 ## Installation
 

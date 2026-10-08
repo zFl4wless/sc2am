@@ -310,16 +310,19 @@ were not tested and are not release claims established by this record.
 **Release approval: pending review and merge. Reviewer/date: pending.** Passing
 these scenarios does not create a release or complete the demo. The owner agreed
 to eventually combine the planned patch/minor changes into v2.1.0 and document
-skipping v2.0.2; publication still requires review and merge. Issue #88's three
-demo acceptance criteria remain open until real footage is edited and published.
-Roadmap #94 is unchanged.
+skipping v2.0.2; publication still requires review and merge. The subsequent
+presentation decision below supersedes #88's original filming requirement.
+Roadmap #94 is unchanged until the #88 PR is reviewed and merged.
 
 ## Subsequent presentation choice
 
 After the tests, the owner chose an [animated Hyperframes product film](product-film/README.md)
 instead of collecting raw footage. This changes how the product is presented,
 not the provenance or status of the observations in this record. The film's
-phone/CarPlay screens are labeled illustrations and its original background
-music is not audible-device-playback evidence. No further library/account/device
-action was used to make the animation. The original real-footage criterion in
-#88 remains open; no release/tag or roadmap completion follows from this film.
+phone/CarPlay screens are illustrations, as documented in the README and film
+companion; its original background music is not audible-device-playback
+evidence. No further library/account/device action was used to make the animation. On 2026-10-08 the owner accepted the
+finished film and this separate acceptance record as the replacement scope for
+#88. The original real-footage request is superseded; no shots were recorded
+or reclassified as direct evidence. Issue closure follows PR review and merge;
+no release/tag follows from this film.

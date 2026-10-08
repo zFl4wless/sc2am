@@ -30,11 +30,12 @@ supplies background music. The composition is reviewable and editable.
   seconds; these are editorial timing, not measured end-to-end execution times.
 
 No Mac library, Apple Account, phone setting or vehicle was accessed to create
-this animation. It does not fulfill issue #88's original real-device-footage
-criterion. That criterion remains open; the owner chose this illustrated
-alternative. The previous [filming plan](../recording-plan.md) is retained for
-reference, not as a request to record footage now. No release/tag is created and
-roadmap #94 remains unchanged pending review and merge.
+this animation. On 2026-10-08 the owner accepted this film and its separate
+acceptance record as the replacement scope for issue #88. The original request
+for real device footage is superseded; those shots were not recorded. The
+previous [filming plan](../recording-plan.md) is retained as historical reference.
+Issue #88 closes after review and merge of the PR. No release/tag is created and
+roadmap #94 remains unchanged until that merge.
 
 ## Prerequisites and actual SC2AM command
 

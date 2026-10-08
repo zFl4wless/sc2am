@@ -3,13 +3,14 @@
 For [issue #88](https://github.com/zFl4wless/sc2am/issues/88), based on main
 `2e5b46963548c903eb99f25f01db9857a068f19a`. Prepared on 2026-10-08.
 
-**Original filmed-demo status: DEFERRED / footage unavailable.**
+**Original filmed-demo scope: SUPERSEDED / footage unavailable.**
 The owner chose an [animated Hyperframes product film](product-film/README.md)
 instead of collecting raw recordings. A 36-second captioned MP4 and editable
-source now exist; they are explicitly illustrated, not filmed device playback.
-The original plan below is retained for reference. **No raw recordings are
-currently requested from the owner.** Issue #88's original filmed-demo criteria
-remain open; this alternative must not be used to mark real footage complete.
+source now exist. The owner accepted the final film and its separate device
+acceptance record on 2026-10-08 as the replacement scope for #88. Real device
+footage was not recorded. The original plan below is historical reference,
+not an outstanding recording request. Issue #88 closes after PR review and
+merge; roadmap #94 stays unchanged until then.
 The owner has authorized use of the existing SC2AM test Music library and
 publication of sanitized demo footage; the personal Mac library is excluded.
 UI inspection confirmed the test playlist/fixtures, an isolated test media
@@ -24,7 +25,8 @@ successful real wireless CarPlay playback in a BMW, including the offline check.
 Extended local same-title, Unicode/quoted-playlist, actual Automation-denial and
 controlled transfer-interruption/retry tests also passed using a separate looped
 20-minute source. This source was tested only in the nonsynced local library.
-The checked-in captions are an editing draft, not evidence.
+The original recording-plan captions are an editing draft, not evidence; the
+accepted film has its own matching VTT in `product-film/`.
 
 ## Source choice and recording status
 
@@ -269,21 +271,29 @@ inherited `SC2AM_*` overrides removed; use the existing isolated demo config.
 The config selects downloads, **not** the Music library. Once raw recordings are
 available, retime the captions, add actual-source credits, export 1080p with
 burned-in captions plus VTT, check duration/readability/privacy and replace the
-README's pending link with the reviewed real video. Keep the PR draft and #88
-open until that export exists.
+README's animated link with the reviewed real video. These steps belong only
+to the superseded filming plan; they are not requirements for completing #88.
 
-## Open acceptance criteria for #88
+## Accepted replacement criteria for #88
 
-- [ ] Link input, tagged track/artwork in Music, iPhone availability and CarPlay
-  playback shown in real footage — **OPEN / NOT TESTED for this demo**.
-- [ ] Owned/authorized audio used and cloud waits/edits honestly labeled —
-  **OPEN**: replacement source is cleared and Mac wait recorded; the final
-  video and its truthful labels/credits are still pending.
-- [ ] Readable captioned 30–60 second demo published with prerequisites and a
-  tested live command — **OPEN**: storyboard/caption draft, actual tested live commands and
-  acceptance evidence exist; captioned export and public video link are pending.
+On 2026-10-08 the owner accepted the finished animated alternative and requested
+closure after the PR. The following criteria replace the original filming scope:
 
-## README proposal once evidence is complete
+- [x] A short workflow film illustrates link entry, MP3, Apple Music, iPhone and
+  CarPlay, with an actual sanitized Mac screenshot and separate dated device
+  acceptance evidence. Phone/car results remain owner-reported; no real device
+  footage or captured playback is claimed.
+- [x] Authorized original audio/artwork, attribution, earlier cloud waiting,
+  editorial timing and the soundtrack's role are documented in the film's
+  companion and README.
+- [x] A readable captioned 36-second MP4, matching VTT, README link,
+  prerequisites and the actual tested command are included in the PR.
+
+Implementation and owner visual acceptance are complete. GitHub review and merge
+remain the completion gate. The original real-footage request was superseded,
+not fulfilled by an invented recording.
+
+## Historical README proposal for real footage
 
 The current README links the explicitly animated product film. If the original
 filmed-demo scope resumes and all three criteria acquire evidence, add the real
@@ -297,8 +307,8 @@ recorded demo with the following text, filling every bracket from its run:
 > edits]. Not shown: [steps]. Not tested: [steps or none, based on evidence].
 > Music: [verified attribution/source/license]. Artwork: [verified credit].
 
-Attach the final VTT, evidence record and sources next to that link; retain a
-text transcript so the result is understandable without video/audio. Leave #88
-open while footage is missing. Roadmap #94 is unchanged and must only be checked
-after review and merge of completed work. This preparation creates no release
-or tag and does not change the audit document.
+For that historical filming proposal, attach its final VTT, evidence and sources
+next to the link. The accepted animated film already has its own export, captions
+and documentation. Roadmap #94 must only be checked after review and merge of
+the completed #88 PR. This work creates no release or tag and does not change
+the audit document.
