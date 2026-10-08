@@ -1,0 +1,83 @@
+{
+  "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+  "yt_dlp": "2026.07.04",
+  "rows": [
+    {
+      "file": "alac-from-aac.m4a",
+      "bytes": 4333904,
+      "codec": "alac",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "ccddd2f56e1227a7df498b17c3e9727dc4ca32d90d7960a6899bab85684f9c32"
+    },
+    {
+      "file": "copy-aac.m4a",
+      "bytes": 923525,
+      "codec": "aac",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "ccddd2f56e1227a7df498b17c3e9727dc4ca32d90d7960a6899bab85684f9c32"
+    },
+    {
+      "file": "copy-mp3.mp3",
+      "bytes": 481114,
+      "codec": "mp3",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "e6848635d0788fc686300d90ea8c941125ade3223275816b4897403d4614fdcc"
+    },
+    {
+      "file": "flac.flac",
+      "bytes": 3085696,
+      "codec": "flac",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "496ca051f0fa4be58e4f63a936c1ea339389871ce459450348cbbdf23bed018c"
+    },
+    {
+      "file": "opus-64.opus",
+      "bytes": 341887,
+      "codec": "opus",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "289928959e2b55d6ed587627d0255c6341a13b4d5821a6e63adfa863f97a4399"
+    },
+    {
+      "file": "reference.wav",
+      "bytes": 5292044,
+      "codec": "pcm_s16le",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "496ca051f0fa4be58e4f63a936c1ea339389871ce459450348cbbdf23bed018c"
+    },
+    {
+      "file": "source-aac-256.m4a",
+      "bytes": 923525,
+      "codec": "aac",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "ccddd2f56e1227a7df498b17c3e9727dc4ca32d90d7960a6899bab85684f9c32"
+    },
+    {
+      "file": "source-mp3-128.mp3",
+      "bytes": 481114,
+      "codec": "mp3",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "e6848635d0788fc686300d90ea8c941125ade3223275816b4897403d4614fdcc"
+    },
+    {
+      "file": "wav-from-aac.wav",
+      "bytes": 5292078,
+      "codec": "pcm_s16le",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "ccddd2f56e1227a7df498b17c3e9727dc4ca32d90d7960a6899bab85684f9c32"
+    },
+    {
+      "file": "ytdlp-local-m4a.mp3",
+      "bytes": 721748,
+      "codec": "mp3",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "fb45d9f60e4ca3d1b99e91a077f60bb5cf47ead59f34fb07760b7506e9649afe"
+    },
+    {
+      "file": "ytdlp-local-mp3.mp3",
+      "bytes": 481114,
+      "codec": "mp3",
+      "pcm_bytes": 5292000,
+      "pcm_sha256": "e6848635d0788fc686300d90ea8c941125ade3223275816b4897403d4614fdcc"
+    }
+  ]
+}

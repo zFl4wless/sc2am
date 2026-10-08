@@ -299,13 +299,16 @@ SC2AM_DOWNLOAD_DIR=~/Music sc2am download "..."
 ## How It Works
 
 1. **Validate** - Checks if the provided URL is from a supported platform
-2. **Download** - Uses yt-dlp to download audio as MP3 (192kbps)
+2. **Download** - Uses yt-dlp to produce MP3; conversion targets 192 kbit/s, while existing MP3 sources are preserved without re-encoding
 3. **Tag** - Embeds title, artist, album/genre/date and cover artwork into the MP3
 4. **Import** - Confirms a library track reference in Apple Music
 5. **Add** - (Optional) Reuses that track and confirms playlist membership via AppleScript
 
 SC2AM retries transient download failures and read-only Music queries. Mutations
 are confirmed against the active Music library before reporting success.
+
+The [entry-point and audio-format evaluation](docs/exploration-decisions-2026-10-09.md)
+records why the CLI and MP3 remain the supported workflow.
 
 MP3 filenames include the SoundCloud track ID: `Title [123456789].mp3`.
 Tracks with the same title and different IDs are saved separately. A local journal
