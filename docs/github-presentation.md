@@ -48,5 +48,22 @@ application; preview caches may lag.
 
 #92's README work and metadata review can be reviewed now. The proposed About
 change remains pending; keep #92 and its [roadmap](https://github.com/zFl4wless/sc2am/issues/94)
-item open until the owner resolves it. The [user pilot](user-validation/README.md)
-and broader outreach are separate gates.
+item open until the owner resolves it. On 2026-10-08 the owner dropped the
+3–5-user pilot (#89) to keep the next phase lightweight. The next objective is
+visibility and 16+ GitHub stars, not a scheduled research program. Stars measure
+interest and do not establish successful use. Broader outreach still requires
+separate approval; the existing demo and honest setup guide support it.
+
+## Short launch draft — not published
+
+> Keep eligible SoundCloud finds in your existing Apple Music playlists.
+> SC2AM is a small Mac command-line tool that imports tagged MP3s into Music.app;
+> Apple's sync features handle the iPhone path. Watch the
+> [36-second animated demo](https://github.com/zFl4wless/sc2am/blob/main/docs/demo/product-film/sc2am-product-film.mp4)
+> and follow the [setup and installation guide](https://github.com/zFl4wless/sc2am#end-user-installation-on-macos).
+> If this is useful to you, a [GitHub star](https://github.com/zFl4wless/sc2am) supports the project.
+
+One short demo post is the proposed next step after presentation review. Choose
+a suitable audience and check its current posting rules before publication;
+no community post or invitation has been sent. The 16+ star objective is not a
+promised outcome.

@@ -22,6 +22,9 @@ SC2AM confirms the **local Mac import** only; it does not automate or guarantee
 cloud or iPhone sync. Importing an MP3 is separate from Apple's catalog matching:
 SC2AM does not request or guarantee a catalog match or an audio-quality upgrade.
 
+If this workflow is useful to you, [star SC2AM on GitHub](https://github.com/zFl4wless/sc2am)
+to support the project.
+
 ## See SC2AM in action
 
 [![SC2AM: SoundCloud to Apple Music](docs/demo/product-film/poster.png)](docs/demo/product-film/sc2am-product-film.mp4)
@@ -461,10 +464,6 @@ chmod 755 ~/Downloads/sc2am
 
 ## Contributing
 
-For the next usability pilot, see the [3–5-user trial guide and blank
-records](docs/user-validation/README.md). Preparing these records does not
-establish that users have completed the journey.
-
 Contributions are welcome! Please:
 
 1. Fork the repository
@@ -509,8 +508,6 @@ MIT License - see LICENSE file for details
 - SoundCloud's terms of service should be respected
 
 ## Support
-
-If SC2AM is useful to you, consider starring this repository.
 
 The current stable release line is 2.x. Older release lines are unsupported;
 upgrade to the latest 2.x release before requesting help.
