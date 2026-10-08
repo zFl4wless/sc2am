@@ -24,10 +24,13 @@ supplied. The checked-in captions are an editing draft, not evidence.
   Pro. The current Free-generated SoundCloud source is therefore not cleared
   for this demo workflow. No audio or cover was downloaded, imported or recorded;
   the owner's upload was not changed or deleted.
-- A replacement source package, `SC2AM Demo Drive`, was prepared locally: a new
+- A replacement source package, `Midnight Circuit` (Electronic; suggested tags:
+  synthwave, instrumental), was prepared locally: a new
   32-second stereo synth recording and geometric cover, plus generator and
   provenance/hashes. It uses mathematical oscillators/noise, no sampled
-  recordings or music-generation service. Source assets are not demo evidence.
+  recordings or music-generation service. The original geometric artwork was
+  edited with OpenAI ImageGen to remove all text; the package records that
+  provenance. Source assets are not demo evidence.
   The owner still needs to upload the proposed replacement as a public single
   SoundCloud track with its cover and send the new URL before the live run.
 - The authorized test library is not cloud-synced. Enabling Sync Library with
