@@ -1,16 +1,14 @@
-# SC2AM animated product film — revised cut
+# SC2AM product film
 
 [Watch the 36-second MP4](sc2am-product-film.mp4) ·
 [English subtitles](captions.en.vtt) · [Editable composition](index.html)
 
-A 1920×1080, 30-fps **animated product overview**, made locally with
-[Hyperframes](https://github.com/heygen-com/hyperframes) at the owner's request
-instead of collecting raw device footage. Seven short headlines serve as the burned-in captions and have a matching VTT.
-Each scene pairs one sentence of at most four words with a large visual; the
-cover connects the illustrated steps. Context about the illustrations,
-soundtrack and earlier test observations is documented below and in the README
-rather than displayed as on-screen labels. There is no narration; the original authorized demo track
-supplies background music. The composition is reviewable and editable.
+A 36-second **animated product overview**, made locally with
+[Hyperframes](https://github.com/heygen-com/hyperframes) in 1920×1080 at 30 fps.
+Seven short headlines serve as the burned-in captions and have a matching VTT.
+Each scene pairs a short sentence with a large visual; the cover connects the
+illustrated steps. The authorized demo track supplies background music. There
+is no narration. The editable composition is included alongside the MP4.
 
 ## What is real and what is illustrated
 
@@ -28,14 +26,6 @@ supplies background music. The composition is reviewable and editable.
   playback counter is presented. The music bed is not playback evidence.
 - Timing: seven designed scenes with animated entrances/exits, at 0/5/10/17/22/27/32
   seconds; these are editorial timing, not measured end-to-end execution times.
-
-No Mac library, Apple Account, phone setting or vehicle was accessed to create
-this animation. On 2026-10-08 the owner accepted this film and its separate
-acceptance record as the replacement scope for issue #88. The original request
-for real device footage is superseded; those shots were not recorded. The
-previous [filming plan](../recording-plan.md) is retained as historical reference.
-Issue #88 closes after review and merge of the PR. No release/tag is created and
-roadmap #94 remains unchanged until that merge.
 
 ## Prerequisites and actual SC2AM command
 
