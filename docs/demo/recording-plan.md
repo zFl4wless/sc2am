@@ -4,10 +4,37 @@ For [issue #88](https://github.com/zFl4wless/sc2am/issues/88), based on main
 `2e5b46963548c903eb99f25f01db9857a068f19a`. Prepared on 2026-10-08.
 
 **Status: PREPARATION ONLY. No demo video has been recorded or published.**
-No authorized footage, test account/device access, or complete audio/artwork
-permission record was supplied for this task. No Music library, Apple Account,
-iPhone, or CarPlay content was accessed. No real download/import/sync/playback
-command was run. The checked-in captions are an editing draft, not evidence.
+The owner has authorized use of the existing SC2AM test Music library and
+publication of sanitized demo footage; the personal Mac library is excluded.
+Read-only UI inspection confirmed the test playlist/fixtures, an isolated test
+media folder and Sync Library disabled. No settings were changed. No real
+download/import/sync/playback command was run. No iPhone/CarPlay footage has been
+supplied. The checked-in captions are an editing draft, not evidence.
+
+## Current recording blockers
+
+- The proposed [City Lights Drive](https://soundcloud.com/fl4wless-167171478/city-lights-drive)
+  page was verified as a public single track by fl4wless. The owner reports that
+  both audio and cover were generated with ElevenMusic Website Free. This is
+  not documented as a self-recorded composition.
+- Under the [ElevenMusic terms](https://elevenmusic.io/terms-of-use), updated
+  2026-09-11 and checked 2026-10-08, a Free-generated New Song can be used in
+  commercial media with prominent `Made with ElevenMusic` attribution, but
+  release through digital streaming platforms is limited to songs created under
+  Pro. The current Free-generated SoundCloud source is therefore not cleared
+  for this demo workflow. No audio or cover was downloaded, imported or recorded;
+  the owner's upload was not changed or deleted.
+- A replacement source package, `SC2AM Demo Drive`, was prepared locally: a new
+  32-second stereo synth recording and geometric cover, plus generator and
+  provenance/hashes. It uses mathematical oscillators/noise, no sampled
+  recordings or music-generation service. Source assets are not demo evidence.
+  The owner still needs to upload the proposed replacement as a public single
+  SoundCloud track with its cover and send the new URL before the live run.
+- The authorized test library is not cloud-synced. Enabling Sync Library with
+  the signed-in account would involve that account's cloud library; a separate
+  local library does not isolate the cloud account. Do not enable it under the
+  existing test-library-only authorization. Agree on an authorized device/cloud
+  route before claiming iPhone availability. No Finder transfer has been tested.
 
 Issue #87 is closed and provides the [manual release acceptance
 checklist](../release-acceptance.md). Its existence does not prove live device
