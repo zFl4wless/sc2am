@@ -1,0 +1,86 @@
+{
+  "tool": "Hyperframes 0.8.141",
+  "duration_seconds": 36.0,
+  "width": 1920,
+  "height": 1080,
+  "fps": "30/1",
+  "video_codec": "h264",
+  "pixel_format": "yuv420p",
+  "audio_codec": "aac",
+  "bytes": 2545174,
+  "sha256": "2b140f4f815d9c8b8a170893f16457c3afc960a4a17eda4451303731a2a9060b",
+  "full_decode_exit": 0,
+  "full_decode_stderr": "",
+  "reviewed_frame_times": [
+    2.5,
+    7.5,
+    13.5,
+    19.5,
+    22.4,
+    24.5,
+    29.5,
+    34,
+    35.8
+  ],
+  "hyperframes_check": {
+    "lint": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 8,
+      "infoCount": 0
+    },
+    "runtime": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "infoCount": 0
+    },
+    "layout": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "infoCount": 0
+    },
+    "motion": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "infoCount": 0,
+      "enabled": false
+    },
+    "contrast": {
+      "ok": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "infoCount": 0,
+      "enabled": true,
+      "checked": 24,
+      "passed": 24
+    }
+  },
+  "sample_times": [
+    2.5,
+    7.5,
+    13.5,
+    19.5,
+    24.5,
+    29.5,
+    34
+  ],
+  "lint_warning_codes": [
+    "nested_structure_needs_subcomposition",
+    "timeline_track_too_dense"
+  ],
+  "scope": "Animated overview, not filmed end-to-end demo; device screens are illustrations; background music is not device playback evidence.",
+  "audio_volume_check": {
+    "mean_volume": -21.3,
+    "max_volume": -4.9
+  },
+  "captions": {
+    "count": 7,
+    "max_headline_words": 4,
+    "sidecar_matches_headlines": true
+  },
+  "design": "One short headline paired with a large visual; a shared cover moves through the illustrated workflow.",
+  "disclosure_location": "Root README and film companion; on-screen evidence/disclosure labels removed at owner request."
+}

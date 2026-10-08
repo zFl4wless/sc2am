@@ -15,6 +15,22 @@ SC2AM provides a small, repeatable workflow for importing SoundCloud tracks into
 
 The downloaded MP3 files are automatically enriched with SoundCloud metadata (title, artist, album, genre, date) and cover artwork, with improved title and artist mapping so Apple Music shows the correct track information after import. Artwork is checked as image data and normalized to JPEG; the download result reports when a fallback image is used.
 
+## Animated product film and device evidence
+
+[![SC2AM animated product film](docs/demo/product-film/poster.png)](docs/demo/product-film/sc2am-product-film.mp4)
+
+Watch the [36-second captioned product film](docs/demo/product-film/sc2am-product-film.mp4).
+It combines an actual Apple Music (Music.app) test screenshot with
+**illustrated** link, MP3, cloud, iPhone and CarPlay scenes. It does not show live synchronization or recorded
+device playback; its music is a background track, not device-output evidence.
+
+[Prerequisites, actual tested command, credits and editable source](docs/demo/product-film/README.md)
+accompany the film. The [dated acceptance record](docs/demo/device-acceptance-2026-10-08.md)
+separately documents direct Mac observations and owner-confirmed iPhone/offline/
+CarPlay results. For #88, the owner accepted this animated film with its
+separate test evidence as the replacement for the original filmed-demo scope.
+Real device footage was not recorded.
+
 ## Installation
 
 ### Requirements

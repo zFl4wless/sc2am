@@ -1,0 +1,66 @@
+WEBVTT
+
+NOTE
+Editing draft for issue #88; no corresponding video exists.
+Not evidence of Music import, cloud sync or device playback.
+Replace bracketed fields and retime against actual authorized footage.
+Remove unsupported claims before exporting or publishing.
+
+00:00.000 --> 00:02.500
+SoundCloud → Music → iPhone → CarPlay
+
+00:02.500 --> 00:05.000
+Test library · Sync Library subscription
+Full prerequisites in the description
+
+00:05.000 --> 00:09.000
+Paste the authorized SoundCloud link.
+Run the command shown here.
+
+00:09.000 --> 00:13.000
+Download/import cut: [measured time]
+Full command and log in the description
+
+00:13.000 --> 00:17.000
+Inspect the imported track in Music.
+Check its title and artist.
+
+00:17.000 --> 00:21.000
+Inspect the embedded cover artwork.
+This confirms the local Mac step only.
+
+00:21.000 --> 00:24.500
+Apple manages Sync Library separately.
+Wait for the observed cloud status.
+
+00:24.500 --> 00:28.000
+Earlier Mac observation; upload not filmed
+Uploaded by 48.539 s; wait omitted
+
+00:28.000 --> 00:32.500
+Find the same track on the test iPhone.
+Download it before going offline.
+
+00:32.500 --> 00:37.000
+Offline test: Wi-Fi and cellular off.
+Listen to the actual iPhone playback.
+
+00:37.000 --> 00:41.000
+Cut to CarPlay in a parked vehicle.
+Select the track in Music.
+
+00:41.000 --> 00:45.000
+Press play; check the advancing time.
+Audio here is actual CarPlay playback.
+
+00:45.000 --> 00:48.000
+Not shown/tested: [record actual scope]
+See the accompanying evidence record.
+
+00:48.000 --> 00:51.500
+Midnight Circuit · original demo audio
+Art: geometric cover / OpenAI ImageGen
+
+00:51.500 --> 00:55.000
+Sources, edits and tested command:
+see the video description.
