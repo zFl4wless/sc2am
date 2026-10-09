@@ -10,6 +10,26 @@ and releases use [Semantic Versioning](https://semver.org/).
 Changes merged after the latest release will be collected here until the next
 release is prepared.
 
+## [2.1.1] - Unreleased
+
+### Fixed
+
+- Before a new Music import, replaces pre-existing SC2AM source markers in all
+  ID3 comments, including embedded markers and ASCII case variants, with one
+  marker for the current track. Ordinary comment text is retained.
+- Resolves the active Music library before searching for tracks and prefers its
+  saved track ID over conflicting comment markers. Repeat/resume and uncertain
+  mutation safeguards remain in place.
+
+### Changed
+
+- Clarifies the supported CLI/MP3 workflow and project presentation. The optional
+  clipboard entry point and source-preserving output formats remain deferred.
+
+Existing Music entries are not retroactively cleaned. Native Music/provider
+behavior was not newly tested; no reachable remote attack has been confirmed.
+See the [release notes](docs/releases/v2.1.1.md) for upgrade and validation limits.
+
 ## [2.1.0] - 2026-10-08
 
 This compatible minor release combines the completed v2.0.2 and v2.1.0
@@ -112,7 +132,8 @@ Keep entries concise and describe the impact for users, not internal
 implementation details. Move the relevant entries from `Unreleased` into a
 dated version section when releasing.
 
-[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/zfl4wless/sc2am/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/zfl4wless/sc2am/releases/tag/v2.1.1
 [2.1.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.1.0
 [2.0.1]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.1
 [2.0.0]: https://github.com/zfl4wless/sc2am/releases/tag/v2.0.0
