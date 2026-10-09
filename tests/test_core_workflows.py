@@ -567,6 +567,7 @@ def test_add_to_playlist_resolves_full_serialized_name(
     run_mock = Mock(
         side_effect=[
             Mock(returncode=0, stdout=json.dumps(names), stderr=""),
+            Mock(returncode=0, stdout="AAAAAAAAAAAAAAAA||CCCCCCCCCCCCCCCC|0", stderr=""),
             Mock(
                 returncode=0,
                 stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1",
@@ -579,7 +580,7 @@ def test_add_to_playlist_resolves_full_serialized_name(
     success, message = AppleMusicManager.add_to_playlist(file_path, requested)
 
     assert (success, message) == (True, f"Added to playlist '{expected}'")
-    assert run_mock.call_count == 2
+    assert run_mock.call_count == 3
     assert run_mock.call_args.args[0][3:5] == [str(file_path.resolve()), expected]
 
 
@@ -639,7 +640,10 @@ def test_add_to_playlist_passes_absolute_path_and_playlist_as_exact_arguments(
         lambda: (True, [playlist_name], "Playlists retrieved"),
     )
     osascript_mock = Mock(
-        return_value=(True, Mock(stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"), "")
+        side_effect=[
+            (True, Mock(stdout="AAAAAAAAAAAAAAAA||CCCCCCCCCCCCCCCC|0"), ""),
+            (True, Mock(stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"), ""),
+        ]
     )
     monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
 
@@ -662,7 +666,10 @@ def test_playlist_import_selects_one_writable_object(monkeypatch, tmp_path):
     file_path.touch()
     monkeypatch.setattr(AppleMusicManager, "get_playlists", lambda: (True, ["Road, Trip"], ""))
     osascript_mock = Mock(
-        return_value=(True, Mock(stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"), "")
+        side_effect=[
+            (True, Mock(stdout="AAAAAAAAAAAAAAAA||CCCCCCCCCCCCCCCC|0"), ""),
+            (True, Mock(stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"), ""),
+        ]
     )
     monkeypatch.setattr(AppleMusicManager, "_run_osascript", osascript_mock)
 

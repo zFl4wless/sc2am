@@ -31,6 +31,7 @@ class MusicDouble:
         self.target_error = ""
         self.track = ""
         self.marker = ""
+        self.marker_matches = []
         self.member = False
         self.mutations = []
         self.calls = []
@@ -58,7 +59,19 @@ class MusicDouble:
                 "SC2AM_NOT_STARTED: " + (self.target_error or "Target playlist is stale; rerun"),
             )
         if action == "resolve":
-            return subprocess.CompletedProcess(command, 0, f"{self.library}||{self.playlist}|0", "")
+            assert marker == known == "", "discovery must not search for tracks"
+            return subprocess.CompletedProcess(
+                command, 0, f"{self.library}||{self.playlist if playlist else ''}|0", ""
+            )
+        # Persistent IDs take precedence; only a missing ID falls back to markers.
+        if not (known and known == self.track) and len(self.marker_matches) > 1:
+            return subprocess.CompletedProcess(
+                command,
+                1,
+                "",
+                "SC2AM_NOT_STARTED: Multiple library tracks match this source. "
+                "Resolve duplicates in Music before retrying.",
+            )
         if action != "lookup":
             self.mutations.append(action)
             with History(Path(path).parent) as history:
@@ -89,7 +102,12 @@ class MusicDouble:
             if mode == "interrupt_after":
                 raise KeyboardInterrupt()
         # A copied file is only discoverable by its marker or saved reference.
-        track = self.track if marker == self.marker or known == self.track else ""
+        if known and known == self.track:
+            track = self.track
+        elif self.marker_matches:
+            track = self.marker_matches[0]
+        else:
+            track = self.track if marker == self.marker else ""
         output = "|".join(
             [
                 self.library,
@@ -198,10 +216,13 @@ def test_interrupted_process_leaves_intent_and_next_run_reconciles(track, music_
 
 def test_library_switch_does_not_reuse_other_library_reference(track, music_double):
     assert Manager.open_file_with_music(track)[0]
+    music_double.calls.clear()
     music_double.library = "DDDDDDDDDDDDDDDD"
     music_double.track, music_double.marker = "", ""
     assert Manager.open_file_with_music(track)[0]
     assert music_double.mutations == ["import", "import"]
+    first_lookup = next(call for call in music_double.calls if call[5] == "lookup")
+    assert first_lookup[3:5] == ["", music_double.library]
     with History(track.parent) as history:
         keys = [
             row[0]
@@ -255,11 +276,127 @@ def test_marker_preserves_comments_and_is_not_appended_twice(track):
     tags.add(COMM(encoding=3, lang="eng", desc="", text=["My notes"]))
     tags.add(COMM(encoding=3, lang="deu", desc="Other", text=["Notizen"]))
     tags.save(track)
-    Manager._mark_file(track, "sc2am:test")
-    Manager._mark_file(track, "sc2am:test")
+    marker = "sc2am:" + "a" * 64
+    Manager._mark_file(track, marker)
+    Manager._mark_file(track, marker)
     tags = ID3(track)
-    assert tags["COMM::eng"].text == ["My notes\nsc2am:test"]
+    assert tags["COMM::eng"].text == ["My notes\n" + marker]
     assert tags["COMM:Other:deu"].text == ["Notizen"]
+
+
+@pytest.mark.parametrize("default_comment", [False, True])
+def test_marker_removes_foreign_and_embedded_markers_from_all_comments(track, default_comment):
+    own = "sc2am:" + "a" * 64
+    foreign = "sc2am:" + "b" * 64
+    other = "sc2am:" + "c" * 64
+    tags = ID3()
+    if default_comment:
+        tags.add(COMM(encoding=3, lang="eng", desc="", text=[f"Notes ({foreign}) {own}"]))
+    tags.add(COMM(encoding=3, lang="deu", desc="", text=[f"Vor{foreign}nach"]))
+    tags.add(COMM(encoding=3, lang="eng", desc="Other", text=[f"First {other}\nLast {own}"]))
+    tags.add(COMM(encoding=3, lang="fra", desc="Only marker", text=[foreign]))
+    tags.add(COMM(encoding=3, lang="deu", desc="Notes", text=["  Notizen\nsc2am:test  "]))
+    tags.save(track, v2_version=3)
+
+    Manager._mark_file(track, own)
+    marked_bytes = track.read_bytes()
+    Manager._mark_file(track, own)
+    assert track.read_bytes() == marked_bytes
+    comments = ID3(track)
+    assert comments["COMM::eng"].text == ["Notes () \n" + own if default_comment else own]
+    assert comments["COMM::deu"].text == ["Vornach"]
+    assert comments["COMM:Other:eng"].text == ["First \nLast "]
+    assert "COMM:Only marker:fra" not in comments  # Mutagen omits empty comments on save.
+    assert comments["COMM:Notes:deu"].text == ["  Notizen\nsc2am:test  "]
+    all_text = "\n".join(text for frame in comments.getall("COMM") for text in frame.text)
+    assert all_text.count(own) == 1
+    assert foreign not in all_text and other not in all_text
+
+
+def test_new_import_cleans_comments_and_refreshes_verified_history(track, music_double):
+    foreign = "sc2am:" + "b" * 64
+    tags = ID3()
+    tags.add(COMM(encoding=3, lang="eng", desc="", text=[f"Notes ({foreign})"]))
+    tags.add(COMM(encoding=3, lang="deu", desc="Other", text=[f"Notizen {foreign}"]))
+    tags.save(track)
+    with History(track.parent) as history:
+        history.remember_download("https://soundcloud.com/fixture/track", "soundcloud:123", track)
+    assert Manager.open_file_with_music(track)[0]
+    comments = ID3(track)
+    assert comments["COMM::eng"].text == ["Notes ()\n" + music_double.marker]
+    assert comments["COMM:Other:deu"].text == ["Notizen "]
+    with History(track.parent) as history:
+        assert history.cached_file("soundcloud:123") == track.resolve()
+    assert Manager.open_file_with_music(track)[0]
+    assert music_double.mutations == ["import"]
+
+
+@pytest.mark.parametrize("playlist", ["", "Roadtrip"])
+@pytest.mark.parametrize("collision", ["different", "ambiguous"])
+def test_saved_id_precedes_conflicting_markers(track, music_double, playlist, collision):
+    assert Manager._import(track, playlist).success
+    if collision == "ambiguous":
+        music_double.marker_matches = [TRACK, "DDDDDDDDDDDDDDDD"]
+    else:
+        music_double.marker = "user edited comment"
+        music_double.marker_matches = ["DDDDDDDDDDDDDDDD"]
+    music_double.calls.clear()
+    mutations = music_double.mutations[:]
+    assert Manager._import(track, playlist).success
+    discovery, lookup = music_double.calls
+    assert discovery[2:4] == ["", ""] and discovery[5] == "resolve"
+    assert lookup[3:6] == [TRACK, LIBRARY, "lookup"]
+    assert lookup[6] == (PLAYLIST if playlist else "")
+    assert music_double.mutations == mutations
+
+
+@pytest.mark.parametrize("known", ["", "DDDDDDDDDDDDDDDD"])
+def test_ambiguous_markers_without_live_saved_id_stop_before_mutation(track, music_double, known):
+    with History(track.parent) as history:
+        source = history.file_source(track)
+        if known:
+            history.put(f"music:{LIBRARY}:{source}", known)
+    music_double.marker_matches = [TRACK, "EEEEEEEEEEEEEEEE"]
+    original = track.read_bytes()
+    for _ in range(2):
+        success, message = Manager.open_file_with_music(track)
+        assert not success
+        assert "Multiple library tracks match this source" in message
+        assert "Resolve duplicates in Music before retrying" in message
+    assert not music_double.mutations
+    assert not pending_records(track)
+    assert track.read_bytes() == original
+    assert all(call[3] == known for call in music_double.calls if call[5] == "lookup")
+
+
+def test_library_switch_between_discovery_and_lookup_stops_before_mutation(
+    track, music_double, monkeypatch
+):
+    run = music_double.run
+
+    def switch_library(command, **kwargs):
+        result = run(command, **kwargs)
+        if command[8] == "resolve":
+            music_double.library = "DDDDDDDDDDDDDDDD"
+        return result
+
+    monkeypatch.setattr(music.subprocess, "run", switch_library)
+    success, message = Manager.open_file_with_music(track)
+    assert not success and "Library changed" in message
+    assert not music_double.mutations
+    assert not pending_records(track)
+
+
+def test_existing_music_track_is_reused_without_retroactive_comment_cleanup(track, music_double):
+    tags = ID3()
+    tags.add(COMM(encoding=3, lang="eng", desc="", text=["Notes sc2am:" + "b" * 64]))
+    tags.save(track)
+    original = track.read_bytes()
+    music_double.marker_matches = [TRACK]
+    assert Manager.open_file_with_music(track)[0]
+    assert track.read_bytes() == original
+    assert not music_double.mutations
+    assert not pending_records(track)
 
 
 @pytest.mark.parametrize(
@@ -415,7 +552,7 @@ def test_resolved_target_reuses_ids_and_reconciles_pending_membership(track, mus
     assert music_double.mutations == ["import", "playlist"]
     assert not pending_records(track)
     assert music_double.listings == 1
-    assert len([call for call in music_double.calls if call[5] == "resolve"]) == 1
+    assert len([call for call in music_double.calls if call[5] == "resolve"]) == 4
     assert all(call[4] == LIBRARY and call[6] == PLAYLIST for call in music_double.calls[1:])
 
 
@@ -451,6 +588,15 @@ def test_script_uses_pinned_id_and_resolves_without_touching_tracks():
     assert MUSIC_SCRIPT.index("if smart of destinationPlaylist") < MUSIC_SCRIPT.index(
         'if actionName is "resolve"'
     )
+    assert (
+        MUSIC_SCRIPT.index('if actionName is "resolve"')
+        < MUSIC_SCRIPT.index('if knownTrackID is not ""')
+        < MUSIC_SCRIPT.index("whose comment contains sourceMarker")
+    )
+    assert (
+        "if (count of matchingTracks) is 0 then\n"
+        "            set matchingTracks to every file track of libraryPlaylist whose comment contains sourceMarker"
+    ) in MUSIC_SCRIPT
 
 
 @pytest.mark.parametrize(

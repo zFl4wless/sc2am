@@ -192,18 +192,28 @@ class AppleMusicManager:
 
     @staticmethod
     def _mark_file(file_path: Path, marker: str) -> None:
-        """Put the source marker in the default comment Music reads on import."""
+        """Replace canonical source markers in comments before a new import."""
         try:
             tags = ID3(str(file_path))
         except ID3NoHeaderError:
             tags = ID3()
         comments = tags.getall("COMM")
+        changed = False
+        for frame in comments:
+            cleaned = [re.sub(r"sc2am:[0-9a-f]{64}", "", text) for text in frame.text]
+            if cleaned != frame.text:
+                frame.text = cleaned
+                changed = True
         existing = next(
             (frame for frame in comments if frame.desc == "" and frame.lang == "eng"), None
         )
         text = "\n".join(existing.text) if existing else ""
-        if marker not in text:
-            tags.add(COMM(encoding=3, lang="eng", desc="", text=[(text + "\n" + marker).strip()]))
+        separator = "\n" if text and not text.endswith("\n") else ""
+        marked = text + separator + marker
+        if existing is None or existing.text != [marked]:
+            tags.add(COMM(encoding=3, lang="eng", desc="", text=[marked]))
+            changed = True
+        if changed:
             tags.save(str(file_path), v2_version=3)
 
     @classmethod
@@ -260,21 +270,21 @@ class AppleMusicManager:
                 state = cls._music_state(
                     path,
                     playlist,
-                    marker,
+                    "",
                     library_id=target.library_id if target else "",
+                    action="resolve",
                     playlist_id=target.playlist_id if target else "",
                 )
                 key = "music:" + state["library"] + ":" + source
                 known = history.get(key) or ""
-                if known:
-                    state = cls._music_state(
-                        path,
-                        playlist,
-                        marker,
-                        known,
-                        state["library"],
-                        playlist_id=state["playlist"],
-                    )
+                state = cls._music_state(
+                    path,
+                    playlist,
+                    marker,
+                    known,
+                    state["library"],
+                    playlist_id=state["playlist"],
+                )
                 imported = bool(state["track"])
                 for stage in (["import", "playlist"] if playlist else ["import"]):
                     pending = (

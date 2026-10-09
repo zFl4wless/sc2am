@@ -153,15 +153,17 @@ def test_isolated_benchmark_counts_fresh_and_resumed_external_work(tracks):
         "yt_dlp_processes": 2 * tracks,
         "url_extractions": tracks,
         "audio_downloads": tracks,
-        "music_processes": 5 * tracks + 2,
+        "music_processes": 6 * tracks + 2,
         "playlist_listings": 1,
         "target_resolutions": 1,
+        "library_resolutions": tracks,
         "music_mutations": 2 * tracks,
     }
     assert resume["calls"] == {
         "music_processes": 2 * tracks + 2,
         "playlist_listings": 1,
         "target_resolutions": 1,
+        "library_resolutions": tracks,
     }
 
 

@@ -58,6 +58,14 @@ extraction is removed. Real network, signed media expiry, FFmpeg, artwork,
 library size, Music responsiveness and process startup can dominate real runs;
 no end-to-end real-world acceleration has been measured or claimed.
 
+The later track-association hardening resolves the active library without track
+lookup before consulting its saved track ID. It adds one read-only process per
+fresh track: the current harness expects `6 * tracks + 2` Music processes on a
+fresh successful playlist run. Resume remains `2 * tracks + 2`, since library
+discovery replaces the earlier marker lookup before the saved-ID lookup. The
+table above retains the historical measurements rather than predicting timings
+for the hardened workflow.
+
 Collections and failed preflights stop before audio downloads. Temporary audio
 retries reuse the checked JSON and clean it up afterwards. Failed media URLs
 cannot trigger an unchecked URL re-extraction. Exact known URLs resume without
