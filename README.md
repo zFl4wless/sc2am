@@ -8,7 +8,7 @@ Apple Music playlists. SC2AM is a command-line tool for Mac users: give it a
 single track link you have permission to download, and it downloads a tagged
 MP3, imports it into Music.app and optionally adds it to a playlist you choose.
 
-**Start here:** [Install v2.1.0](#end-user-installation-on-macos) ·
+**Start here:** [Install v2.1.1](#end-user-installation-on-macos) ·
 [Mac → iPhone, offline & CarPlay setup](docs/macos-setup.md) ·
 [Watch the 36-second demo](docs/demo/product-film/sc2am-product-film.mp4)
 
@@ -75,9 +75,10 @@ and user-facing changes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### End-user installation on macOS
 
-This install path uses the published `v2.1.0` GitHub wheel from the
-[release page](https://github.com/zFl4wless/sc2am/releases/tag/v2.1.0);
-see the [release notes](docs/releases/v2.1.0.md).
+This install path uses the `v2.1.1` GitHub wheel from the
+[release page](https://github.com/zFl4wless/sc2am/releases/tag/v2.1.1);
+confirm that its wheel asset is visible before running these commands.
+See the [release notes](docs/releases/v2.1.1.md).
 It requires macOS, Python 3.10 or newer, and Homebrew for the external `ffmpeg` and `ffprobe`
 programs. Music.app is needed when importing tracks; a real download also needs
 network access.
@@ -89,7 +90,7 @@ cd sc2am
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install \
-  "https://github.com/zFl4wless/sc2am/releases/download/v2.1.0/sc2am-2.1.0-py3-none-any.whl"
+  "https://github.com/zFl4wless/sc2am/releases/download/v2.1.1/sc2am-2.1.1-py3-none-any.whl"
 sc2am doctor
 sc2am download "https://soundcloud.com/artist/track"
 ```
@@ -100,13 +101,14 @@ wrapper around the same project dependencies. Follow [macOS setup](docs/macos-se
 for prerequisites and Music.app permissions before the first real download.
 The `doctor` check reports missing prerequisites without changing Music.
 Version 2.1.0 adds share links, safe repeat/resume and `--strict-import`.
+Version 2.1.1 hardens source-marker handling and saved Music track lookup.
 
-To upgrade an existing installation from `v2.0.0` or `v2.0.1` to `v2.1.0`,
+To upgrade an existing installation from `v2.0.0`, `v2.0.1` or `v2.1.0` to `v2.1.1`,
 activate the same environment and install the released wheel with `--upgrade`:
 
 ```bash
 python -m pip install --upgrade \
-  "https://github.com/zFl4wless/sc2am/releases/download/v2.1.0/sc2am-2.1.0-py3-none-any.whl"
+  "https://github.com/zFl4wless/sc2am/releases/download/v2.1.1/sc2am-2.1.1-py3-none-any.whl"
 python -m pip check
 ```
 

@@ -34,12 +34,12 @@ its dependencies:
 
 ```bash
 python -m pip install --upgrade \
-  "https://github.com/zFl4wless/sc2am/releases/download/v2.1.0/sc2am-2.1.0-py3-none-any.whl"
+  "https://github.com/zFl4wless/sc2am/releases/download/v2.1.1/sc2am-2.1.1-py3-none-any.whl"
 python -m pip check
 ```
 
-The example uses the v2.1.0 wheel and its dependency minimums described above.
-Confirm the assets are visible on the [GitHub release](https://github.com/zFl4wless/sc2am/releases/tag/v2.1.0)
+The example uses the v2.1.1 wheel; its dependency minimums are unchanged from v2.1.0.
+Confirm the assets are visible on the [GitHub release](https://github.com/zFl4wless/sc2am/releases/tag/v2.1.1)
 before installing. Do not assume that a package with the same name on a package
 index is this GitHub release.
 
