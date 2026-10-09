@@ -10,7 +10,7 @@ and releases use [Semantic Versioning](https://semver.org/).
 Changes merged after the latest release will be collected here until the next
 release is prepared.
 
-## [2.1.1] - Unreleased
+## [2.1.1] - 2026-10-09
 
 ### Fixed
 
