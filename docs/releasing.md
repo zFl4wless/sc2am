@@ -69,6 +69,10 @@ Preparation and passing CI do not authorize tagging or publication.
 Never reuse a published version or tag. If a release must be corrected, bump
 the version according to Semantic Versioning and document the correction.
 
+For the v2.1.1 candidate, see [v2.1.1 release notes](releases/v2.1.1.md)
+and its [manual acceptance record](releases/v2.1.1-acceptance.md). Set its actual
+publication date and update README/dependency-install links when publication is
+ready; until assets are visible, the documented end-user wheel remains v2.1.0.
 For v2.1.0, see [v2.1.0 release notes](releases/v2.1.0.md).
 The planned v2.0.2 scope is included in v2.1.0; no v2.0.2 tag or release is
 created. Milestones #8 and #9 must remain open until publication is verified.
