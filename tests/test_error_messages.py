@@ -195,11 +195,14 @@ class ErrorMessageTests(unittest.TestCase):
                 ),
                 mock.patch.object(apple_music.subprocess, "run") as run_mock,
             ):
-                run_mock.return_value.returncode = 0
-                run_mock.return_value.stderr = ""
-                run_mock.return_value.stdout = (
-                    "AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1"
-                )
+                run_mock.side_effect = [
+                    Mock(returncode=0, stdout="AAAAAAAAAAAAAAAA||CCCCCCCCCCCCCCCC|0", stderr=""),
+                    Mock(
+                        returncode=0,
+                        stdout="AAAAAAAAAAAAAAAA|BBBBBBBBBBBBBBBB|CCCCCCCCCCCCCCCC|1",
+                        stderr="",
+                    ),
+                ]
                 success, message = AppleMusicManager.add_to_playlist(
                     file_path,
                     "  roadtrip  ",

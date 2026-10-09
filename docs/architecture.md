@@ -48,7 +48,10 @@ again; `--dry-run` and disabled playlist actions never resolve Music targets.
 All Music subprocess attempts use a 30-second timeout. Read-only queries retry
 at most three times, with 1- and 2-second backoff. Fixed AppleScript returns
 validated library/track/playlist persistent IDs and membership, not a dispatch
-acknowledgement. The library ID scopes recorded references. A library track is
+acknowledgement. The active library (and optional destination) is first resolved
+without searching for tracks. The library ID scopes recorded references; the
+subsequent lookup prefers the saved track ID for that library, even if comments
+were edited or marker matches are ambiguous. A library track is
 found by a confirmed persistent ID, a stable source marker in its comment, or
 its original file location. Playlist additions duplicate the existing library
 reference only if membership is absent; they do not re-add the MP3.
@@ -57,9 +60,25 @@ reference only if membership is absent; they do not re-add the MP3.
 Downloaded files are indexed by the validated URL and SoundCloud ID; reuse
 requires a regular file in the same directory with the recorded SHA-256 hash.
 An exact known URL can resume offline. Metadata is not refreshed on reuse.
-The import marker is appended to the English default ID3 comment before importing;
-the journal records the resulting file hash. This allows Music's copied files to
-be located even when an import response is lost. Other comments are preserved.
+Before a new import, source markers (`sc2am:` followed by 64 ASCII hexadecimal
+characters) are removed from all ID3 COMM comment texts, including markers
+embedded in ordinary text. Matching ignores ASCII letter case in both the prefix
+and hexadecimal characters, so uppercase and mixed-case variants are also
+removed. Ordinary comment text, languages and descriptions are retained;
+non-ASCII lookalikes are not treated as markers. Exactly one canonical lowercase
+marker for the current source is then written to the English default comment;
+repeating this produces the same result.
+The journal records the resulting file hash. This allows Music's copied files to
+be located even when an import response is lost.
+
+This hardens track association; a reachable remote attack has not been confirmed.
+Existing Music entries and their comments are not retroactively cleaned. Marker
+and location lookup remain fallbacks when a saved ID is absent or no longer
+resolves; ambiguous matches stop before mutation. Synthetic ID3 files and process
+doubles verify the application workflow. Native Music comment selection across
+COMM frames and provider metadata behavior remain open questions that require
+separate isolated acceptance testing; these tests do not establish remote
+exploitability or cloud behavior.
 
 A nonblocking file lock serializes Music operations using the same download
 folder. Each mutation commits a pending intent before dispatch and performs an

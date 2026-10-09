@@ -59,7 +59,7 @@ class ExternalDouble:
             else:
                 path, playlist, marker, known, library, action, playlist_id = command[3:]
                 if action == "resolve":
-                    self.counts["target_resolutions"] += 1
+                    self.counts["target_resolutions" if path == "." else "library_resolutions"] += 1
                     output = "AAAAAAAAAAAAAAAA||CCCCCCCCCCCCCCCC|0"
                 else:
                     track = self.tracks.get(marker, "")
