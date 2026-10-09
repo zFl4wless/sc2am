@@ -192,7 +192,7 @@ class AppleMusicManager:
 
     @staticmethod
     def _mark_file(file_path: Path, marker: str) -> None:
-        """Replace canonical source markers in comments before a new import."""
+        """Replace source markers in any ASCII letter case before a new import."""
         try:
             tags = ID3(str(file_path))
         except ID3NoHeaderError:
@@ -200,7 +200,10 @@ class AppleMusicManager:
         comments = tags.getall("COMM")
         changed = False
         for frame in comments:
-            cleaned = [re.sub(r"sc2am:[0-9a-f]{64}", "", text) for text in frame.text]
+            cleaned = [
+                re.sub(r"sc2am:[0-9a-f]{64}", "", text, flags=re.IGNORECASE | re.ASCII)
+                for text in frame.text
+            ]
             if cleaned != frame.text:
                 frame.text = cleaned
                 changed = True

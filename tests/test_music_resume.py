@@ -285,17 +285,24 @@ def test_marker_preserves_comments_and_is_not_appended_twice(track):
 
 
 @pytest.mark.parametrize("default_comment", [False, True])
-def test_marker_removes_foreign_and_embedded_markers_from_all_comments(track, default_comment):
+@pytest.mark.parametrize("prefix", ["sc2am:", "SC2AM:", "Sc2aM:"])
+@pytest.mark.parametrize("digest", ["abcdef01" * 8, "ABCDEF01" * 8, "aBcDeF01" * 8])
+def test_marker_removes_foreign_and_embedded_markers_from_all_comments(
+    track, default_comment, prefix, digest
+):
     own = "sc2am:" + "a" * 64
-    foreign = "sc2am:" + "b" * 64
-    other = "sc2am:" + "c" * 64
+    foreign = prefix + digest
+    other = prefix.swapcase() + digest.swapcase()
+    ordinary = "  Notizen\nsc2am:test\nſc2am:" + "a" * 64 + "\nSC2AM:" + "Ａ" * 64 + "  "
     tags = ID3()
     if default_comment:
         tags.add(COMM(encoding=3, lang="eng", desc="", text=[f"Notes ({foreign}) {own}"]))
     tags.add(COMM(encoding=3, lang="deu", desc="", text=[f"Vor{foreign}nach"]))
-    tags.add(COMM(encoding=3, lang="eng", desc="Other", text=[f"First {other}\nLast {own}"]))
+    tags.add(
+        COMM(encoding=3, lang="eng", desc="Other", text=[f"First {other}\nLast {own.upper()}"])
+    )
     tags.add(COMM(encoding=3, lang="fra", desc="Only marker", text=[foreign]))
-    tags.add(COMM(encoding=3, lang="deu", desc="Notes", text=["  Notizen\nsc2am:test  "]))
+    tags.add(COMM(encoding=3, lang="deu", desc="Notes", text=[ordinary]))
     tags.save(track, v2_version=3)
 
     Manager._mark_file(track, own)
@@ -307,9 +314,10 @@ def test_marker_removes_foreign_and_embedded_markers_from_all_comments(track, de
     assert comments["COMM::deu"].text == ["Vornach"]
     assert comments["COMM:Other:eng"].text == ["First \nLast "]
     assert "COMM:Only marker:fra" not in comments  # Mutagen omits empty comments on save.
-    assert comments["COMM:Notes:deu"].text == ["  Notizen\nsc2am:test  "]
+    assert comments["COMM:Notes:deu"].text == [ordinary]
     all_text = "\n".join(text for frame in comments.getall("COMM") for text in frame.text)
     assert all_text.count(own) == 1
+    assert own.upper() not in all_text
     assert foreign not in all_text and other not in all_text
 
 

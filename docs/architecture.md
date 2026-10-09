@@ -60,11 +60,14 @@ reference only if membership is absent; they do not re-add the MP3.
 Downloaded files are indexed by the validated URL and SoundCloud ID; reuse
 requires a regular file in the same directory with the recorded SHA-256 hash.
 An exact known URL can resume offline. Metadata is not refreshed on reuse.
-Before a new import, canonical source markers (`sc2am:` followed by 64 lowercase
-hexadecimal characters) are removed from all ID3 COMM comment texts, including
-markers embedded in ordinary text. Ordinary comment text, languages and
-descriptions are retained. Exactly one marker for the current source is then
-written to the English default comment; repeating this produces the same result.
+Before a new import, source markers (`sc2am:` followed by 64 ASCII hexadecimal
+characters) are removed from all ID3 COMM comment texts, including markers
+embedded in ordinary text. Matching ignores ASCII letter case in both the prefix
+and hexadecimal characters, so uppercase and mixed-case variants are also
+removed. Ordinary comment text, languages and descriptions are retained;
+non-ASCII lookalikes are not treated as markers. Exactly one canonical lowercase
+marker for the current source is then written to the English default comment;
+repeating this produces the same result.
 The journal records the resulting file hash. This allows Music's copied files to
 be located even when an import response is lost.
 
